@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, linregress
 import shutil
 import numpy as np
+from operator import itemgetter
+from collections import Counter
 
 class prepross(object):
 	def __init__(self, arg):
@@ -41,8 +43,12 @@ class prepross(object):
 		# compute correlation coefficients and draw correlation plots
 		self.corrPlot(self.CRS_STU, self.plots_ori, self.corrORIResults)
 		self.corrPlot(self.crsMatrix, self.plots_ave, self.corrAVEResults)
-		self.validation(self.corrAVEResults, 'ave')
-		self.validation(self.corrORIResults, 'ori')
+		self.validation(self.corrAVEResults, 'ave', 0.60)
+		self.validation(self.corrAVEResults, 'ave', 0.65)
+		self.validation(self.corrAVEResults, 'ave', 0.70)
+		self.validation(self.corrORIResults, 'ori', 0.60)
+		self.validation(self.corrORIResults, 'ori', 0.65)
+		self.validation(self.corrORIResults, 'ori', 0.70)
 		
 		self.groupPlots(self.plots_ori, self.course_ori, self.corrORIResults)
 		self.groupPlots(self.plots_ave, self.course_ave, self.corrAVEResults)
@@ -1017,9 +1023,15 @@ class prepross(object):
 			if float(format(float(pair[4]), '.2f')) >= cutoff:
 				coeLst.append(pair)
 
-		# sort coeLst according to the frequency of xcourse and the coefficient from big to small
+		# sort coeLst according to the frequency of xcourse and the coefficient descending
+		# group records according to the xcourse and the coefficient descending
+		coeLst.sort(key=itemgetter(0,1,4), reverse=True)
+		# compute the frequency for each xcourse
+		freq = Counter(item[0]+item[1] for item in coeLst)
+		# sort the records according to xcourse frequency descending
+		coeLst = sorted(coeLst, key=lambda i: freq[i[0]+i[1]], reverse=True)
 
-		for pair in r1:
+		for pair in coeLst:
 			if float(format(float(pair[4]), '.2f')) >= 0.60:
 				xkey = pair[0].replace(' ','')+pair[1].replace(' ','')
 				ykey = pair[2].replace(' ','')+pair[3].replace(' ','')
@@ -1046,7 +1058,7 @@ class prepross(object):
 						if xgrades[x] == 'E' or xgrades[x] == 'F' or xgrades[x] == 'N' or xgrades[x] == 'SF':
 							levelF.append(ygrades[x])
 				
-				w.writerow([xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total])
+				w.writerow([xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total, pair[4], freq[pair[0]+pair[1]]])
 				a = self.levelFrequency(levelA)
 				b = self.levelFrequency(levelB)
 				c = self.levelFrequency(levelC)
@@ -1065,12 +1077,8 @@ class prepross(object):
 				w.writerow(lstd)
 				w.writerow(lstf)
 
-				print [xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total]
-				print lsta
-				print lstb
-				print lstc
-				print lstd
-				print lstf
+				print [xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total, pair[4]]
+				print lsta, '\n', lstb, '\n', lstc, '\n', lstd, '\n', lstf
 
 	def gradeDistributionCell(self, lst, gradeLevel):
 		if sum(lst) != 0 and len(lst) == 5:
