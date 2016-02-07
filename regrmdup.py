@@ -1082,7 +1082,7 @@ class prepross(object):
 
 	def gradeDistributionCell(self, lst, gradeLevel):
 		if sum(lst) != 0 and len(lst) == 5:
-			return [gradeLevel, sum(lst), lst[0], lst[1], lst[2], lst[3], lst[4], '', format(lst[0]*1.0/sum(lst), '.2f'), format(lst[1]*1.0/sum(lst), '.2f'), format(lst[2]*1.0/sum(lst), '.2f'), format(lst[3]*1.0/sum(lst), '.2f'), format(lst[4]*1.0/sum(lst), '.2f')]
+			return [gradeLevel, sum(lst), lst[0], lst[1], lst[2], lst[3], lst[4], format(lst[0]*1.0/sum(lst), '.2f'), format(lst[1]*1.0/sum(lst), '.2f'), format(lst[2]*1.0/sum(lst), '.2f'), format(lst[3]*1.0/sum(lst), '.2f'), format(lst[4]*1.0/sum(lst), '.2f')]
 		else:
 			return [gradeLevel, sum(lst), lst[0], lst[1], lst[2], lst[3], lst[4]]
 
