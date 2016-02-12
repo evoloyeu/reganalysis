@@ -1103,19 +1103,14 @@ class prepross(object):
 					if xgrades[x] == 'E' or xgrades[x] == 'F' or xgrades[x] == 'N' or xgrades[x] == 'SF':
 						levelF.append(ygrades[x])
 			
-			w.writerow(['Course_1', 'Course_2', 'A_2', 'B_2', 'C_2', 'D_2', 'F_2', '%A_2', '%B_2', '%C_2', '%D_2', '%F_2', '#_of_Student', 'Coefficient', '#_of_Courses'])
+			w.writerow(['Course_1', 'Course_2', '', '', '', '', '', '', '', '', '', '', '#Student', 'Coefficient', '#Courses'])
 			w.writerow([xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total, pair[3], freq[xkey]])
-			a = self.levelFrequency(levelA)
-			b = self.levelFrequency(levelB)
-			c = self.levelFrequency(levelC)
-			d = self.levelFrequency(levelD)
-			f = self.levelFrequency(levelF)
 
-			lsta = self.gradeDistributionCell(a, 'A_1')
-			lstb = self.gradeDistributionCell(b, 'B_1')
-			lstc = self.gradeDistributionCell(c, 'C_1')
-			lstd = self.gradeDistributionCell(d, 'D_1')
-			lstf = self.gradeDistributionCell(f, 'F_1')
+			lsta = self.gradeDistributionCell(self.levelFrequency(levelA), 'A_1')
+			lstb = self.gradeDistributionCell(self.levelFrequency(levelB), 'B_1')
+			lstc = self.gradeDistributionCell(self.levelFrequency(levelC), 'C_1')
+			lstd = self.gradeDistributionCell(self.levelFrequency(levelD), 'D_1')
+			lstf = self.gradeDistributionCell(self.levelFrequency(levelF), 'F_1')
 
 			w.writerows([lsta, lstb, lstc, lstd, lstf])
 
