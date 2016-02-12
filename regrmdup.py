@@ -1067,7 +1067,15 @@ class prepross(object):
 		gradeLevelFreLst.sort(key=itemgetter(0,2,3), reverse=True)
 		freq = Counter(item[0] for item in gradeLevelFreLst)
 		gradeLevelFreLst = sorted(gradeLevelFreLst, key=lambda i: freq[i[0]], reverse=True)
-		w1.writerows(gradeLevelFreLst)
+		header = ['Course_1', 'Course_2', '#students', 'Coefficient', '#Courses']
+		w1.writerow(header)
+		for index in xrange(0, len(gradeLevelFreLst)-1):
+			w1.writerow(gradeLevelFreLst[index])
+			if index < (len(gradeLevelFreLst)-1):				
+				if gradeLevelFreLst[index][-1] != gradeLevelFreLst[index+1][-1]:
+					w1.writerow(header)
+
+		# w1.writerows(gradeLevelFreLst)
 
 		for pair in gradeLevelFreLst:
 			xkey = pair[0]
