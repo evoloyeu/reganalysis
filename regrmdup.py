@@ -43,9 +43,11 @@ class prepross(object):
 		# compute correlation coefficients and draw correlation plots
 		self.corrPlot(self.CRS_STU, self.plots_ori, self.corrORIResults)
 		self.corrPlot(self.crsMatrix, self.plots_ave, self.corrAVEResults)
+		
 		self.validation(self.corrAVEResults, 'ave', 0.60)
 		self.validation(self.corrAVEResults, 'ave', 0.65)
 		self.validation(self.corrAVEResults, 'ave', 0.70)
+
 		self.validation(self.corrORIResults, 'ori', 0.60)
 		self.validation(self.corrORIResults, 'ori', 0.65)
 		self.validation(self.corrORIResults, 'ori', 0.70)
@@ -128,6 +130,14 @@ class prepross(object):
 		self.valORI60 = self.dataDir + str(self.threshold) + '_corr_ori_val60.csv'
 		self.valORI65 = self.dataDir + str(self.threshold) + '_corr_ori_val65.csv'		
 		self.valORI70 = self.dataDir + str(self.threshold) + '_corr_ori_val70.csv'
+
+		self.valAVE6060 = self.dataDir + str(self.threshold) + '_corr_ave_val60_60.csv'
+		self.valAVE6565 = self.dataDir + str(self.threshold) + '_corr_ave_val65_65.csv'
+		self.valAVE7070 = self.dataDir + str(self.threshold) + '_corr_ave_val70_70.csv'
+
+		self.valORI6060 = self.dataDir + str(self.threshold) + '_corr_ori_val60_60.csv'
+		self.valORI6565 = self.dataDir + str(self.threshold) + '_corr_ori_val65_65.csv'		
+		self.valORI7070 = self.dataDir + str(self.threshold) + '_corr_ori_val70_70.csv'
 
 		self.plots_ave = self.currDir + 'plots_ave/'
 		self.plots_ori = self.currDir + 'plots_ori/'
@@ -1000,21 +1010,28 @@ class prepross(object):
 				crsDict[key] = crs[2:]
 
 		w = ''
+		w1 = ''
 		if cutoff == 0.60:
 			if flag == 'ave':
 				w = csv.writer(open(self.valAVE60, 'w'))
+				w1 = csv.writer(open(self.valAVE6060, 'w'))
 			if flag == 'ori':
 				w = csv.writer(open(self.valORI60, 'w'))
+				w1 = csv.writer(open(self.valORI6060, 'w'))
 		elif cutoff == 0.65:
 			if flag == 'ave':
 				w = csv.writer(open(self.valAVE65, 'w'))
+				w1 = csv.writer(open(self.valAVE6565, 'w'))
 			if flag == 'ori':
 				w = csv.writer(open(self.valORI65, 'w'))
+				w1 = csv.writer(open(self.valORI6565, 'w'))
 		elif cutoff == 0.70:
 			if flag == 'ave':
 				w = csv.writer(open(self.valAVE70, 'w'))
+				w1 = csv.writer(open(self.valAVE7070, 'w'))
 			if flag == 'ori':
 				w = csv.writer(open(self.valORI70, 'w'))
+				w1 = csv.writer(open(self.valORI7070, 'w'))
 
 		r1 = csv.reader(open(corr), delimiter=',')
 		r1.next()
@@ -1031,54 +1048,71 @@ class prepross(object):
 		# sort the records according to xcourse frequency descending
 		coeLst = sorted(coeLst, key=lambda i: freq[i[0]+i[1]], reverse=True)
 
+		gradeLevelFreLst = []
 		for pair in coeLst:
-			if float(format(float(pair[4]), '.2f')) >= 0.60:
-				xkey = pair[0].replace(' ','')+pair[1].replace(' ','')
-				ykey = pair[2].replace(' ','')+pair[3].replace(' ','')
+			xkey = pair[0].replace(' ','') + pair[1].replace(' ','')
+			ykey = pair[2].replace(' ','') + pair[3].replace(' ','')
 
-				xgrades = crsDict[xkey]
-				ygrades = crsDict[ykey]
-				total = 0
-				levelA = []
-				levelB = []
-				levelC = []
-				levelD = []
-				levelF = []
-				for x in xrange(0,len(xgrades)):
-					if (xgrades[x] != 'NA' and xgrades[x] != 'NG') and (ygrades[x] != 'NA' and ygrades[x] != 'NG'):
-						total = total + 1
-						if xgrades[x] == 'A' or xgrades[x] == 'A-' or xgrades[x] == 'A+':
-							levelA.append(ygrades[x])
-						if xgrades[x] == 'B' or xgrades[x] == 'B-' or xgrades[x] == 'B+':
-							levelB.append(ygrades[x])
-						if xgrades[x] == 'C' or xgrades[x] == 'C+':
-							levelC.append(ygrades[x])
-						if xgrades[x] == 'D' or xgrades[x] == 'SB' or xgrades[x] == 'SB-' or xgrades[x] == 'SD':
-							levelD.append(ygrades[x])
-						if xgrades[x] == 'E' or xgrades[x] == 'F' or xgrades[x] == 'N' or xgrades[x] == 'SF':
-							levelF.append(ygrades[x])
-				
-				w.writerow([xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total, pair[4], freq[pair[0]+pair[1]]])
-				a = self.levelFrequency(levelA)
-				b = self.levelFrequency(levelB)
-				c = self.levelFrequency(levelC)
-				d = self.levelFrequency(levelD)
-				f = self.levelFrequency(levelF)
+			xgrades = crsDict[xkey]
+			ygrades = crsDict[ykey]
+			total = 0
+			for x in xrange(0,len(xgrades)):
+				if (xgrades[x] != 'NA' and xgrades[x] != 'NG') and (ygrades[x] != 'NA' and ygrades[x] != 'NG'):
+					total = total + 1
+			
+			# [course_1, course_y, #_of_student, coefficient, #_of_courses]
+			gradeLevelFreLst.append([xkey, ykey, total, pair[4], freq[xkey]])
 
-				lsta = self.gradeDistributionCell(a, 'A')
-				lstb = self.gradeDistributionCell(b, 'B')
-				lstc = self.gradeDistributionCell(c, 'C')
-				lstd = self.gradeDistributionCell(d, 'D')
-				lstf = self.gradeDistributionCell(f, 'F')
+		# sort gradeLevelFreLst by #_of_student and coefficient descendingly
+		gradeLevelFreLst.sort(key=itemgetter(0,2,3), reverse=True)
+		freq = Counter(item[0] for item in gradeLevelFreLst)
+		gradeLevelFreLst = sorted(gradeLevelFreLst, key=lambda i: freq[i[0]], reverse=True)
+		w1.writerows(gradeLevelFreLst)
 
-				w.writerow(lsta)
-				w.writerow(lstb)
-				w.writerow(lstc)
-				w.writerow(lstd)
-				w.writerow(lstf)
+		for pair in gradeLevelFreLst:
+			xkey = pair[0]
+			ykey = pair[1]
 
-				print [xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total, pair[4]]
-				print lsta, '\n', lstb, '\n', lstc, '\n', lstd, '\n', lstf
+			xgrades = crsDict[xkey]
+			ygrades = crsDict[ykey]
+			total = 0
+			levelA = []
+			levelB = []
+			levelC = []
+			levelD = []
+			levelF = []
+			for x in xrange(0,len(xgrades)):
+				if (xgrades[x] != 'NA' and xgrades[x] != 'NG') and (ygrades[x] != 'NA' and ygrades[x] != 'NG'):
+					total = total + 1
+					if xgrades[x] == 'A' or xgrades[x] == 'A-' or xgrades[x] == 'A+':
+						levelA.append(ygrades[x])
+					if xgrades[x] == 'B' or xgrades[x] == 'B-' or xgrades[x] == 'B+':
+						levelB.append(ygrades[x])
+					if xgrades[x] == 'C' or xgrades[x] == 'C+':
+						levelC.append(ygrades[x])
+					if xgrades[x] == 'D' or xgrades[x] == 'SB' or xgrades[x] == 'SB-' or xgrades[x] == 'SD':
+						levelD.append(ygrades[x])
+					if xgrades[x] == 'E' or xgrades[x] == 'F' or xgrades[x] == 'N' or xgrades[x] == 'SF':
+						levelF.append(ygrades[x])
+			
+			w.writerow(['Course_1', 'Course_2', 'A_2', 'B_2', 'C_2', 'D_2', 'F_2', '%A_2', '%B_2', '%C_2', '%D_2', '%F_2', '#_of_Student', 'Coefficient', '#_of_Courses'])
+			w.writerow([xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total, pair[3], freq[xkey]])
+			a = self.levelFrequency(levelA)
+			b = self.levelFrequency(levelB)
+			c = self.levelFrequency(levelC)
+			d = self.levelFrequency(levelD)
+			f = self.levelFrequency(levelF)
+
+			lsta = self.gradeDistributionCell(a, 'A_1')
+			lstb = self.gradeDistributionCell(b, 'B_1')
+			lstc = self.gradeDistributionCell(c, 'C_1')
+			lstd = self.gradeDistributionCell(d, 'D_1')
+			lstf = self.gradeDistributionCell(f, 'F_1')
+
+			w.writerows([lsta, lstb, lstc, lstd, lstf])
+
+			print [xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total, pair[2], pair[3], freq[xkey]]
+			print lsta, '\n', lstb, '\n', lstc, '\n', lstd, '\n', lstf
 
 	def gradeDistributionCell(self, lst, gradeLevel):
 		if sum(lst) != 0 and len(lst) == 5:
