@@ -625,7 +625,7 @@ class prepross(object):
 
 					(r, p) = pearsonr(xdata, ydata)
 					if str(r) == 'nan':
-						print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
+						print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CANNOT Compute Pearson Correlation^^^^^^^^^^^^^^^^^^^^^^^^^^^'
 						continue
 
 					fig = plt.figure()
@@ -637,12 +637,7 @@ class prepross(object):
 
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
-					r = float(format(r, '.2f'))
-					slope = float(format(slope, '.2f'))
-					intercept = float(format(intercept, '.2f'))
-					r_value = float(format(r_value, '.2f'))
-					p_value = float(format(p_value, '.2f'))
-					std_err = float(format(std_err, '.2f'))
+					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.2f')), float(format(slope, '.2f')), float(format(intercept, '.2f')), float(format(r_value, '.2f')), float(format(p_value, '.2f')), float(format(std_err, '.2f'))]
 					
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, p_value, std_err, slope, intercept])
 
