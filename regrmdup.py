@@ -336,16 +336,12 @@ class prepross(object):
 		# skip header
 		header = fRegNodupRder.next()
 		# count course frequency
-		crsPerStu = {}
-		crsFre = {}
-		cnt = 1
-		noGradeRecs = []
-		distinctCRSLst = []
-		distinctSTULst = []
+		crsPerStu, crsFre = {}, {}
+		noGradeRecs, distinctCRSLst, distinctSTULst = [], [], []
 		for record in fRegNodupRder:
 			if record[1] not in distinctSTULst:
 				distinctSTULst.append(record[1])
-			course_code = str(record[3].replace(' ',''))+str(record[4].replace(' ',''))
+			course_code = record[3].replace(' ','')+record[4].replace(' ','')
 			if course_code not in distinctCRSLst:
 				distinctCRSLst.append(course_code)
 			# record[1]:v_number
@@ -357,97 +353,103 @@ class prepross(object):
 
 			# course frequency
 			# how many students each course was been registered
-			if (str(record[3].replace(' ',''))+str(record[4].replace(' ',''))) in crsFre:
-				crsFre[str(record[3].replace(' ',''))+str(record[4].replace(' ',''))] = crsFre[str(record[3].replace(' ',''))+str(record[4].replace(' ',''))] + 1
+			if course_code in crsFre:
+				crsFre[course_code] = crsFre[course_code] + 1
 			else:
-				crsFre[str(record[3].replace(' ',''))+str(record[4].replace(' ',''))] = 1
+				crsFre[course_code] = 1
 
 			if record[6] == '':
 				noGradeRecs.append(record)
-			# if record[3] == 'ELEC' and record[4] == '350':
-			# 	print 'cnt ', cnt, ' ',record[1]
-			# 	cnt = cnt + 1
 		
+		# count how many courses registered for each student
 		w = csv.writer(open(self.CRSPERSTU, 'w'))
-		w.writerow(['V_NUMBER', 'Number of Courses registered'])
+		w.writerow(['V_NUMBER', '#_of_Courses_registered'])
 		w.writerows(crsPerStu.items())
+		# count how many students for each course
 		w = csv.writer(open(self.STUREGISTERED, 'w'))
-		w.writerow(['Course', 'Frequency'])
+		w.writerow(['Course', '#_of_Students'])
 		w.writerows(crsFre.items())
+		# pickup the courses without grades
 		w = csv.writer(open(self.EMPTY, 'w'))
 		noGradeRecs.insert(0, header)
 		w.writerows(noGradeRecs)
 		
 		r = csv.reader(open(self.EMPTY), delimiter=',')
 		r.next()
-		uniStu = {}
-		uniCrs = {}	
+		uniStu, uniCrs = {}, {}
 		for record in r:
-			# print record
 			if record[1] not in uniStu:
 				uniStu[record[1]] = 1
 			else:
 				uniStu[record[1]] = uniStu[record[1]] + 1
 
-			if (str(record[3])+str(record[4])) not in uniCrs:
-				uniCrs[str(record[3])+str(record[4])] = 1
+			course_code = record[3].replace(' ','') + record[4].replace(' ','')	
+			if course_code not in uniCrs:
+				uniCrs[course_code] = 1
 			else:
-				uniCrs[str(record[3])+str(record[4])] = uniCrs[str(record[3])+str(record[4])] + 1
+				uniCrs[course_code] = uniCrs[course_code] + 1
 		
+		# count the students who have courses without grades and how many no grade courses they have
 		w = csv.writer(open(self.EMPTY_STU, 'w'))
+		w.writerow(['V_NUMBER', '#_of_Courses_No_Grades'])
 		w.writerows(uniStu.items())
-
+		# count the #_of_students for the courses which were not assigned any grades
 		w = csv.writer(open(self.EMPTY_CRS, 'w'))
+		w.writerow(['Course', '#_of_Students_Reg_No_Grade'])
 		w.writerows(uniCrs.items())
 		
 		# create course list
 		r = csv.reader(open(noDupRegFile), delimiter=',')
 		# skip the header
 		r.next()
-		crsLst = []
-		crscodeLst = []
-		regLst = []
-		vnumLst = []
+		crsLst, crscodeLst, regLst, vnumLst = [], [], [], []
+
+		# header: [subj_code, course_code, v_num1, v_num2, ......]
 		header = ['SUBJECT_CODE', 'COURSE_NUMBER']
-		cnt = 0
-		regCnt = 0
 		for record in r:
-			regCnt = regCnt + 1
-			regLst.append([record[1], str(record[3]).replace(' ',''), str(record[4]).replace(' ',''), record[8], record[6]])
-			crsCode = str(record[3]).replace(' ','') + str(record[4]).replace(' ','')
+			subj_code = record[3].replace(' ','')
+			course_code = record[4].replace(' ','')
+			# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
+			regLst.append([record[1], subj_code, course_code, record[8], record[6]])
+			crsCode = subj_code + course_code
 			if crsCode not in crscodeLst:
 				crscodeLst.append(crsCode)
-				cell = [record[3].replace(' ',''),record[4].replace(' ','')]
+				# cell: [subj_code, course_code, 'NA', ......]
+				cell = [subj_code, course_code]
 				for x in xrange(0,len(distinctSTULst)):
 					cell.append('NA')
 				crsLst.append(cell)
-				cnt = cnt + 1
 
+			# header: [subj_code, course_code, v_num1, v_num2, ......]
+			# vnumLst: [v_num1, v_num2, ......]
 			if record[1] not in vnumLst:
 				vnumLst.append(record[1])
 				header.append(record[1])
 
-		# create course matrix
+		# create course matrix		
 		w = csv.writer(open(self.CRS_STU, 'w'))		
 		w.writerow(header)
 		wgrade = csv.writer(open(self.CRS_STU_GRADE, 'w'))
 		wgrade.writerow(header)
 
 		# matrix = [['' for x in range(len(distinctCRSLst))] for x in range(len(distinctSTULst))]
-		for x in xrange(0,cnt):
+		for x in xrange(0,len(crscodeLst)):
 			cell = crsLst[x]
 
-			crs_stu = []
-			crs_stu_grade = []
+			crs_stu, crs_stu_grade = [], []
+			# copy cell into crs_stu, crs_stu_grade
 			for item in crsLst[x]:
 				crs_stu.append(item)
 				crs_stu_grade.append(item)
 
-			for y in xrange(0,regCnt):
+			for y in xrange(0,len(regLst)):
 				reg = regLst[y]
 				# get the index of vnum in the vnumLst
+				# vnumLst: [v_num1, v_num2, ......]
 				indx = vnumLst.index(reg[0])
-				if cell[0] in reg and cell[1] in reg:
+				# cell: [subj_code, course_code, 'NA', ......]
+				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
+				if cell[0] == reg[1] and cell[1] == reg[2]:
 					if reg[3] == '':
 						crs_stu[indx+2] = 'NG'
 						crs_stu_grade[indx+2] = 'NG'
@@ -456,32 +458,37 @@ class prepross(object):
 						crs_stu_grade[indx+2] = reg[4]
 			w.writerow(crs_stu)
 			wgrade.writerow(crs_stu_grade)
+			print '=============print cell, crs_stu, crs_stu_grade   begin============='
 			print cell
 			print crs_stu
 			print crs_stu_grade
+			print '=============print cell, crs_stu, crs_stu_grade   end============='
 
 		# create course matrix
 		w = csv.writer(open(self.STU_CRS, 'w'))
-		header = ['V_NUMBER']		
-		for x in xrange(0,len(distinctCRSLst)):
-			header.append(distinctCRSLst[x])
+		# header: [v_num, crs1, crs2, ......]
+		header = ['V_NUMBER']
+		for crs in distinctCRSLst:
+			header.append(crs)
 		w.writerow(header)
 
 		# init rows
 		rowLst = []
-		for x in xrange(0,len(distinctSTULst)):
-			row = [distinctSTULst[x]]
+		for stu in distinctSTULst:
+			# row: [v_num, 'NA', 'NA', ......]
+			row = [stu]
 			for y in xrange(0,len(distinctCRSLst)):
 				row.append('NA')
+
 			rowLst.append(row)
 
-		# fill course grade point for each course
-		for x in xrange(0,len(distinctSTULst)):
-			row = rowLst[x]
-			for y in xrange(0,regCnt):
-				reg = regLst[y]
-				if distinctSTULst[x] in reg:
-					index = distinctCRSLst.index(reg[1].replace(' ','')+reg[2].replace(' ',''))
+		# fill course grade point for each course		
+		for row in rowLst:
+			for reg in regLst:
+				# row: [v_num, 'NA', 'NA', ......]
+				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
+				if row[0] == reg[0]:
+					index = distinctCRSLst.index(reg[1] + reg[2])
 					row[index+1] = reg[3]
 
 			w.writerow(row)
@@ -492,9 +499,8 @@ class prepross(object):
 		# skip the header
 		header = reader.next()
 		
-		matrix = []
+		matrix, discardList = [], []
 		# compute course average
-		discardList = []
 		for row in reader:
 			cnt = 0
 			summation = 0
@@ -569,16 +575,14 @@ class prepross(object):
 
 		matrix = []
 		for row in reader:
-			cnt = 0
-
-			items = []
+			cnt, items = 0, []
 			if source == self.crsMatrix:
 				items = row[3:]
 			else:
 				items = row[2:]
 
 			for item in items:
-				if item.isdigit() and int(item) < 10:
+				if item.isdigit() and float(item) < 10:
 					cnt = cnt + 1
 			if cnt >= self.threshold:
 				matrix.append(row)
@@ -600,13 +604,11 @@ class prepross(object):
 					xaxis = course[0] + ' ' + course[1]
 					yaxis = newCourse[0] + ' ' + newCourse[1]
 
-					xdata = []
-					ydata = []
+					xdata, ydata = [], []
 					if source == self.crsMatrix:
 						xdata = map(float, course[3:])
 						ydata = map(float, newCourse[3:])
 					else:
-						
 						for index in xrange(2, len(course)):
 							ix = course[index]
 							iy = newCourse[index]
@@ -616,7 +618,9 @@ class prepross(object):
 
 						print '===============', 'x:', len(xdata), ' y: ', len(ydata),'================'
 						if len(xdata) < self.threshold:
+							print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard begin @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold: ', self.threshold
 							print course[0], ' ', course[1], ' vs ', newCourse[0], ' ', newCourse[1], ' len: ', len(xdata)
+							print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard end @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold:', self.threshold
 							continue							
 
 					(r, p) = pearsonr(xdata, ydata)
@@ -646,9 +650,6 @@ class prepross(object):
 					xdata.insert(-1, 9.0)
 					yp = [x*slope+intercept for x in xdata]
 					plt.plot(xdata, yp, c='green', label = 'r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + '+' +str(intercept))
-					
-					# slope1, intercept1, r_value1, p_value1, std_err1 = linregress(range(10), range(10))
-					# plt.plot(range(10), [x*slope1+intercept1 for x in range(10)], '--', c = 'red', label = 'r = ' + str(format(r_value1, '.2f')) + ', y = ' + str(format(slope1, '.2f')) + 'x' + '+' + str(format(intercept1, '.2f')))
 
 					plt.axis([0, 9, 0, 9])
 					plt.grid(True)
@@ -658,8 +659,7 @@ class prepross(object):
 					fig.savefig(figName)
 					plt.close(fig)
 					cnt += 1
-					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(xdata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
-					# break
+					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(xdata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\tself.threshold: ', self.threshold
 			
 	def figureSelect(self, threshold, interval, fromDir, toDir, corr):		
 		savePath = toDir + str(threshold) +'_'+ str(threshold + interval)
