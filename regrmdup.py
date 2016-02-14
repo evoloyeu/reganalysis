@@ -42,15 +42,16 @@ class prepross(object):
 		self.crsStuMatrix()		
 		# compute correlation coefficients and draw correlation plots
 		self.corrPlot(self.CRS_STU, self.plots_ori, self.corrORIResults)
-		self.corrPlot(self.crsMatrix, self.plots_ave, self.corrAVEResults)
-		
+		self.validation(self.corrORIResults, 'ori', 0.60)
+		self.validation(self.corrORIResults, 'ori', 0.65)
+		self.validation(self.corrORIResults, 'ori', 0.70)
+
+		self.corrPlot(self.crsMatrix, self.plots_ave, self.corrAVEResults)		
 		self.validation(self.corrAVEResults, 'ave', 0.60)
 		self.validation(self.corrAVEResults, 'ave', 0.65)
 		self.validation(self.corrAVEResults, 'ave', 0.70)
 
-		self.validation(self.corrORIResults, 'ori', 0.60)
-		self.validation(self.corrORIResults, 'ori', 0.65)
-		self.validation(self.corrORIResults, 'ori', 0.70)
+		
 		
 		self.groupPlots(self.plots_ori, self.course_ori, self.corrORIResults)
 		self.groupPlots(self.plots_ave, self.course_ave, self.corrAVEResults)
@@ -1069,10 +1070,10 @@ class prepross(object):
 		gradeLevelFreLst = sorted(gradeLevelFreLst, key=lambda i: freq[i[0]], reverse=True)
 		header = ['Course_1', 'Course_2', '#students', 'Coefficient', '#Courses']
 		w1.writerow(header)
-		for index in xrange(0, len(gradeLevelFreLst)-1):
+		for index in xrange(0, len(gradeLevelFreLst)):
 			w1.writerow(gradeLevelFreLst[index])
-			if index < (len(gradeLevelFreLst)-1):				
-				if gradeLevelFreLst[index][-1] != gradeLevelFreLst[index+1][-1]:
+			if index < (len(gradeLevelFreLst)-1):
+				if gradeLevelFreLst[index][0] != gradeLevelFreLst[index+1][0]:
 					w1.writerow(header)
 
 		# w1.writerows(gradeLevelFreLst)
