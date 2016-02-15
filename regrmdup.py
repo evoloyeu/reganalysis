@@ -57,8 +57,8 @@ class prepross(object):
 		self.pickupFigures(self.plots_ori, self.coefficient_ori, self.corrORIResults)
 		self.pickupFigures(self.plots_ave, self.coefficient_ave, self.corrAVEResults)
 
-		self.coefficientHists(self.hist_ori)
-		self.coefficientHists(self.hist_ave)
+		self.coefficientHists(self.hist_ori, self.corrORIResults)
+		self.coefficientHists(self.hist_ave, self.corrAVEResults)
 
 	def cryptID(self):
 		self.encodeVnumber()
@@ -66,11 +66,9 @@ class prepross(object):
 		self.replaceVnum(self.regDataPath, self.regREPL)
 		self.replaceVnum(self.regNODUP, self.regNODUPREPL)
 
-	def coefficientHists(self, histDir):
-		self.coefficientHist(0.05, histDir)
-		self.coefficientHist(0.1, histDir)
-		self.coefficientHist(0.15, histDir)
-		self.coefficientHist(0.2, histDir)
+	def coefficientHists(self, histDir, corr):
+		for x in [0.05, 0.10, 0.15, 0.20]:
+			self.coefficientHist(x, histDir, corr)
 
 	def pickupFigures(self, plotsDir, coefficientsDir, coorDir):
 		self.figureSelect(0.6, 0.2, plotsDir, coefficientsDir, coorDir)
@@ -663,12 +661,11 @@ class prepross(object):
 				name = row[0] + row[1] + ' ' + row[2] + row[3] + '.png'
 				shutil.copy2(fromDir + name, savePath + '/' + name)
 
-	def coefficientHist(self, interval, histDir):
-		# figPath = self.currDir + 'hist_ave/'
+	def coefficientHist(self, interval, histDir, corr):
 		if not os.path.exists(histDir):
 			os.makedirs(histDir)
 
-		reader = csv.reader(open(self.corrAVEResults), delimiter = ',')
+		reader = csv.reader(open(corr), delimiter = ',')
 		reader.next()
 		x = []
 		for row in reader:
@@ -681,7 +678,7 @@ class prepross(object):
 		plt.ylabel('Frequency')
 		plt.grid(True)
 		
-		bins = [ float(format(bins[i], '.2f')) for i in range(len(bins)) ]
+		# bins = [float(format(bins[i], '.2f')) for i in range(len(bins))]
 		n, bins, patches = plt.hist(x, bins, normed=0, histtype='bar')
 
 		figName = histDir + 'hist_' + 'interval_' + str(interval) + '.png'
