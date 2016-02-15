@@ -1,9 +1,7 @@
-import csv, sys, os, time
-import hashlib
+import csv, sys, os, time, hashlib, shutil
 from pylab import *
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, linregress
-import shutil
 import numpy as np
 from operator import itemgetter
 from collections import Counter
@@ -14,8 +12,6 @@ class prepross(object):
 		self.arg = arg
 		self.degDataPath = arg[1]
 		self.regDataPath = arg[2]
-		# self.threshold = 4
-		# self.statsPath()
 
 	def doBatch(self):
 		self.flows()		
@@ -50,8 +46,6 @@ class prepross(object):
 		self.validation(self.corrAVEResults, 'ave', 0.60)
 		self.validation(self.corrAVEResults, 'ave', 0.65)
 		self.validation(self.corrAVEResults, 'ave', 0.70)
-
-		
 		
 		self.groupPlots(self.plots_ori, self.course_ori, self.corrORIResults)
 		self.groupPlots(self.plots_ave, self.course_ave, self.corrAVEResults)
@@ -587,7 +581,6 @@ class prepross(object):
 			if cnt >= self.threshold:
 				matrix.append(row)
 
-		# w = csv.writer(open(self.corrAVEResults, 'w'))
 		w = csv.writer(open(corr, 'w'))
 		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', 'pValue', 'stderr', 'slope', 'intercept'])
 		cnt = 0
@@ -601,6 +594,7 @@ class prepross(object):
 				newCourse = matrix[y]
 				newYr = newCourse[1][0]
 				if int(yr) < int(newYr) and int(yr) < 3:
+					cnt += 1
 					xaxis = course[0] + ' ' + course[1]
 					yaxis = newCourse[0] + ' ' + newCourse[1]
 
@@ -619,13 +613,14 @@ class prepross(object):
 						print '===============', 'x:', len(xdata), ' y: ', len(ydata),'================'
 						if len(xdata) < self.threshold:
 							print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard begin @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold: ', self.threshold
-							print course[0], ' ', course[1], ' vs ', newCourse[0], ' ', newCourse[1], ' len: ', len(xdata)
+							print course[0], ' ', course[1], ' vs ', newCourse[0], ' ', newCourse[1], '\tlen: ', len(xdata), '\tcnt: ', cnt
 							print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard end @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold:', self.threshold
-							continue							
+							continue
 
 					(r, p) = pearsonr(xdata, ydata)
 					if str(r) == 'nan':
 						print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CANNOT Compute Pearson Correlation^^^^^^^^^^^^^^^^^^^^^^^^^^^'
+						print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cnt: ', cnt, ' end^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
 						continue
 
 					fig = plt.figure()
@@ -653,7 +648,6 @@ class prepross(object):
 					figName = plotDir + course[0] + course[1] + ' ' + newCourse[0] + newCourse[1] + '.png'
 					fig.savefig(figName)
 					plt.close(fig)
-					cnt += 1
 					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(xdata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\tself.threshold: ', self.threshold
 			
 	def figureSelect(self, threshold, interval, fromDir, toDir, corr):		
