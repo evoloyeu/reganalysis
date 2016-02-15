@@ -675,7 +675,7 @@ class prepross(object):
 			x.append(float(row[4]))
 
 		fig = plt.figure()
-		bins = np.arange(-0.3, 0.8, interval)
+		bins = np.arange(-1.0, 1.0, interval)
 		plt.title('Histogram of Coefficients with interval ' + str(interval), fontsize='large')
 		plt.xlabel('Pearson Correlation Coefficient')
 		plt.ylabel('Frequency')
