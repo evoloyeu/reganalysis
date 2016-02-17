@@ -17,7 +17,7 @@ class prepross(object):
 		self.flows()		
 
 	def flows(self):
-		for x in xrange(1,36):
+		for x in xrange(1,2):
 			self.threshold = x
 			self.statsPath()			
 			self.flow()
@@ -35,30 +35,31 @@ class prepross(object):
 
 		self.uniqueCourseList()
 
-		self.crsStuMatrix()		
+		self.crsStuMatrix()
 		# compute correlation coefficients and draw correlation plots
 		self.corrPlot(self.CRS_STU, self.plots_ori, self.corrORIResults)
-		self.validation(self.corrORIResults, 'ori', 0.60)
-		self.validation(self.corrORIResults, 'ori', 0.65)
-		self.validation(self.corrORIResults, 'ori', 0.70)
+		# self.validation(self.corrORIResults, 'ori', 0.60)
+		# self.validation(self.corrORIResults, 'ori', 0.65)
+		# self.validation(self.corrORIResults, 'ori', 0.70)
 
-		self.corrPlot(self.crsMatrix, self.plots_ave, self.corrAVEResults)		
-		self.validation(self.corrAVEResults, 'ave', 0.60)
-		self.validation(self.corrAVEResults, 'ave', 0.65)
-		self.validation(self.corrAVEResults, 'ave', 0.70)
+		# self.corrPlot(self.crsMatrix, self.plots_ave, self.corrAVEResults)
+		# self.validation(self.corrAVEResults, 'ave', 0.60)
+		# self.validation(self.corrAVEResults, 'ave', 0.65)
+		# self.validation(self.corrAVEResults, 'ave', 0.70)
+		# self.validation(self.corrAVEResults, 'ave', 0.75)
 		
 		self.groupPlots(self.plots_ori, self.course_ori, self.corrORIResults)
-		self.groupPlots(self.plots_ave, self.course_ave, self.corrAVEResults)
+		# self.groupPlots(self.plots_ave, self.course_ave, self.corrAVEResults)
 
 		self.courseBarPlots(self.bars_ori, self.corrORIResults)
-		self.courseBarPlots(self.bars_ave, self.corrAVEResults)
+		# self.courseBarPlots(self.bars_ave, self.corrAVEResults)
 		self.studentBarPlots(self.techRegNODUP)
 
 		self.pickupFigures(self.plots_ori, self.coefficient_ori, self.corrORIResults)
-		self.pickupFigures(self.plots_ave, self.coefficient_ave, self.corrAVEResults)
+		# self.pickupFigures(self.plots_ave, self.coefficient_ave, self.corrAVEResults)
 
 		self.coefficientHists(self.hist_ori, self.corrORIResults)
-		self.coefficientHists(self.hist_ave, self.corrAVEResults)
+		# self.coefficientHists(self.hist_ave, self.corrAVEResults)
 
 	def cryptID(self):
 		self.encodeVnumber()
@@ -119,17 +120,19 @@ class prepross(object):
 		self.valAVE60 = self.dataDir + str(self.threshold) + '_corr_ave_val60.csv'
 		self.valAVE65 = self.dataDir + str(self.threshold) + '_corr_ave_val65.csv'
 		self.valAVE70 = self.dataDir + str(self.threshold) + '_corr_ave_val70.csv'
+		self.valAVE75 = self.dataDir + str(self.threshold) + '_corr_ave_val75.csv'
 
 		self.valORI60 = self.dataDir + str(self.threshold) + '_corr_ori_val60.csv'
-		self.valORI65 = self.dataDir + str(self.threshold) + '_corr_ori_val65.csv'		
+		self.valORI65 = self.dataDir + str(self.threshold) + '_corr_ori_val65.csv'
 		self.valORI70 = self.dataDir + str(self.threshold) + '_corr_ori_val70.csv'
 
 		self.valAVE6060 = self.dataDir + str(self.threshold) + '_corr_ave_val60_60.csv'
 		self.valAVE6565 = self.dataDir + str(self.threshold) + '_corr_ave_val65_65.csv'
 		self.valAVE7070 = self.dataDir + str(self.threshold) + '_corr_ave_val70_70.csv'
+		self.valAVE7075 = self.dataDir + str(self.threshold) + '_corr_ave_val75_75.csv'
 
 		self.valORI6060 = self.dataDir + str(self.threshold) + '_corr_ori_val60_60.csv'
-		self.valORI6565 = self.dataDir + str(self.threshold) + '_corr_ori_val65_65.csv'		
+		self.valORI6565 = self.dataDir + str(self.threshold) + '_corr_ori_val65_65.csv'
 		self.valORI7070 = self.dataDir + str(self.threshold) + '_corr_ori_val70_70.csv'
 
 		self.plots_ave = self.currDir + 'plots_ave/'
@@ -409,7 +412,8 @@ class prepross(object):
 				# cell: [subj_code, course_code, 'NA', ......]
 				cell = [subj_code, course_code]
 				for x in xrange(0,len(distinctSTULst)):
-					cell.append('NA')
+					# cell.append('NA')
+					cell.append('')
 				crsLst.append(cell)
 
 			# header: [subj_code, course_code, v_num1, v_num2, ......]
@@ -443,8 +447,10 @@ class prepross(object):
 				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
 				if cell[0] == reg[1] and cell[1] == reg[2]:
 					if reg[3] == '':
-						crs_stu[indx+2] = 'NG'
-						crs_stu_grade[indx+2] = 'NG'
+						# crs_stu[indx+2] = 'NG'
+						# crs_stu_grade[indx+2] = 'NG'
+						crs_stu[indx+2] = ''
+						crs_stu_grade[indx+2] = ''
 					else:
 						crs_stu[indx+2] = reg[3]
 						crs_stu_grade[indx+2] = reg[4]
@@ -470,7 +476,8 @@ class prepross(object):
 			# row: [v_num, 'NA', 'NA', ......]
 			row = [stu]
 			for y in xrange(0,len(distinctCRSLst)):
-				row.append('NA')
+				# row.append('NA')
+				row.append('')
 
 			rowLst.append(row)
 
@@ -563,7 +570,7 @@ class prepross(object):
 		if source == self.crsMatrix:
 			reader.next()
 
-		reader.next()
+		header = reader.next()
 
 		matrix = []
 		for row in reader:
@@ -581,29 +588,27 @@ class prepross(object):
 
 		w = csv.writer(open(corr, 'w'))
 		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', 'pValue', 'stderr', 'slope', 'intercept'])
-		cnt = 0
 
+		cnt = 0
 		for x in xrange(0,len(matrix)):
 			# course is a row with all marks
 			course = matrix[x]
 			# the first character of the course number, which indicates which year the course is designed, e.g.:1,2,3,4
 			yr = course[1][0]
+			noCorrList, nocommstuList = [], []
 			for y in xrange(0,len(matrix)):
 				newCourse = matrix[y]
 				newYr = newCourse[1][0]
 				if int(yr) < int(newYr) and int(yr) < 3:
 					cnt += 1
-					xaxis = course[0] + ' ' + course[1]
-					yaxis = newCourse[0] + ' ' + newCourse[1]
+					xaxis, yaxis = course[0] + ' ' + course[1], newCourse[0] + ' ' + newCourse[1]
 
 					xdata, ydata = [], []
 					if source == self.crsMatrix:
-						xdata = map(float, course[3:])
-						ydata = map(float, newCourse[3:])
+						xdata, ydata= map(float, course[3:]), map(float, newCourse[3:])
 					else:
 						for index in xrange(2, len(course)):
-							ix = course[index]
-							iy = newCourse[index]
+							ix, iy = course[index], newCourse[index]
 							if ix.isdigit() and iy.isdigit():
 								xdata.append(float(ix))
 								ydata.append(float(iy))
@@ -613,12 +618,16 @@ class prepross(object):
 							print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard begin @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold: ', self.threshold
 							print course[0], ' ', course[1], ' vs ', newCourse[0], ' ', newCourse[1], '\tlen: ', len(xdata), '\tcnt: ', cnt
 							print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard end @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold:', self.threshold
+							# nocommstuList.append(course)
+							nocommstuList.append(newCourse)
 							continue
 
 					(r, p) = pearsonr(xdata, ydata)
 					if str(r) == 'nan':
 						print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CANNOT Compute Pearson Correlation^^^^^^^^^^^^^^^^^^^^^^^^^^^'
 						print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cnt: ', cnt, ' end^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
+						# noCorrList.append(course)
+						noCorrList.append(newCourse)
 						continue
 
 					fig = plt.figure()
@@ -647,6 +656,26 @@ class prepross(object):
 					fig.savefig(figName)
 					plt.close(fig)
 					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(xdata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\tself.threshold: ', self.threshold
+
+			if len(noCorrList) > 0:
+				if not os.path.exists(self.dataDir + 'nocorr/'):
+					os.makedirs(self.dataDir + 'nocorr/')
+
+				nocorr = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_' + course[0] + '' + course[1] + '.csv'
+				wnocorr = csv.writer(open(nocorr, 'w'))
+				# wnocorr.writerow(header)
+				noCorrList.insert(0, course)
+				wnocorr.writerows(noCorrList)
+
+			if len(nocommstuList) > 0:
+				if not os.path.exists(self.dataDir + 'nocomstu/'):
+					os.makedirs(self.dataDir + 'nocomstu/')
+
+				nocommstu = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_' + course[0] + '' + course[1] + '.csv'
+				wnocom = csv.writer(open(nocommstu, 'w'))
+				# wnocom.writerow(header)
+				nocommstuList.insert(0, course)
+				wnocom.writerows(nocommstuList)
 			
 	def figureSelect(self, threshold, interval, fromDir, toDir, corr):		
 		savePath = toDir + str(threshold) +'_'+ str(threshold + interval)
@@ -996,8 +1025,7 @@ class prepross(object):
 			if not key in crsDict:
 				crsDict[key] = crs[2:]
 
-		w = ''
-		w1 = ''
+		w, w1 = '', ''
 		if cutoff == 0.60:
 			if flag == 'ave':
 				w = csv.writer(open(self.valAVE60, 'w'))
@@ -1019,6 +1047,10 @@ class prepross(object):
 			if flag == 'ori':
 				w = csv.writer(open(self.valORI70, 'w'))
 				w1 = csv.writer(open(self.valORI7070, 'w'))
+		elif cutoff == 0.75:
+			if flag == 'ave':
+				w = csv.writer(open(self.valAVE75, 'w'))
+				w1 = csv.writer(open(self.valAVE7075, 'w'))
 
 		r1 = csv.reader(open(corr), delimiter=',')
 		r1.next()
@@ -1037,14 +1069,13 @@ class prepross(object):
 
 		gradeLevelFreLst = []
 		for pair in coeLst:
-			xkey = pair[0].replace(' ','') + pair[1].replace(' ','')
-			ykey = pair[2].replace(' ','') + pair[3].replace(' ','')
+			xkey, ykey = pair[0].replace(' ','') + pair[1].replace(' ',''), pair[2].replace(' ','') + pair[3].replace(' ','')
 
-			xgrades = crsDict[xkey]
-			ygrades = crsDict[ykey]
+			xgrades, ygrades = crsDict[xkey], crsDict[ykey]
 			total = 0
 			for x in xrange(0,len(xgrades)):
-				if (xgrades[x] != 'NA' and xgrades[x] != 'NG') and (ygrades[x] != 'NA' and ygrades[x] != 'NG'):
+				# if (xgrades[x] != 'NA' and xgrades[x] != 'NG') and (ygrades[x] != 'NA' and ygrades[x] != 'NG'):
+				if (xgrades[x] != '' and ygrades[x] != ''):
 					total = total + 1
 			
 			# [course_1, course_y, #_of_student, coefficient, #_of_courses]
@@ -1052,7 +1083,7 @@ class prepross(object):
 
 		# sort gradeLevelFreLst by #_of_student and coefficient descendingly
 		gradeLevelFreLst.sort(key=itemgetter(0,2,3), reverse=True)
-		freq = Counter(item[0] for item in gradeLevelFreLst)
+		# freq = Counter(item[0] for item in gradeLevelFreLst)
 		gradeLevelFreLst = sorted(gradeLevelFreLst, key=lambda i: freq[i[0]], reverse=True)
 		header = ['Course_1', 'Course_2', '#students', 'Coefficient', '#Courses']
 		w1.writerow(header)
@@ -1062,22 +1093,19 @@ class prepross(object):
 				if gradeLevelFreLst[index][0] != gradeLevelFreLst[index+1][0]:
 					w1.writerow(header)
 
-		# w1.writerows(gradeLevelFreLst)
+		w1.writerow(['Course', '#Course'])
+		sorted_freq = sorted(freq.items(), key=itemgetter(1), reverse=True)
+		for tps in sorted_freq:
+			w1.writerow([tps[0], tps[1]])
 
 		for pair in gradeLevelFreLst:
-			xkey = pair[0]
-			ykey = pair[1]
-
-			xgrades = crsDict[xkey]
-			ygrades = crsDict[ykey]
+			xkey, ykey = pair[0], pair[1]
+			xgrades, ygrades = crsDict[xkey], crsDict[ykey]
 			total = 0
-			levelA = []
-			levelB = []
-			levelC = []
-			levelD = []
-			levelF = []
+			levelA, levelB, levelC, levelD, levelF = [], [], [], [], []
 			for x in xrange(0,len(xgrades)):
-				if (xgrades[x] != 'NA' and xgrades[x] != 'NG') and (ygrades[x] != 'NA' and ygrades[x] != 'NG'):
+				# if (xgrades[x] != 'NA' and xgrades[x] != 'NG') and (ygrades[x] != 'NA' and ygrades[x] != 'NG'):
+				if (xgrades[x] != '' and ygrades[x] != ''):
 					total = total + 1
 					if xgrades[x] == 'A' or xgrades[x] == 'A-' or xgrades[x] == 'A+':
 						levelA.append(ygrades[x])
@@ -1089,7 +1117,7 @@ class prepross(object):
 						levelD.append(ygrades[x])
 					if xgrades[x] == 'E' or xgrades[x] == 'F' or xgrades[x] == 'N' or xgrades[x] == 'SF':
 						levelF.append(ygrades[x])
-			
+
 			w.writerow(['Course_1', 'Course_2', '', '', '', '', '', '', '', '', '', '', '#Student', 'Coefficient', '#Courses'])
 			w.writerow([xkey, ykey, 'A', 'B', 'C', 'D', 'F', '%A', '%B', '%C', '%D', '%F', total, pair[3], freq[xkey]])
 
