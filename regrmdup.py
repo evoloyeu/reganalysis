@@ -31,31 +31,22 @@ class prepross(object):
 		
 		self.simpleStats(self.techRegNODUP)
 		self.pairs()
-		self.pairsHists()
+		# self.pairsHists()
 
 		self.uniqueCourseList()
 
-		self.crsStuMatrix()
+		# self.crsStuMatrix()
 		# compute correlation coefficients and draw correlation plots
 		self.corrPlot(self.CRS_STU, self.plots_ori, self.corrORIResults)
-		# self.validation(self.corrORIResults, 'ori', 0.60)
-		# self.validation(self.corrORIResults, 'ori', 0.65)
-		# self.validation(self.corrORIResults, 'ori', 0.70)
-
-		# self.corrPlot(self.crsMatrix, self.plots_ave, self.corrAVEResults)
-		# self.validation(self.corrAVEResults, 'ave', 0.60)
-		# self.validation(self.corrAVEResults, 'ave', 0.65)
-		# self.validation(self.corrAVEResults, 'ave', 0.70)
-		# self.validation(self.corrAVEResults, 'ave', 0.75)
 		
-		self.groupPlots(self.plots_ori, self.course_ori, self.corrORIResults)
+		# self.groupPlots(self.plots_ori, self.course_ori, self.corrORIResults)
 		# self.groupPlots(self.plots_ave, self.course_ave, self.corrAVEResults)
 
-		self.courseBarPlots(self.bars_ori, self.corrORIResults)
+		# self.courseBarPlots(self.bars_ori, self.corrORIResults)
 		# self.courseBarPlots(self.bars_ave, self.corrAVEResults)
-		self.studentBarPlots(self.techRegNODUP)
+		# self.studentBarPlots(self.techRegNODUP)
 
-		self.pickupFigures(self.plots_ori, self.coefficient_ori, self.corrORIResults)
+		# self.pickupFigures(self.plots_ori, self.coefficient_ori, self.corrORIResults)
 		# self.pickupFigures(self.plots_ave, self.coefficient_ave, self.corrAVEResults)
 
 		self.coefficientHists(self.hist_ori, self.corrORIResults)
@@ -162,7 +153,7 @@ class prepross(object):
 		self.crsMatrix = self.dataDir + str(self.threshold) + '_'
 		self.discardList = self.dataDir + str(self.threshold) + '_'
 		self.courselist = self.dataDir + str(self.threshold) + '_'
-		self.techCrsCSV = self.dataDir + str(self.threshold) + '_'		
+		self.techCrsCSV = self.dataDir + str(self.threshold) + '_'
 
 		for x in xrange(0, len(regFileName.split('_'))-1):
 			self.regREPL = self.regREPL + regFileName.split('_')[x] + '_'
@@ -501,8 +492,7 @@ class prepross(object):
 		matrix, discardList = [], []
 		# compute course average
 		for row in reader:
-			cnt = 0
-			summation = 0
+			cnt, summation = 0, 0
 			for item in row:
 				if item.isdigit() and int(item) < 10:
 					cnt = cnt + 1
@@ -534,8 +524,7 @@ class prepross(object):
 		tmp[2] = tuple(a)		
 		
 		for x in xrange(3,len(tmp)):
-			summation = 0
-			cnt = 0
+			summation, cnt = 0, 0
 			for item in tmp[x]:
 				if item.isdigit():
 					cnt = cnt + 1
@@ -589,7 +578,11 @@ class prepross(object):
 		w = csv.writer(open(corr, 'w'))
 		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', 'pValue', 'stderr', 'slope', 'intercept'])
 
-		cnt = 0
+		cnt, nocorrDict, nocommstuDict = 0, {}, {}
+		nocorrlst = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list.csv'
+		nocommstulst = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_list.csv'
+		wnocorrlst, wnocommstulst = '', ''
+
 		for x in xrange(0,len(matrix)):
 			# course is a row with all marks
 			course = matrix[x]
@@ -658,25 +651,51 @@ class prepross(object):
 					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(xdata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\tself.threshold: ', self.threshold
 
 			if len(noCorrList) > 0:
+				nocorrDict[course[0] + course[1]] = len(noCorrList)
+
 				if not os.path.exists(self.dataDir + 'nocorr/'):
 					os.makedirs(self.dataDir + 'nocorr/')
 
-				nocorr = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_' + course[0] + '' + course[1] + '.csv'
-				wnocorr = csv.writer(open(nocorr, 'w'))
+				# nocorr = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_' + course[0] + course[1] + '.csv'
+				# wnocorr = csv.writer(open(nocorr, 'w'))
 				# wnocorr.writerow(header)
 				noCorrList.insert(0, course)
-				wnocorr.writerows(noCorrList)
+				# wnocorr.writerows(noCorrList)
+
+				if wnocorrlst == '':
+					wnocorrlst = csv.writer(open(nocorrlst, 'w'))
+				wnocorrlst.writerows(noCorrList)
+				wnocorrlst.writerow([])
 
 			if len(nocommstuList) > 0:
+				nocommstuDict[course[0] + course[1]] = len(nocommstuList)
+
 				if not os.path.exists(self.dataDir + 'nocomstu/'):
 					os.makedirs(self.dataDir + 'nocomstu/')
 
-				nocommstu = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_' + course[0] + '' + course[1] + '.csv'
-				wnocom = csv.writer(open(nocommstu, 'w'))
+				# nocommstu = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_' + course[0] + course[1] + '.csv'
+				# wnocom = csv.writer(open(nocommstu, 'w'))
 				# wnocom.writerow(header)
 				nocommstuList.insert(0, course)
-				wnocom.writerows(nocommstuList)
-			
+				# wnocom.writerows(nocommstuList)
+
+				if wnocommstulst == '':
+					wnocommstulst = csv.writer(open(nocommstulst, 'w'))
+				wnocommstulst.writerows(nocommstuList)
+				wnocommstulst.writerow([])
+
+		if len(nocorrDict) > 0:
+			nocorr = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list_fre.csv'
+			wnocorr = csv.writer(open(nocorr, 'w'))
+			wnocorr.writerow(['Course', '#Course'])
+			wnocorr.writerows(nocorrDict.items())
+
+		if len(nocommstuDict) > 0:
+			nocommstu = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_list_fre.csv'
+			wnocom = csv.writer(open(nocommstu, 'w'))
+			wnocom.writerow(['Course', '#Course'])
+			wnocom.writerows(nocommstuDict.items())
+
 	def figureSelect(self, threshold, interval, fromDir, toDir, corr):		
 		savePath = toDir + str(threshold) +'_'+ str(threshold + interval)
 
@@ -701,9 +720,10 @@ class prepross(object):
 			x.append(float(row[4]))
 
 		fig = plt.figure()
-		bins = np.arange(-1.0, 1.0, interval)
+		bins = np.arange(-1.0, 1.5, interval)
 		plt.title('Histogram of Coefficients with interval ' + str(interval), fontsize='large')
-		plt.xlabel('Pearson Correlation Coefficient')
+		# plt.xlabel('Pearson Correlation Coefficient')
+		plt.xlabel('Bins')
 		plt.ylabel('Frequency')
 		plt.grid(True)
 		
@@ -888,7 +908,7 @@ class prepross(object):
 	def groupPlots(self, fromDir, toDir, corr):
 		reader = csv.reader(open(corr), delimiter = ',')
 		reader.next()
-		# figPath = self.currDir + 'plots_ave/'
+
 		for row in reader:
 			folder = toDir + row[0]+row[1]
 			if not os.path.exists(folder):
