@@ -867,15 +867,12 @@ class prepross(object):
 	def sortCourse(self, courses, values):
 		for i in xrange(0,len(courses)):
 			for j in xrange(i+1,len(courses)):
-				ilastChar = courses[i][-1]
-				jlastChar = courses[j][-1]
-				icrn = 0
-				jcrn = 0
+				ilastChar, jlastChar, icrn, jcrn = courses[i][-1], courses[j][-1], 0, 0
 				if ilastChar.isdigit():
 					icrn = int(courses[i][-3:])
 				else:
 					icrn = int(courses[i][-4:-1])
-				
+
 				if jlastChar.isdigit():
 					jcrn = int(courses[j][-3:])
 				else:
@@ -889,7 +886,6 @@ class prepross(object):
 					values[i] = values[j]
 					values[j] = jtmp
 
-		# print courses
 		return [courses, values]
 
 	def groupPlots(self, fromDir, toDir, corr):
@@ -904,15 +900,11 @@ class prepross(object):
 			shutil.copy2(fromDir + fig, toDir + '/' + fig)
 
 	def corrMatrix(self, matrix, corrSeq):
-		corrdir = ''
-		corr = 1
-		corrf = 2
+		corrdir, corr, corrf = '', 1, 2
 		if corrSeq == 12:
 			corrdir = self.currDir+'12/'
 		elif corrSeq == 23:
-			corrdir = self.currDir+'23/'
-			corr = 2
-			corrf = 3
+			corrdir, corr, corrf = self.currDir+'23/', 2, 3
 		else:
 			return
 
@@ -920,8 +912,7 @@ class prepross(object):
 			os.makedirs(corrdir)
 		for x in xrange(2,len(matrix)):
 			if int(matrix[x][1][0]) == corr:
-				name = corrdir + matrix[x][0] + matrix[x][1] + '.csv'
-				lst = []
+				name, lst = corrdir + matrix[x][0] + matrix[x][1] + '.csv', []
 				lst.append(matrix[x])
 				for y in xrange(2,len(matrix)):
 					if int(matrix[y][1][0]) == corrf:
@@ -995,7 +986,6 @@ class prepross(object):
 						if x[index].isdigit() and y[index].isdigit():
 							cnt = cnt + 1
 					print x[0], ' ', x[1], ' vs ', y[0], ' ', y[1], ' cnt: ', cnt
-					# if cnt > 1:
 					w.writerow([x[0], x[1], y[0], y[1], cnt])
 
 	def pairsHist(self, interval):
@@ -1123,15 +1113,15 @@ class prepross(object):
 	def levelFrequency(self, level):
 		acnt = bcnt = ccnt = dcnt = fcnt = 0
 		for x in level:
-			if x == 'A' or x == 'A-' or x == 'A+':
+			if x in ['A', 'A-', 'A+']:
 				acnt = acnt + 1
-			if x == 'B' or x == 'B-' or x == 'B+':
+			elif x in ['B', 'B-', 'B+']:
 				bcnt = bcnt + 1
-			if x == 'C' or x == 'C+':
+			elif x in ['C', 'C+']:
 				ccnt = ccnt + 1
-			if x == 'D' or x == 'SB' or x == 'SB-' or x == 'SD':
+			elif x in ['D', 'SB', 'SB-', 'SD']:
 				dcnt = dcnt + 1
-			if x == 'E' or x == 'F' or x == 'N' or x == 'SF':
+			elif x in ['E', 'F', 'N', 'SF']:
 				fcnt = fcnt + 1
 
 		return [acnt, bcnt, ccnt, dcnt, fcnt]
