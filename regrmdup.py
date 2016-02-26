@@ -568,7 +568,7 @@ class prepross(object):
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
 		nocorrlst = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list.csv'
 		nocommstulst = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_list.csv'
-		wnocorrlst, wnocommstulst = '', ''
+		wnocorrlst, wnocommstulst, nocomList = '', '', []
 
 		for x in xrange(0,len(matrix)):
 			# course is a row with all marks
@@ -600,6 +600,7 @@ class prepross(object):
 							print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard end @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold:', self.threshold
 							# nocommstuList.append(course)
 							nocommstuList.append(newCourse)
+							nocomList.append([xaxis, yaxis])
 							continue
 
 					(r, p) = pearsonr(xdata, ydata)
@@ -655,7 +656,9 @@ class prepross(object):
 				if wnocorrlst == '':
 					wnocorrlst = csv.writer(open(nocorrlst, 'w'))
 				wnocorrlst.writerows(noCorrList)
+				
 				wnocorrlst.writerow([])
+				lst.sort(key=itemgetter(4), reverse=True)
 				wnocorrlst.writerows(lst)
 				wnocorrlst.writerow([])
 
@@ -671,6 +674,12 @@ class prepross(object):
 				wnocommstulst.writerows(nocommstuList)
 				wnocommstulst.writerow([])
 
+				wnocommstulst.writerow(['COURSE_1', 'COURSE_2'])
+				wnocommstulst.writerow([course[0] + course[1], nocommstuList[1][0] + nocommstuList[1][1]])
+				for indx in xrange(2,len(nocommstuList)):
+					wnocommstulst.writerow(['', nocommstuList[indx][0] + nocommstuList[indx][1]])
+				wnocommstulst.writerow([])
+
 		if len(nocorrDict) > 0:
 			nocorr = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list_fre.csv'
 			wnocorr = csv.writer(open(nocorr, 'w'))
@@ -682,6 +691,22 @@ class prepross(object):
 			wnocom = csv.writer(open(nocommstu, 'w'))
 			wnocom.writerow(['Course', '#Course'])
 			wnocom.writerows(nocommstuDict.items())
+
+		wnocommstulst.writerow([])
+		nocomList.sort(key=itemgetter(0), reverse=True)
+		freq = Counter(item[0] for item in nocomList)
+		nocomList = sorted(nocomList, key=lambda i: freq[i[0]], reverse=True)
+
+		isHeader = True
+		for indx in xrange(0, len(nocomList)):
+			if isHeader:
+				wnocommstulst.writerow(nocomList[indx])
+				isHeader = False
+			else:
+				wnocommstulst.writerow(['', nocomList[indx][1]])
+
+			if (indx < len(nocomList)-1) and (nocomList[indx][0] != nocomList[indx+1][0]):
+				isHeader = True
 
 	def figureSelect(self, threshold, interval, fromDir, toDir, corr):		
 		savePath = toDir + str(threshold) +'_'+ str(threshold + interval)
