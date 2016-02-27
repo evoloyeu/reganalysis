@@ -54,7 +54,7 @@ class prepross(object):
 		# self.coefficientHists(self.hist_ave, self.corrAVEResults)
 
 	def validations(self):
-		for x in [0.60, 0.65, 0.70, 0.75, 0.80, 0.85, -0.55, -0.60, -0.65, -0.70, -0.75, -0.80, -0.85]:
+		for x in [0.60, 0.65, 0.70, 0.75, 0.80, 0.85, -0.45, -0.50, -0.55, -0.60, -0.65, -0.70, -0.75, -0.80, -0.85]:
 			self.validation(self.corrORIResults, 'ori', x)
 
 	def cryptID(self):
@@ -568,7 +568,7 @@ class prepross(object):
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
 		nocorrlst = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list.csv'
 		nocommstulst = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_list.csv'
-		wnocorrlst, wnocommstulst, nocomList = '', '', []
+		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
 
 		for x in xrange(0,len(matrix)):
 			# course is a row with all marks
@@ -662,6 +662,10 @@ class prepross(object):
 				wnocorrlst.writerows(lst)
 				wnocorrlst.writerow([])
 
+				noCorrListTable.append(['Course_1', 'Course_2', '#Student'])
+				[noCorrListTable.append([item[0]+' '+item[1], item[2]+' '+item[3], item[4]]) for item in lst]
+				noCorrListTable.append([])
+
 			if len(nocommstuList) > 0:
 				if not os.path.exists(self.dataDir + 'nocomstu/'):
 					os.makedirs(self.dataDir + 'nocomstu/')
@@ -691,6 +695,8 @@ class prepross(object):
 			wnocom = csv.writer(open(nocommstu, 'w'))
 			wnocom.writerow(['Course', '#Course'])
 			wnocom.writerows(nocommstuDict.items())
+
+		wnocorrlst.writerows(noCorrListTable)
 
 		wnocommstulst.writerow([])
 		nocomList.sort(key=itemgetter(0), reverse=True)
@@ -734,8 +740,8 @@ class prepross(object):
 		fig = plt.figure()
 		bins = np.arange(-1.0, 1.5, interval)
 		plt.title('Histogram of Coefficients with interval ' + str(interval), fontsize='large')
-		# plt.xlabel('Pearson Correlation Coefficient')
-		plt.xlabel('Bins')
+		plt.xlabel('Pearson Correlation Coefficient')
+		# plt.xlabel('Bins')
 		plt.ylabel('Frequency')
 		plt.grid(True)
 		
