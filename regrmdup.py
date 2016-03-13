@@ -620,7 +620,7 @@ class prepross(object):
 
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
-					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.2f')), float(format(slope, '.2f')), float(format(intercept, '.2f')), float(format(r_value, '.2f')), float(format(p_value, '.2f')), float(format(std_err, '.2f'))]
+					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 					
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, p_value, std_err, slope, intercept])
 
@@ -1062,10 +1062,10 @@ class prepross(object):
 		coeLst = []
 		for pair in r1:
 			if cutoff > 0:
-				if float(format(float(pair[4]), '.2f')) >= cutoff:
+				if float(format(float(pair[4]), '.4f')) >= cutoff:
 					coeLst.append(pair)
 			else:
-				if float(format(float(pair[4]), '.2f')) <= cutoff:
+				if float(format(float(pair[4]), '.4f')) <= cutoff:
 					coeLst.append(pair)
 		# sort coeLst according to the frequency of xcourse and the coefficient descending
 		# group records according to the xcourse and the coefficient descending
