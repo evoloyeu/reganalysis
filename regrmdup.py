@@ -9,9 +9,7 @@ from collections import Counter
 class prepross(object):
 	def __init__(self, arg):
 		super(prepross, self).__init__()
-		self.arg = arg
-		self.degDataPath = arg[1]
-		self.regDataPath = arg[2]
+		self.degDataPath, self.regDataPath = arg[1], arg[2]
 
 	def doBatch(self):
 		self.flows()		
@@ -86,18 +84,15 @@ class prepross(object):
 
 	def statsPath(self):
 		pathList = self.degDataPath.split('/')
-		degFilename = pathList[-1]
-		regFileName = self.regDataPath.split('/')[-1]
+		degFilename, regFileName = pathList[-1], self.regDataPath.split('/')[-1]
 
 		path = '/'
 		for x in xrange(0,len(pathList[1:-1])):
 			path = path + pathList[1:-1][x] + '/'
 
+		self.techCrsFile, self.allTechCrs = path + 'techcourses/' + 'TechCrs' + str(self.threshold) + '.csv', path + 'techcourses/' + 'allTechCrs.csv'
 
-		self.techCrsFile = path + 'techcourses/' + 'TechCrs' + str(self.threshold) + '.csv'
-		self.allTechCrs = path + 'techcourses/' + 'allTechCrs.csv'
-
-		self.currDir = path + 'raw/' + time.strftime('%Y%m%d') + '/threshold_' + str(self.threshold) + '/'
+		self.currDir = path + 'raw/' + time.strftime('%Y%m%d') + '/'
 		if not os.path.exists(self.currDir):
 			os.makedirs(self.currDir)
 		
@@ -105,86 +100,34 @@ class prepross(object):
 		if not os.path.exists(self.dataDir):
 			os.makedirs(self.dataDir)
 
-		self.pairsFrequency = self.dataDir + str(self.threshold) + '_pairsFrequency.csv'
-		self.pairsHistDir = self.currDir + 'pairs_hist/'
+		self.pairsFrequency, self.pairsHistDir = self.dataDir + 'pairsFrequency.csv', self.currDir + 'pairs_hist/'
 
-		self.corrAVEResults = self.dataDir + str(self.threshold) + '_corr_ave.csv'
-		self.corrORIResults = self.dataDir + str(self.threshold) + '_corr_ori.csv'
-		self.valAVE = self.dataDir + str(self.threshold) + '_corr_ave_val.csv'
-		self.valORI = self.dataDir + str(self.threshold) + '_corr_ori_val.csv'
+		self.corrAVEResults, self.corrORIResults = self.dataDir + 'corr_ave.csv', self.dataDir + 'corr_ori.csv'
+		self.valAVE, self.valORI = self.dataDir + 'corr_ave_val.csv', self.dataDir + 'corr_ori_val.csv'
 
-		self.plots_ave = self.currDir + 'plots_ave/'
-		self.plots_ori = self.currDir + 'plots_ori/'
-		self.coefficient_ave = self.currDir + 'coefficient_ave/'
-		self.coefficient_ori = self.currDir + 'coefficient_ori/'
-		self.hist_ave = self.currDir + 'hist_ave/'
-		self.hist_ori = self.currDir + 'hist_ori/'
-		self.bars_ave = self.currDir + 'bars_ave/'
-		self.bars_ori = self.currDir + 'bars_ori/'
-		self.course_ave = self.currDir + 'course_ave/'
-		self.course_ori = self.currDir + 'course_ori/'
+		[self.plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori] = [self.currDir + 'plots_ori/', self.currDir + 'coefficient_ori/', self.currDir + 'hist_ori/', self.currDir + 'bars_ori/', self.currDir + 'course_ori/']
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
-		self.regREPL = self.dataDir + str(self.threshold) + '_'
-		self.regNODUP = self.dataDir + str(self.threshold) + '_'
-		self.techRegNODUP = self.dataDir + str(self.threshold) + '_'
-		self.CRSPERSTU = self.dataDir + str(self.threshold) + '_'
-		self.STUREGISTERED = self.dataDir + str(self.threshold) + '_'
-		self.EMPTY = self.dataDir + str(self.threshold) + '_'
-		self.EMPTY_STU = self.dataDir + str(self.threshold) + '_'
-		self.EMPTY_CRS = self.dataDir + str(self.threshold) + '_'
-		self.CRS_STU = self.dataDir + str(self.threshold) + '_'
-		self.CRS_STU_GRADE = self.dataDir + str(self.threshold) + '_'
-		self.regNODUPREPL = self.dataDir + str(self.threshold) + '_'
-		self.STU_CRS = self.dataDir + str(self.threshold) + '_'
-		self.crsMatrix = self.dataDir + str(self.threshold) + '_'
-		self.discardList = self.dataDir + str(self.threshold) + '_'
-		self.courselist = self.dataDir + str(self.threshold) + '_'
-		self.techCrsCSV = self.dataDir + str(self.threshold) + '_'
+		fileNameList = []
+		for x in xrange(0,16):
+			fileNameList.append(self.dataDir)
+
+		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'TECH.csv']
 
 		for x in xrange(0, len(regFileName.split('_'))-1):
-			self.regREPL = self.regREPL + regFileName.split('_')[x] + '_'
-			self.regNODUP = self.regNODUP + regFileName.split('_')[x] + '_'
-			self.CRSPERSTU = self.CRSPERSTU + regFileName.split('_')[x] + '_'
-			self.STUREGISTERED = self.STUREGISTERED + regFileName.split('_')[x] + '_'
-			self.EMPTY = self.EMPTY + regFileName.split('_')[x] + '_'
-			self.EMPTY_STU = self.EMPTY_STU + regFileName.split('_')[x] + '_'
-			self.EMPTY_CRS = self.EMPTY_CRS + regFileName.split('_')[x] + '_'
-			self.CRS_STU = self.CRS_STU + regFileName.split('_')[x] + '_'
-			self.regNODUPREPL = self.regNODUPREPL + regFileName.split('_')[x] + '_'
-			self.STU_CRS = self.STU_CRS + regFileName.split('_')[x] + '_'
-			self.CRS_STU_GRADE = self.CRS_STU_GRADE + regFileName.split('_')[x] + '_'
-			self.crsMatrix = self.crsMatrix + regFileName.split('_')[x] + '_'
-			self.discardList = self.discardList + regFileName.split('_')[x] + '_'
-			self.courselist = self.courselist + regFileName.split('_')[x] + '_'
-			self.techCrsCSV = self.techCrsCSV + regFileName.split('_')[x] + '_'
-			self.techRegNODUP = self.techRegNODUP + regFileName.split('_')[x] + '_'
+			for indx in xrange(0,len(fileNameList)):
+				fileNameList[indx] += regFileName.split('_')[x] + '_'
 
-		self.regREPL = self.regREPL + 'REPL_SAS.csv'
-		self.regNODUP = self.regNODUP + 'NODUP_SAS.csv'
-		self.techRegNODUP = self.techRegNODUP + 'TECH_NODUP_SAS.csv'
-		self.CRSPERSTU = self.CRSPERSTU + 'CRSPERSTU_SAS.csv'
-		self.STUREGISTERED = self.STUREGISTERED + 'STUREGISTERED_SAS.csv'
-		self.EMPTY = self.EMPTY + 'EMPTY_SAS.csv'
-		self.EMPTY_STU = self.EMPTY_STU + 'EMPTY_STU_SAS.csv'
-		self.EMPTY_CRS = self.EMPTY_CRS + 'EMPTY_CRS_SAS.csv'
-		self.CRS_STU = self.CRS_STU + 'CRS_STU_SAS.csv'
-		self.CRS_STU_GRADE = self.CRS_STU_GRADE + 'CRS_STU_GRADE_SAS.csv'
-		self.regNODUPREPL = self.regNODUPREPL + 'NODUP_REPL_SAS.csv'
-		self.STU_CRS = self.STU_CRS + 'STU_CRS_SAS.csv'		
-		self.crsMatrix = self.crsMatrix + 'CRS_MATRIX_SAS.csv'
-		self.discardList = self.discardList + 'DISCARD_SAS.csv'
-		self.courselist = self.courselist + 'uniCourseList.csv'
-		self.techCrsCSV = self.techCrsCSV + 'TECH.csv'
+		for x in xrange(0,len(fileNameList)):
+			fileNameList[x] += fileNameSuffix[x]
 
-		self.degREPL = self.dataDir + str(self.threshold) + '_'
-		self.IDMAPPER = self.dataDir + str(self.threshold) + '_'
+		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.crsMatrix, self.discardList, self.courselist, self.techCrsCSV] = fileNameList
+
+		self.degREPL = self.IDMAPPER = self.dataDir
 		for x in xrange(0, len(degFilename.split('_'))-1):
-			self.degREPL = self.degREPL + degFilename.split('_')[x] + '_'
-			self.IDMAPPER = self.IDMAPPER + degFilename.split('_')[x] + '_'
+			self.degREPL, self.IDMAPPER = self.degREPL + degFilename.split('_')[x] + '_', self.IDMAPPER + degFilename.split('_')[x] + '_'
 
-		self.degREPL = self.degREPL + 'REPL_SAS.csv'
-		self.IDMAPPER = self.IDMAPPER + 'IDMAPPER_SAS.csv'
+		self.degREPL, self.IDMAPPER = self.degREPL + 'REPL_SAS.csv', self.IDMAPPER + 'IDMAPPER_SAS.csv'
 
 	def encodeVnumber(self):
 		fDegree = self.degDataPath
@@ -566,8 +509,10 @@ class prepross(object):
 		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', 'pValue', 'stderr', 'slope', 'intercept'])
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
-		nocorrlst = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list.csv'
-		nocommstulst = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_list.csv'
+		# nocorrlst = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list.csv'
+		# nocommstulst = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_list.csv'
+		nocorrlst = self.dataDir + 'nocorr/' + 'no_corr_list.csv'
+		nocommstulst = self.dataDir + 'nocomstu/' + 'nocomstu_list.csv'
 		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
 
 		for x in xrange(0,len(matrix)):
@@ -620,7 +565,7 @@ class prepross(object):
 
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
-					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
+					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.2f')), float(format(slope, '.2f')), float(format(intercept, '.2f')), float(format(r_value, '.2f')), float(format(p_value, '.2f')), float(format(std_err, '.2f'))]
 					
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, p_value, std_err, slope, intercept])
 
@@ -685,13 +630,15 @@ class prepross(object):
 				wnocommstulst.writerow([])
 
 		if len(nocorrDict) > 0:
-			nocorr = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list_fre.csv'
+			# nocorr = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list_fre.csv'
+			nocorr = self.dataDir + 'nocorr/' + 'no_corr_list_fre.csv'
 			wnocorr = csv.writer(open(nocorr, 'w'))
 			wnocorr.writerow(['Course', '#Course'])
 			wnocorr.writerows(nocorrDict.items())
 
 		if len(nocommstuDict) > 0:
-			nocommstu = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_list_fre.csv'
+			# nocommstu = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_list_fre.csv'
+			nocommstu = self.dataDir + 'nocomstu/' + 'nocomstu_list_fre.csv'
 			wnocom = csv.writer(open(nocommstu, 'w'))
 			wnocom.writerow(['Course', '#Course'])
 			wnocom.writerows(nocommstuDict.items())
@@ -1053,8 +1000,10 @@ class prepross(object):
 			if not key in crsDict:
 				crsDict[key] = crs[2:]
 
-		wfile = self.dataDir + str(self.threshold) + '_corr_' + flag + '_val' + str(cutoff) + '.csv'
-		w1file = self.dataDir + str(self.threshold) + '_corr_' + flag + '_val' + str(cutoff) + str(cutoff) + '.csv'
+		# wfile = self.dataDir + str(self.threshold) + '_corr_' + flag + '_val' + str(cutoff) + '.csv'
+		# w1file = self.dataDir + str(self.threshold) + '_corr_' + flag + '_val' + str(cutoff) + str(cutoff) + '.csv'
+		wfile = self.dataDir + 'corr_' + flag + '_val' + str(cutoff) + '.csv'
+		w1file = self.dataDir + 'corr_' + flag + '_val' + str(cutoff) + str(cutoff) + '.csv'
 		w, w1 = csv.writer(open(wfile, 'w')), csv.writer(open(w1file, 'w'))
 
 		r1 = csv.reader(open(corr), delimiter=',')
@@ -1062,10 +1011,10 @@ class prepross(object):
 		coeLst = []
 		for pair in r1:
 			if cutoff > 0:
-				if float(format(float(pair[4]), '.4f')) >= cutoff:
+				if float(format(float(pair[4]), '.2f')) >= cutoff:
 					coeLst.append(pair)
 			else:
-				if float(format(float(pair[4]), '.4f')) <= cutoff:
+				if float(format(float(pair[4]), '.2f')) <= cutoff:
 					coeLst.append(pair)
 		# sort coeLst according to the frequency of xcourse and the coefficient descending
 		# group records according to the xcourse and the coefficient descending
