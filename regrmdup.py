@@ -571,7 +571,7 @@ class prepross(object):
 				newYr = newCourse[1][0]
 				if int(yr) < int(newYr) and int(yr) < 3:
 					cnt += 1
-					xaxis, yaxis = course[0] + ' ' + course[1], newCourse[0] + ' ' + newCourse[1]
+					xaxis, yaxis = course[0] + ' ' + course[1] + ' Grades', newCourse[0] + ' ' + newCourse[1] + ' Grades'
 
 					xdata, ydata = [], []
 					if source == self.crsMatrix:
