@@ -18,6 +18,11 @@ class prepross(object):
 		self.cryptID()
 		self.techCrsHists()
 
+		self.plotWithoutOutlier('MATH 133', 'ELEC 404', [5,7,9,3,0,3,8,0,9,9,3], [7,9,8,7,7,9,8,8,9,9,8])
+		self.plotWithoutOutlier('ELEC 250', 'MECH 410', [1,3,6,4,4,3,6], [6,5,7,5,5,6,6])
+		self.plotWithoutOutlier('ELEC 216', 'CENG 460', [1,7,0,4,8,7,7], [4,8,3,6,9,8,8])
+		self.plotWithoutOutlier('CSC 230', 'ELEC 496', [2,3,8], [4,5,9])
+
 	def flow(self):
 		self.techCrs()
 		self.formatRegSAS(self.regDataPath, self.regNODUP)
@@ -1133,5 +1138,38 @@ class prepross(object):
 	def gradePointMap(self):
 		return {'A':8, 'A-':7, 'A+':9, 'B':5, 'B-':4, 'B+':6, 'C':2, 'C+':3, 'D':1, 'E':0, 'F':0, 'N':0, 'SB':1, 'SB-':1, 'SD':1, 'SF':0}
 
+	def plotWithoutOutlier(self, xcourse, ycourse, xgrades, ygrades):
+		nOutlierpath = self.currDir + 'nOutlier/'
+		if not os.path.exists(nOutlierpath):
+			os.makedirs(nOutlierpath)
+
+		xaxis, yaxis = xcourse + ' Grades', ycourse + ' Grades'
+		xdata, ydata = xgrades, ygrades
+
+		fig = plt.figure()
+		plt.title('Grades Scatter (Pearson Correlation)')
+		plt.xlabel(xaxis)
+		plt.ylabel(yaxis)
+
+		for j in xrange(0,len(xdata)):
+			plt.scatter(xdata[j], ydata[j], c = 'blue')
+
+		(r, p) = pearsonr(xdata, ydata)
+		slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+		# format the parameters precision
+		r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.2f')), float(format(slope, '.2f')), float(format(intercept, '.2f')), float(format(r_value, '.2f')), float(format(p_value, '.2f')), float(format(std_err, '.2f'))]
+
+		xdata.insert(0, 0.0)
+		xdata.insert(-1, 9.0)
+		yp = [x*slope+intercept for x in xdata]
+		plt.plot(xdata, yp, c='green', label = 'r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + '+' +str(intercept))
+
+		plt.axis([0, 9, 0, 9])
+		plt.grid(True)
+		plt.legend(loc='best')
+
+		figName = nOutlierpath + xcourse + ' ' + ycourse + ' ' + str(r) + '.png'
+		fig.savefig(figName)
+		plt.close(fig)
 
 prepross(sys.argv).doBatch()
