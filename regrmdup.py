@@ -606,27 +606,38 @@ class prepross(object):
 						noCorrList.append(newCourse)
 						continue
 
+					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
+
 					fig = plt.figure()
-					plt.title('Grades Scatter (Pearson Correlation)')
+
+					for j in xrange(0,len(xdata)):
+						plt.scatter(xdata[j], ydata[j], c = 'red')
+
+					# plt.title('Grades Scatter (Pearson Correlation)')
+					instant = ''
+					if intercept > 0:
+						instant = '+' + str(intercept)
+					elif intercept < 0:
+						instant = str(intercept)
+
+					plt.title('r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + instant)
 					plt.xlabel(xaxis)
 					plt.ylabel(yaxis)
-					for j in xrange(0,len(xdata)):
-						plt.scatter(xdata[j], ydata[j], c = 'blue')
-
-					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
-					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.2f')), float(format(slope, '.2f')), float(format(intercept, '.2f')), float(format(r_value, '.2f')), float(format(p_value, '.2f')), float(format(std_err, '.2f'))]
-					
+
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, p_value, std_err, slope, intercept, len(xdata)])
 
 					xdata.insert(0, 0.0)
 					xdata.insert(-1, 9.0)
 					yp = [x*slope+intercept for x in xdata]
-					plt.plot(xdata, yp, c='green', label = 'r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + '+' +str(intercept))
+					# plt.plot(xdata, yp, c='green', label = 'r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + '+' +str(intercept))
+					plt.plot(xdata, yp, c='blue')
 
 					plt.axis([0, 9, 0, 9])
 					plt.grid(True)
-					plt.legend(loc='best')
+					# plt.legend(loc='best')
 
 					figName = plotDir + course[0] + course[1] + ' ' + newCourse[0] + newCourse[1] + ' ' + str(r) + '.png'
 					fig.savefig(figName)
