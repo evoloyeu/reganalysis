@@ -18,10 +18,10 @@ class prepross(object):
 		self.cryptID()
 		self.techCrsHists()
 
-		self.plotWithoutOutlier('MATH 133', 'ELEC 404', [5,7,9,3,0,3,8,0,9,9,3], [7,9,8,7,7,9,8,8,9,9,8])
-		self.plotWithoutOutlier('ELEC 250', 'MECH 410', [1,3,6,4,4,3,6], [6,5,7,5,5,6,6])
-		self.plotWithoutOutlier('ELEC 216', 'CENG 460', [1,7,0,4,8,7,7], [4,8,3,6,9,8,8])
-		self.plotWithoutOutlier('CSC 230', 'ELEC 496', [2,3,8], [4,5,9])
+		# self.plotWithoutOutlier('MATH 133', 'ELEC 404', [5,7,9,3,0,3,8,0,9,9,3], [7,9,8,7,7,9,8,8,9,9,8])
+		# self.plotWithoutOutlier('ELEC 250', 'MECH 410', [1,3,6,4,4,3,6], [6,5,7,5,5,6,6])
+		# self.plotWithoutOutlier('ELEC 216', 'CENG 460', [1,7,0,4,8,7,7], [4,8,3,6,9,8,8])
+		# self.plotWithoutOutlier('CSC 230', 'ELEC 496', [2,3,8], [4,5,9])
 
 	def flow(self):
 		self.techCrs()
@@ -606,6 +606,8 @@ class prepross(object):
 						noCorrList.append(newCourse)
 						continue
 
+					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+					# format the parameters precision
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 
@@ -615,29 +617,29 @@ class prepross(object):
 						plt.scatter(xdata[j], ydata[j], c = 'red')
 
 					# plt.title('Grades Scatter (Pearson Correlation)')
+					xdata.insert(0, 0.0)
+					xdata.insert(-1, 9.0)
 					instant = ''
 					if intercept > 0:
 						instant = '+' + str(intercept)
 					elif intercept < 0:
 						instant = str(intercept)
 
-					plt.title('r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + instant)
+					if r_value != 0.0:
+						plt.title('r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + instant)
+						yp = [x*slope+intercept for x in xdata]
+						# plt.plot(xdata, yp, c='green', label = 'r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + '+' +str(intercept))
+						plt.plot(xdata, yp, c='blue')
+					else:
+						plt.title('r = ' + str(r_value))
+
 					plt.xlabel(xaxis)
 					plt.ylabel(yaxis)
-					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
-					# format the parameters precision
-
-					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, p_value, std_err, slope, intercept, len(xdata)])
-
-					xdata.insert(0, 0.0)
-					xdata.insert(-1, 9.0)
-					yp = [x*slope+intercept for x in xdata]
-					# plt.plot(xdata, yp, c='green', label = 'r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + '+' +str(intercept))
-					plt.plot(xdata, yp, c='blue')
-
 					plt.axis([0, 9, 0, 9])
 					plt.grid(True)
 					# plt.legend(loc='best')
+
+					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, p_value, std_err, slope, intercept, len(xdata)])
 
 					figName = plotDir + course[0] + course[1] + ' ' + newCourse[0] + newCourse[1] + ' ' + str(r) + '.png'
 					fig.savefig(figName)
