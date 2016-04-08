@@ -6,10 +6,102 @@ import numpy as np
 from operator import itemgetter
 from collections import Counter
 
-class prepross(object):
+class splitRawData(object):
+	"""docstring for splitRawData"""
 	def __init__(self, arg):
+		super(splitRawData, self).__init__()
+		self.rawDeg, self.rawReg = arg[1], arg[2]
+
+		pathList = self.rawDeg.split('/')
+		degFilename, regFileName = self.rawDeg.split('/')[-1], self.rawReg.split('/')[-1]
+
+		path = '/'
+		for x in xrange(0,len(pathList[1:-2])):
+			path = path + pathList[1:-1][x] + '/'
+		# todo: file names need to be optimized
+		self.trainReg = path + 'users/' + 'trainReg.csv'
+		self.trainDeg = path + 'users/' + 'trainDeg.csv'
+
+		self.testDeg = path + 'users/' + 'testDeg.csv'
+		self.testDeg12 = path + 'users/' + 'testDeg12.csv'
+		self.testDeg13 = path + 'users/' + 'testDeg13.csv'
+		self.testDeg14 = path + 'users/' + 'testDeg14.csv'
+		self.testDeg15 = path + 'users/' + 'testDeg15.csv'
+
+		self.testReg = path + 'users/' + 'testReg.csv'
+		self.testReg12 = path + 'users/' + 'testReg12.csv'
+		self.testReg13 = path + 'users/' + 'testReg13.csv'
+		self.testReg14 = path + 'users/' + 'testReg14.csv'
+		self.testReg15 = path + 'users/' + 'testReg15.csv'
+
+	def doBatch(self):
+		rsrcList = [self.rawReg, self.trainReg, self.testReg12, self.testReg13, self.testReg14, self.testReg15, self.testReg]
+		dsrcList = [self.rawDeg, self.trainDeg, self.testDeg12, self.testDeg13, self.testDeg14, self.testDeg15, self.testDeg]
+		yrList = [['2010', '2011'], ['2012'], ['2013'], ['2014'], ['2015'], ['2012', '2013', '2014', '2015']]
+
+		for src in [rsrcList, dsrcList]:
+			for x in xrange(1,len(src)):
+				self.groupRegData(src[0], src[x], yrList[x-1])
+
+		# self.groupRegData(self.rawReg, self.trainReg, ['2010', '2011'])
+		# self.groupRegData(self.rawReg, self.testReg12, ['2012'])
+		# self.groupRegData(self.rawReg, self.testReg13, ['2013'])
+		# self.groupRegData(self.rawReg, self.testReg14, ['2014'])
+		# self.groupRegData(self.rawReg, self.testReg15, ['2015'])
+		# self.groupRegData(self.rawReg, self.testReg, ['2012', '2013', '2014', '2015'])
+
+		# self.groupRegData(self.rawDeg, self.trainDeg, ['2010', '2011'])
+		# self.groupRegData(self.rawDeg, self.testDeg12, ['2012'])
+		# self.groupRegData(self.rawDeg, self.testDeg13, ['2013'])
+		# self.groupRegData(self.rawDeg, self.testDeg14, ['2014'])
+		# self.groupRegData(self.rawDeg, self.testDeg15, ['2015'])
+		# self.groupRegData(self.rawDeg, self.testDeg, ['2012', '2013', '2014', '2015'])
+
+	def groupRegData(self, dataSource, saveRegFileName, yrArray):
+		yrDict = self.spliteGruaduateYr()
+
+		regReader = csv.reader(open(dataSource), delimiter=',')
+		rheader = regReader.next()
+
+		regWrter = csv.writer(open(saveRegFileName, 'w'))
+		regWrter.writerow(rheader)
+		for reg in regReader:
+			regID = reg[1]
+			for yr in yrArray:
+				yrIDList = yrDict[yr]
+				if regID in yrIDList:
+					regWrter.writerow(reg)
+					break
+
+	def spliteGruaduateYr(self):
+		degReader = csv.reader(open(self.rawDeg), delimiter=',')
+		# degree data includes graduates from 2010 to 2015
+		DegIDList10, DegIDList11, DegIDList12, DegIDList13, DegIDList14, DegIDList15 = [], [], [], [], [], []
+
+		for deg in degReader:
+			graduateYr = deg[9]
+			if (graduateYr == '2010') and (not graduateYr in DegIDList10):
+				DegIDList10.append(deg[1])
+			elif (graduateYr == '2011') and (not graduateYr in DegIDList11):
+				DegIDList11.append(deg[1])
+			elif (graduateYr == '2012') and (not graduateYr in DegIDList12):
+				DegIDList12.append(deg[1])
+			elif (graduateYr == '2013') and (not graduateYr in DegIDList13):
+				DegIDList13.append(deg[1])
+			elif (graduateYr == '2014') and (not graduateYr in DegIDList14):
+				DegIDList14.append(deg[1])
+			elif (graduateYr == '2015') and (not graduateYr in DegIDList15):
+				DegIDList15.append(deg[1])
+
+		return {'2010':DegIDList10, '2011':DegIDList11, '2012':DegIDList12, '2013':DegIDList13, '2014':DegIDList14, '2015':DegIDList15}
+
+	def fetchDegRegFileName(self):
+		return self.trainDeg, self.trainReg
+
+class prepross(object):
+	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
-		self.degDataPath, self.regDataPath = arg[1], arg[2]
+		self.degDataPath, self.regDataPath = degRegFiles
 		self.threshold = 1
 
 	def doBatch(self):
@@ -17,11 +109,6 @@ class prepross(object):
 		self.flow()
 		self.cryptID()
 		self.techCrsHists()
-
-		# self.plotWithoutOutlier('MATH 133', 'ELEC 404', [5,7,9,3,0,3,8,0,9,9,3], [7,9,8,7,7,9,8,8,9,9,8])
-		# self.plotWithoutOutlier('ELEC 250', 'MECH 410', [1,3,6,4,4,3,6], [6,5,7,5,5,6,6])
-		# self.plotWithoutOutlier('ELEC 216', 'CENG 460', [1,7,0,4,8,7,7], [4,8,3,6,9,8,8])
-		# self.plotWithoutOutlier('CSC 230', 'ELEC 496', [2,3,8], [4,5,9])
 
 	def flow(self):
 		self.techCrs()
@@ -33,6 +120,7 @@ class prepross(object):
 		self.pairsHists()
 
 		self.uniqueCourseList()
+		self.uniqueTechCrsList()
 
 		# self.crsStuMatrix()
 		# compute correlation coefficients and draw correlation plots
@@ -40,6 +128,7 @@ class prepross(object):
 		# self.validations()
 
 		self.coefficientHists(self.hist_ori, self.corrORIResults)
+
 		self.groupPlots(self.plots_ori, self.corrORIResults)
 		self.plotsPickByCoefficient(1.0, self.corrORIResults)
 		self.plotsPickByCoefficient(-1.0, self.corrORIResults)
@@ -140,9 +229,10 @@ class prepross(object):
 		for x in xrange(0,len(pathList[1:-1])):
 			path = path + pathList[1:-1][x] + '/'
 
-		self.techCrsFile, self.allTechCrs = path + 'techcourses/' + 'TechCrs' + str(self.threshold) + '.csv', path + 'techcourses/' + 'allTechCrs.csv'
+		self.techCrsFile, self.allTechCrs = path + 'techcourses/' + 'TechCrs' + str(self.threshold) + '.csv', path + 'techcourses/' + 'technicalCourse.csv'
 
-		self.currDir = path + 'raw/' + time.strftime('%Y%m%d') + '/'
+		# self.currDir = path + 'raw/' + time.strftime('%Y%m%d') + '/'
+		self.currDir = path + time.strftime('%Y%m%d') + '/'
 		if not os.path.exists(self.currDir):
 			os.makedirs(self.currDir)
 		
@@ -159,10 +249,10 @@ class prepross(object):
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
 		fileNameList = []
-		for x in xrange(0,16):
+		for x in xrange(0,17):
 			fileNameList.append(self.dataDir)
 
-		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'TECH.csv']
+		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
 
 		for x in xrange(0, len(regFileName.split('_'))-1):
 			for indx in xrange(0,len(fileNameList)):
@@ -171,7 +261,7 @@ class prepross(object):
 		for x in xrange(0,len(fileNameList)):
 			fileNameList[x] += fileNameSuffix[x]
 
-		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.crsMatrix, self.discardList, self.courselist, self.techCrsCSV] = fileNameList
+		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
 
 		self.degREPL = self.IDMAPPER = self.dataDir
 		for x in xrange(0, len(degFilename.split('_'))-1):
@@ -594,16 +684,15 @@ class prepross(object):
 							# print course[0], ' ', course[1], ' vs ', newCourse[0], ' ', newCourse[1], '\tlen: ', len(xdata), '\tcnt: ', cnt
 							# print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard end @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold:', self.threshold
 							# nocommstuList.append(course)
+							cnt += 1
 							nocommstuList.append(newCourse)
 							nocomList.append([xaxis, yaxis])
 							continue
 
 					(r, p) = pearsonr(xdata, ydata)
 					if str(r) == 'nan':
-						# print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CANNOT Compute Pearson Correlation^^^^^^^^^^^^^^^^^^^^^^^^^^^'
-						# print '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cnt: ', cnt, ' end^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
-						# noCorrList.append(course)
 						noCorrList.append(newCourse)
+						cnt += 1
 						continue
 
 					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
@@ -644,7 +733,7 @@ class prepross(object):
 					figName = plotDir + course[0] + course[1] + ' ' + newCourse[0] + newCourse[1] + ' ' + str(r) + '.png'
 					fig.savefig(figName)
 					plt.close(fig)
-					# print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(xdata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\tself.threshold: ', self.threshold
+					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(xdata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\tself.threshold: ', self.threshold
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir + 'nocorr/'):
@@ -885,12 +974,28 @@ class prepross(object):
 		crsLst = []
 
 		writer = csv.writer(open(self.courselist, 'w'))
-		writer.writerow(['SUBJECT_CODE', 'COURSE_NUMBER', 'FREQUENCY'])
+		writer.writerow(['SUBJECT_CODE', 'COURSE_NUMBER', 'FREQUENCY', 'YEAR'])
 		for row in reader:
 			crs = row[3].replace(' ','')+row[4]
 			if (crs not in crsLst):
 				crsLst.append(crs)
-				writer.writerow([row[3].replace(' ', ''), row[4], freq[crs]])
+				writer.writerow([row[3].replace(' ', ''), row[4], freq[crs], row[4][0]])
+
+	def uniqueTechCrsList(self):
+		creader = csv.reader(open(self.courselist), delimiter = ',')
+		header = creader.next()
+
+		treader = csv.reader(open(self.allTechCrs), delimiter = ',')
+		techCrsList = []
+		for row in treader:
+			techCrsList.append(row[0]+row[1])
+
+		writer = csv.writer(open(self.uniTechCrsList, 'w'))
+		writer.writerow(header)
+		for row in creader:
+			crs = row[0].replace(' ','')+row[1]
+			if crs in techCrsList:
+				writer.writerow(row)
 		
 	def sortCourse(self, courses, values):
 		for i in xrange(0,len(courses)):
@@ -941,7 +1046,7 @@ class prepross(object):
 	def techCrs(self):
 		# reader = csv.reader(open(self.techCrsFile), delimiter = ',')
 		reader = csv.reader(open(self.allTechCrs), delimiter = ',')
-		reader.next()
+		# reader.next()
 		techCrsList = []
 		for row in reader:
 			techCrsList.append(row[0]+row[1])
@@ -962,7 +1067,7 @@ class prepross(object):
 		if not os.path.exists(figPath):
 			os.makedirs(figPath)
 
-		reader = csv.reader(open(self.allTechCrs), delimiter = ',')
+		reader = csv.reader(open(self.uniTechCrsList), delimiter = ',')
 		reader.next()
 		x = []
 		for row in reader:
@@ -1185,4 +1290,6 @@ class prepross(object):
 		fig.savefig(figName)
 		plt.close(fig)
 
-prepross(sys.argv).doBatch()
+prepare = splitRawData(sys.argv)
+# prepare.doBatch()
+prepross(prepare.fetchDegRegFileName()).doBatch()
