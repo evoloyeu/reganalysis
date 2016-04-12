@@ -342,19 +342,12 @@ class prepross(object):
 		# hearders.insert(2,'COURSE_CODE')
 		fRegNodupWrter.writerow(hearders)
 
-		newFlag = False
-		courseListPerPerson = []
-		vnum = ''
+		newFlag, courseListPerPerson, vnum = False, [], ''
 
-		cnt = 0
-		userCnt = 0
-		dupCnt = 0
+		cnt = userCnt = dupCnt = 0
 		for row in fRegCSVRder:
 			cnt = cnt + 1
-			# V_number: row[1]
-			# Subject_code: row[3]
-			# Course Number: row[4]
-			# Grade_code: row[6]	
+			# V_number: row[1]; Subject_code: row[3]; Course Number: row[4]; Grade_code: row[6]
 			if len(courseListPerPerson) == 0:
 				newFlag = False
 				vnum = row[1]
@@ -400,15 +393,14 @@ class prepross(object):
 			course_code = record[3].replace(' ','')+record[4].replace(' ','')
 			if course_code not in distinctCRSLst:
 				distinctCRSLst.append(course_code)
-			# record[1]:v_number
-			# how many courses each students registered
+
+			# record[1]:v_number; how many courses each students registered
 			if record[1] in crsPerStu:
 				crsPerStu[record[1]] = crsPerStu[record[1]] + 1
 			else:
 				crsPerStu[record[1]] = 1
 
-			# course frequency
-			# how many students each course was been registered
+			# course frequency; how many students each course was been registered
 			if course_code in crsFre:
 				crsFre[course_code] = crsFre[course_code] + 1
 			else:
@@ -419,40 +411,40 @@ class prepross(object):
 		
 		# count how many courses registered for each student
 		w = csv.writer(open(self.CRSPERSTU, 'w'))
-		w.writerow(['V_NUMBER', '#_of_Courses_registered'])
+		w.writerow(['V_NUMBER', '#Courses_registered'])
 		w.writerows(crsPerStu.items())
 		# count how many students for each course
 		w = csv.writer(open(self.STUREGISTERED, 'w'))
-		w.writerow(['Course', '#_of_Students'])
+		w.writerow(['Course', '#Students'])
 		w.writerows(crsFre.items())
 		# pickup the courses without grades
 		w = csv.writer(open(self.EMPTY, 'w'))
 		noGradeRecs.insert(0, header)
 		w.writerows(noGradeRecs)
 		
-		r = csv.reader(open(self.EMPTY), delimiter=',')
-		r.next()
-		uniStu, uniCrs = {}, {}
-		for record in r:
-			if record[1] not in uniStu:
-				uniStu[record[1]] = 1
-			else:
-				uniStu[record[1]] = uniStu[record[1]] + 1
+		# r = csv.reader(open(self.EMPTY), delimiter=',')
+		# r.next()
+		# uniStu, uniCrs = {}, {}
+		# for record in r:
+		# 	if record[1] not in uniStu:
+		# 		uniStu[record[1]] = 1
+		# 	else:
+		# 		uniStu[record[1]] = uniStu[record[1]] + 1
 
-			course_code = record[3].replace(' ','') + record[4].replace(' ','')	
-			if course_code not in uniCrs:
-				uniCrs[course_code] = 1
-			else:
-				uniCrs[course_code] = uniCrs[course_code] + 1
+		# 	course_code = record[3].replace(' ','') + record[4].replace(' ','')	
+		# 	if course_code not in uniCrs:
+		# 		uniCrs[course_code] = 1
+		# 	else:
+		# 		uniCrs[course_code] = uniCrs[course_code] + 1
 		
-		# count the students who have courses without grades and how many no grade courses they have
-		w = csv.writer(open(self.EMPTY_STU, 'w'))
-		w.writerow(['V_NUMBER', '#_of_Courses_No_Grades'])
-		w.writerows(uniStu.items())
-		# count the #_of_students for the courses which were not assigned any grades
-		w = csv.writer(open(self.EMPTY_CRS, 'w'))
-		w.writerow(['Course', '#_of_Students_Reg_No_Grade'])
-		w.writerows(uniCrs.items())
+		# # count the students who have courses without grades and how many no grade courses they have
+		# w = csv.writer(open(self.EMPTY_STU, 'w'))
+		# w.writerow(['V_NUMBER', '#_of_Courses_No_Grades'])
+		# w.writerows(uniStu.items())
+		# # count the #_of_students for the courses which were not assigned any grades
+		# w = csv.writer(open(self.EMPTY_CRS, 'w'))
+		# w.writerow(['Course', '#_of_Students_Reg_No_Grade'])
+		# w.writerows(uniCrs.items())
 		
 		# create course list
 		r = csv.reader(open(noDupRegFile), delimiter=',')
@@ -646,11 +638,9 @@ class prepross(object):
 				matrix.append(row)
 
 		w = csv.writer(open(corr, 'w'))
-		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', 'pValue', 'stderr', 'slope', 'intercept', '#points'])
+		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', 'rValue', 'pValue', 'stderr', 'slope', 'intercept', '#points'])
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
-		# nocorrlst = self.dataDir + 'nocorr/' + str(self.threshold) + '_no_corr_list.csv'
-		# nocommstulst = self.dataDir + 'nocomstu/' + str(self.threshold) + '_nocomstu_list.csv'
 		nocorrlst = self.dataDir + 'nocorr/' + 'no_corr_list.csv'
 		nocommstulst = self.dataDir + 'nocomstu/' + 'nocomstu_list.csv'
 		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
@@ -678,15 +668,10 @@ class prepross(object):
 								xdata.append(float(ix))
 								ydata.append(float(iy))
 
-						# print '===============', 'x:', len(xdata), ' y: ', len(ydata),'================'
-						if len(xdata) < self.threshold:
-							# print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard begin @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold: ', self.threshold
-							# print course[0], ' ', course[1], ' vs ', newCourse[0], ' ', newCourse[1], '\tlen: ', len(xdata), '\tcnt: ', cnt
-							# print '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ discard end @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ self.threshold:', self.threshold
-							# nocommstuList.append(course)
+						if len(xdata) == 0:
 							cnt += 1
 							nocommstuList.append(newCourse)
-							nocomList.append([xaxis, yaxis])
+							nocomList.append([course[0] + ' ' + course[1], newCourse[0] + ' ' + newCourse[1]])
 							continue
 
 					(r, p) = pearsonr(xdata, ydata)
@@ -728,7 +713,7 @@ class prepross(object):
 					plt.grid(True)
 					# plt.legend(loc='best')
 
-					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, p_value, std_err, slope, intercept, len(xdata)])
+					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, r_value, p_value, std_err, slope, intercept, len(ydata)])
 
 					figName = plotDir + course[0] + course[1] + ' ' + newCourse[0] + newCourse[1] + ' ' + str(r) + '.png'
 					fig.savefig(figName)
@@ -1291,5 +1276,5 @@ class prepross(object):
 		plt.close(fig)
 
 prepare = splitRawData(sys.argv)
-# prepare.doBatch()
+prepare.doBatch()
 prepross(prepare.fetchDegRegFileName()).doBatch()
