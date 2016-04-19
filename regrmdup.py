@@ -111,7 +111,8 @@ class prepross(object):
 
 	def doBatch(self):
 		self.statsPath()
-		self.flow()
+		# self.flow()
+		self.formulaV1(1,1)
 		# self.cryptID()
 		# self.techCrsHists()
 
@@ -266,8 +267,10 @@ class prepross(object):
 		# others
 		self.pairsFrequency, self.pairsHistDir = self.dataDir + 'pairsFrequency.csv', self.currDir + 'pairs_hist/'
 
-		self.corrAVEResults, self.corrORIResults = self.dataDir + 'corr_ave.csv', self.dataDir + 'corr_ori.csv'
-		self.valAVE, self.valORI = self.dataDir + 'corr_ave_val.csv', self.dataDir + 'corr_ori_val.csv'
+		# self.corrAVEResults, self.corrORIResults = self.dataDir + 'corr_ave.csv', self.dataDir + 'corr_ori.csv'
+		self.corrORIResults = self.dataDir + 'corr_ori.csv'
+		self.fV1Reulsts = self.dataDir + 'fv1_ori_result.csv'
+		# self.valAVE, self.valORI = self.dataDir + 'corr_ave_val.csv', self.dataDir + 'corr_ori_val.csv'
 
 		[self.plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori] = [self.currDir + 'plots_ori/', self.currDir + 'coefficient_ori/', self.currDir + 'hist_ori/', self.currDir + 'bars_ori/', self.currDir + 'course_ori/']
 
@@ -322,7 +325,8 @@ class prepross(object):
 		for record in courseListPerPerson:
 			index = courseListPerPerson.index(record)+1
 			for crs in xrange(index,len(courseListPerPerson)):
-				crsRecd, rec1, rec2 = courseListPerPerson[crs], record[3].replace(' ','') + record[4], crsRecd[3].replace(' ','') + crsRecd[4]
+				crsRecd = courseListPerPerson[crs]
+				rec1, rec2 = record[3].replace(' ','') + record[4], crsRecd[3].replace(' ','') + crsRecd[4]
 				if rec1 == rec2:
 					if record[6] == crsRecd[6]:
 						if record not in dupList:
@@ -648,7 +652,7 @@ class prepross(object):
 				matrix.append(row)
 
 		w = csv.writer(open(corr, 'w'))
-		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', 'rValue', 'pValue', 'stderr', 'slope', 'intercept', '#points'])
+		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', '#points', 'pValue', 'stderr', 'slope', 'intercept'])
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
 		nocorrlst = self.dataDir + 'nocorr/' + 'no_corr_list.csv'
@@ -723,7 +727,7 @@ class prepross(object):
 					plt.grid(True)
 					# plt.legend(loc='best')
 
-					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, r_value, p_value, std_err, slope, intercept, len(ydata)])
+					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept])
 
 					figName = plotDir + course[0] + course[1] + ' ' + newCourse[0] + newCourse[1] + ' ' + str(r) + '.png'
 					fig.savefig(figName)
@@ -1252,40 +1256,58 @@ class prepross(object):
 	def gradePointMap(self):
 		return {'A':8, 'A-':7, 'A+':9, 'B':5, 'B-':4, 'B+':6, 'C':2, 'C+':3, 'D':1, 'E':0, 'F':0, 'N':0, 'SB':1, 'SB-':1, 'SD':1, 'SF':0}
 
-	def plotWithoutOutlier(self, xcourse, ycourse, xgrades, ygrades):
-		nOutlierpath = self.currDir + 'nOutlier/'
-		if not os.path.exists(nOutlierpath):
-			os.makedirs(nOutlierpath)
+	def formulaV1(self, w1, w2):
+		reader = csv.reader(open(self.corrORIResults), delimiter=',')
+		header = reader.next()
+		rows = []
+		for row in reader:
+			row[4] = float(row[4])
+			rows.append(row)
 
-		xaxis, yaxis = xcourse + ' Grades', ycourse + ' Grades'
-		xdata, ydata = xgrades, ygrades
+		rows.sort(key=itemgetter(2,3,4,5), reverse=True)
+		writer = csv.writer(open(self.fV1Reulsts, 'w'))
+		header.insert(6, 'pxy')
+		# writer.writerow(header)
+		cnt = 0
+		ylist, rlist, plist = [], [], []
+		for x in xrange(0,len(rows)):
+			cnt += 1
+			ylist.append(rows[x])
 
-		fig = plt.figure()
-		plt.title('Grades Scatter (Pearson Correlation)')
-		plt.xlabel(xaxis)
-		plt.ylabel(yaxis)
+			r = float(rows[x][4])
+			if r < 0:
+				rlist.append(r*(-1.0))
+			else:
+				rlist.append(r)
 
-		for j in xrange(0,len(xdata)):
-			plt.scatter(xdata[j], ydata[j], c = 'blue')
+			plist.append(float(rows[x][5]))
+			print 'cnt: ', cnt, '\t', rows[x]
+			if x < (len(rows)-1):
+				if (rows[x][2]+rows[x][3]) != (rows[x+1][2]+rows[x+1][3]):
+					writer.writerow(header)
+					writer.writerows(self.computePxy(ylist, rlist, plist, w1, w2))
+					writer.writerow([])
+					ylist, rlist, plist = [], [], []
+					print '\n'
 
-		(r, p) = pearsonr(xdata, ydata)
-		slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
-		# format the parameters precision
-		r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.2f')), float(format(slope, '.2f')), float(format(intercept, '.2f')), float(format(r_value, '.2f')), float(format(p_value, '.2f')), float(format(std_err, '.2f'))]
+		if (len(ylist) == len(rlist)) and (len(ylist) == len(plist)) and (len(ylist) > 0):
+			writer.writerow(header)
+			writer.writerows(self.computePxy(ylist, rlist, plist, w1, w2))
+			ylist, rlist, plist = [], [], []
+			print '\n'
 
-		xdata.insert(0, 0.0)
-		xdata.insert(-1, 9.0)
-		yp = [x*slope+intercept for x in xdata]
-		plt.plot(xdata, yp, c='green', label = 'r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + '+' +str(intercept))
+	def computePxy(self, ylist, rlist, plist, w1, w2):
+		for sublist in ylist:
+			r = float(sublist[4])
+			if r < 0:
+				pxy = w1*float(sublist[4])*(-1.0)/float(max(rlist))+w2*float(sublist[5])/float(max(plist))
+			else:
+				pxy = w1*float(sublist[4])/float(max(rlist))+w2*float(sublist[5])/float(max(plist))
 
-		plt.axis([0, 9, 0, 9])
-		plt.grid(True)
-		plt.legend(loc='best')
+			sublist.insert(6, format(pxy, '.4f'))
 
-		figName = nOutlierpath + xcourse + ' ' + ycourse + ' ' + str(r) + '.png'
-		fig.savefig(figName)
-		plt.close(fig)
+		return ylist
 
 prepare = splitRawData(sys.argv)
-prepare.doBatch()
+# prepare.doBatch()
 prepross(prepare.fetchDegRegFileName()).doBatch()
