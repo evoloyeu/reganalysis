@@ -112,7 +112,11 @@ class prepross(object):
 	def doBatch(self):
 		self.statsPath()
 		# self.flow()
-		self.formulaV1(1,1)
+		# for w1 in [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]:
+			# self.formulaV1(w1,1)
+		w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
+		w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+		self.formulaV1Integrate(w1,w2)
 		# self.cryptID()
 		# self.techCrsHists()
 
@@ -1262,11 +1266,15 @@ class prepross(object):
 		rows = []
 		for row in reader:
 			row[4] = float(row[4])
-			rows.append(row)
+			rows.append(row[0:6])
 
 		rows.sort(key=itemgetter(2,3,4,5), reverse=True)
-		writer = csv.writer(open(self.fV1Reulsts, 'w'))
-		header.insert(6, 'pxy')
+
+		fV1Reulsts = self.dataDir + 'fv1_' + str(w1) + '_' + str(w2) +'.csv'
+		writer = csv.writer(open(fV1Reulsts, 'w'))
+
+		header = header[0:6]
+		header.insert(6, str(w1) + '_' + str(w2))
 		# writer.writerow(header)
 		cnt = 0
 		ylist, rlist, plist = [], [], []
@@ -1305,6 +1313,64 @@ class prepross(object):
 				pxy = w1*float(sublist[4])/float(max(rlist))+w2*float(sublist[5])/float(max(plist))
 
 			sublist.insert(6, format(pxy, '.4f'))
+
+		return ylist
+
+	def formulaV1Integrate(self, w1list, w2list):
+		reader = csv.reader(open(self.corrORIResults), delimiter=',')
+		header = reader.next()
+		rows = []
+		for row in reader:
+			row[4] = float(row[4])
+			rows.append(row[0:6])
+
+		rows.sort(key=itemgetter(2,3,4,5), reverse=True)
+
+		fV1Reulsts = self.dataDir + 'fv1_w1_w2.csv'
+		writer = csv.writer(open(fV1Reulsts, 'w'))
+
+		header = header[0:6]
+		for x in xrange(0, len(w1list)):
+			header.append(str(w1list[x])+'_'+str(w2list[x]))
+
+		cnt = 0
+		ylist, rlist, plist = [], [], []
+		for x in xrange(0,len(rows)):
+			cnt += 1
+			ylist.append(rows[x])
+
+			r = float(rows[x][4])
+			if r < 0:
+				rlist.append(r*(-1.0))
+			else:
+				rlist.append(r)
+
+			plist.append(float(rows[x][5]))
+			print 'cnt: ', cnt, '\t', rows[x]
+			if x < (len(rows)-1):
+				if (rows[x][2]+rows[x][3]) != (rows[x+1][2]+rows[x+1][3]):
+					writer.writerow(header)
+					writer.writerows(self.computePxyIntegrade(ylist, rlist, plist, w1list, w2list))
+					writer.writerow([])
+					ylist, rlist, plist = [], [], []
+					print '\n'
+
+		if (len(ylist) == len(rlist)) and (len(ylist) == len(plist)) and (len(ylist) > 0):
+			writer.writerow(header)
+			writer.writerows(self.computePxyIntegrade(ylist, rlist, plist, w1list, w2list))
+			ylist, rlist, plist = [], [], []
+			print '\n'
+
+	def computePxyIntegrade(self, ylist, rlist, plist, w1list, w2list):
+		for sublist in ylist:
+			r, p, maxr, maxp = float(sublist[4]), float(sublist[5]), float(max(rlist)), float(max(plist))
+			for x in xrange(0,len(w1list)):
+				if r < 0:
+					pxy = w1list[x]*r*(-1.0)/maxr + w2list[x]*p/maxp
+				else:
+					pxy = w1list[x]*r/maxr + w2list[x]*p/maxp
+
+				sublist.append(format(pxy, '.4f'))
 
 		return ylist
 
