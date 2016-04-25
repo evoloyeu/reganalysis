@@ -113,12 +113,20 @@ class prepross(object):
 		self.statsPath()
 		# self.flow()
 		# for w1 in [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]:
-			# self.formulaV1(w1,1)
-		w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
-		w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		self.formulaV1Integrate(w1,w2)
+		self.formulaV1(1.4,1)
+		# w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
+		# w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+		# self.formulaV1Integrate(w1,w2)
 		# self.cryptID()
 		# self.techCrsHists()
+
+		# testRegLoc:
+		# 2012-2015: [0, 3]
+		# 2012: [1, 3]
+		# 2013: [2, 3]
+		# 2014: [3, 3]
+		# 2015: [4, 3]
+		self.predictProcess([1,3])
 
 	def flow(self):
 		self.techCrs()
@@ -267,6 +275,9 @@ class prepross(object):
 
 			self.fTestStatFileNameList.append(tmpList)
 		# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
+
+		# predictor file path
+		self.predictorFile = ''
 
 		# others
 		self.pairsFrequency, self.pairsHistDir = self.dataDir + 'pairsFrequency.csv', self.currDir + 'pairs_hist/'
@@ -1266,20 +1277,21 @@ class prepross(object):
 		rows = []
 		for row in reader:
 			row[4] = float(row[4])
-			rows.append(row[0:6])
+			rows.append(row)
 
 		rows.sort(key=itemgetter(2,3,4,5), reverse=True)
 
 		fV1Reulsts = self.dataDir + 'fv1_' + str(w1) + '_' + str(w2) +'.csv'
 		writer = csv.writer(open(fV1Reulsts, 'w'))
+		# build the self.predictorFile
+		self.predictorFile = self.dataDir + 'predictors_' + str(w1) + '_' + str(w2) +'.csv'
+		eqw = csv.writer(open(self.predictorFile, 'w'))
 
-		header = header[0:6]
 		header.insert(6, str(w1) + '_' + str(w2))
-		# writer.writerow(header)
-		cnt = 0
+		eqw.writerow(header)
+
 		ylist, rlist, plist = [], [], []
 		for x in xrange(0,len(rows)):
-			cnt += 1
 			ylist.append(rows[x])
 
 			r = float(rows[x][4])
@@ -1289,22 +1301,29 @@ class prepross(object):
 				rlist.append(r)
 
 			plist.append(float(rows[x][5]))
-			print 'cnt: ', cnt, '\t', rows[x]
+
 			if x < (len(rows)-1):
 				if (rows[x][2]+rows[x][3]) != (rows[x+1][2]+rows[x+1][3]):
 					writer.writerow(header)
-					writer.writerows(self.computePxy(ylist, rlist, plist, w1, w2))
+					ylist, predictorList = self.PxyPredictors(ylist, rlist, plist, w1, w2)
+					writer.writerows(ylist)
 					writer.writerow([])
+
+					eqw.writerows(predictorList)
+
 					ylist, rlist, plist = [], [], []
-					print '\n'
 
 		if (len(ylist) == len(rlist)) and (len(ylist) == len(plist)) and (len(ylist) > 0):
 			writer.writerow(header)
-			writer.writerows(self.computePxy(ylist, rlist, plist, w1, w2))
-			ylist, rlist, plist = [], [], []
-			print '\n'
+			ylist, predictorList = self.PxyPredictors(ylist, rlist, plist, w1, w2)
+			writer.writerows(ylist)
 
-	def computePxy(self, ylist, rlist, plist, w1, w2):
+			eqw.writerows(predictorList)
+
+			ylist, rlist, plist = [], [], []
+
+	def PxyPredictors(self, ylist, rlist, plist, w1, w2):
+		pxyArr, predictorList = [], []
 		for sublist in ylist:
 			r = float(sublist[4])
 			if r < 0:
@@ -1312,9 +1331,22 @@ class prepross(object):
 			else:
 				pxy = w1*float(sublist[4])/float(max(rlist))+w2*float(sublist[5])/float(max(plist))
 
-			sublist.insert(6, format(pxy, '.4f'))
+			pxy = format(pxy, '.4f')
+			pxyArr.append(pxy)
+			sublist.insert(6, pxy)
 
-		return ylist
+		# search the predictor course
+		maxPxy = max(pxyArr)
+		freq = Counter(item for item in pxyArr)
+		if freq[maxPxy] == 1:
+			index = pxyArr.index(maxPxy)			
+			predictorList.append(ylist[index])
+		else:
+			for sublist in ylist:
+				if sublist[6] == maxPxy:
+					predictorList.append(sublist)
+
+		return [ylist, predictorList]
 
 	def formulaV1Integrate(self, w1list, w2list):
 		reader = csv.reader(open(self.corrORIResults), delimiter=',')
@@ -1373,6 +1405,97 @@ class prepross(object):
 				sublist.append(format(pxy, '.4f'))
 
 		return ylist
+
+	def predictProcess(self, testRegLoc):
+		# build equation dict
+		r1 = csv.reader(open(self.predictorFile), delimiter=',')
+		header1 = r1.next()
+		predictorDict = {}
+		for row in r1:
+			key = row[2]+row[3]
+			if key not in predictorDict:
+				predictorDict[key] = [row]
+			else:
+				predictorDict[key].append(row)
+
+			# print predictorDict[key]
+
+		# test data reg file: build test reg dict
+		testReg = self.fTestStatFileNameList[testRegLoc[0]][testRegLoc[1]]
+		r2 = csv.reader(open(testReg), delimiter=',')
+		header2 = r2.next()
+		testRegDict = {}
+		for row in r2:
+			key = row[0]+row[1]
+			if key not in testRegDict:
+				testRegDict[key] = row
+
+		# search predictable courses
+		predictingList = []
+		keys = predictorDict.keys()
+		for key in keys:
+			if key in testRegDict:
+				testY = testRegDict[key]
+				testXs = []
+				predictors = predictorDict[key]
+				for x in predictors:
+					testXKey = x[0]+x[1]
+					if testXKey in testRegDict:
+						testXs.append(testRegDict[testXKey])
+
+				# have located the predictable course pairs stored in pairsList
+				pairsList = self.gradePairs(testY, testXs)
+				if len(pairsList) > 0:
+					predictingList.append(pairsList)
+
+		# predict
+		predictResults = self.dataDir + 'fv1_predicting_grades' + str(testRegLoc[0]) + '_' + str(testRegLoc[1]) +'.csv'
+		writer = csv.writer(open(predictResults, 'w'))
+		for pairsList in predictingList:
+			for pairs in pairsList:
+				[xgrades, ygrades] = pairs
+				# locate predicting equation
+				key = ygrades[0] + ygrades[1]
+				predictors = predictorDict[key]
+				# equation: y = slope * x + intercept
+				slope = intercept = 0
+				for predictor in predictors:
+					xcourse = xgrades[0] + xgrades[1]
+					predictorCourse = predictor[0] + predictor[1]
+					if xcourse == predictorCourse:
+						slope = predictor[-2]
+						intercept = predictor[-1]
+						break
+
+				# compute predicting grade of testY using the equation located above
+				predictGrades = [ygrades[0], ygrades[1]]
+				for x in xgrades[2:]:
+					grade = float(slope) * float(x) + float(intercept)
+					predictGrades.append(format(grade, '.1f'))
+
+				xgrades.insert(0, 'predictor')
+				ygrades.insert(0, 'real')
+				predictGrades.insert(0, 'predicting')
+				writer.writerows([xgrades, ygrades, predictGrades, []])
+				print xgrades
+				print ygrades
+				print predictGrades
+				print '\n'
+
+	def gradePairs(self, testY, testXs):
+		pairsList = []
+		for x in testXs:
+			xgrades = [x[0], x[1]]
+			ygrades = [testY[0], testY[1]]
+			for index in xrange(2,len(testY)):
+				if x[index].isdigit() and testY[index].isdigit():
+					xgrades.append(x[index])
+					ygrades.append(testY[index])
+
+			if len(xgrades) > 2:
+				pairsList.append([xgrades, ygrades])
+
+		return pairsList
 
 prepare = splitRawData(sys.argv)
 # prepare.doBatch()
