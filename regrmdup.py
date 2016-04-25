@@ -126,7 +126,11 @@ class prepross(object):
 		# 2013: [2, 3]
 		# 2014: [3, 3]
 		# 2015: [4, 3]
+		self.predictProcess([0,3])
 		self.predictProcess([1,3])
+		self.predictProcess([2,3])
+		self.predictProcess([3,3])
+		self.predictProcess([4,3])
 
 	def flow(self):
 		self.techCrs()
@@ -1458,13 +1462,14 @@ class prepross(object):
 				key = ygrades[0] + ygrades[1]
 				predictors = predictorDict[key]
 				# equation: y = slope * x + intercept
-				slope = intercept = 0
+				slope = intercept = coefficient = 0
 				for predictor in predictors:
 					xcourse = xgrades[0] + xgrades[1]
 					predictorCourse = predictor[0] + predictor[1]
 					if xcourse == predictorCourse:
 						slope = predictor[-2]
 						intercept = predictor[-1]
+						coefficient = predictor[4]
 						break
 
 				# compute predicting grade of testY using the equation located above
@@ -1473,10 +1478,36 @@ class prepross(object):
 					grade = float(slope) * float(x) + float(intercept)
 					predictGrades.append(format(grade, '.1f'))
 
+				# compute errors
+				errorList, errorPercent, errorsum = [], [], 0
+				for index in xrange(2,len(predictGrades)):
+					error = float(predictGrades[index]) - float(ygrades[index])
+					errorList.append(format(error, '.1f'))
+
+					if float(ygrades[index]) != 0:
+						errorPercent.append(format(error/float(ygrades[index]), '.2f'))
+					else:
+						errorPercent.append(format(1.0, '.2f'))
+					if error < 0:
+						errorsum += error * (-1.0)
+					else:
+						errorsum += error
+
 				xgrades.insert(0, 'predictor')
 				ygrades.insert(0, 'real')
-				predictGrades.insert(0, 'predicting')
-				writer.writerows([xgrades, ygrades, predictGrades, []])
+				predictGrades.insert(0, 'predicting')				
+				
+				for x in xrange(0,2):
+					errorList.insert(x, '')
+					errorPercent.insert(x, '')
+
+				errorList.insert(2, 'error')
+				errorPercent.insert(2, 'error percent')
+
+				# appendix = [ 'Coefficient:', coefficient, 'average error:', format(errorsum/len(errorList), '.2f')]
+				appendix = [ 'average error:', format(errorsum/len(errorList), '.2f')]
+
+				writer.writerows([xgrades, ygrades, predictGrades, errorList, errorPercent, appendix, []])
 				print xgrades
 				print ygrades
 				print predictGrades
