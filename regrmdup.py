@@ -5,6 +5,7 @@ from scipy.stats import pearsonr, linregress
 import numpy as np
 from operator import itemgetter
 from collections import Counter
+from random import randint
 
 class splitRawData(object):
 	"""docstring for splitRawData"""
@@ -126,11 +127,8 @@ class prepross(object):
 		# 2013: [2, 3]
 		# 2014: [3, 3]
 		# 2015: [4, 3]
-		self.predictProcess([0,3])
-		self.predictProcess([1,3])
-		self.predictProcess([2,3])
-		self.predictProcess([3,3])
-		self.predictProcess([4,3])
+		for x in xrange(0,5):
+			self.predictProcess([x,3])
 
 	def flow(self):
 		self.techCrs()
@@ -1462,7 +1460,7 @@ class prepross(object):
 				key = ygrades[0] + ygrades[1]
 				predictors = predictorDict[key]
 				# equation: y = slope * x + intercept
-				slope = intercept = coefficient = 0
+				slope = intercept = coefficient = pointFreq = 0
 				for predictor in predictors:
 					xcourse = xgrades[0] + xgrades[1]
 					predictorCourse = predictor[0] + predictor[1]
@@ -1470,6 +1468,7 @@ class prepross(object):
 						slope = predictor[-2]
 						intercept = predictor[-1]
 						coefficient = predictor[4]
+						pointFreq = predictor[5]
 						break
 
 				# compute predicting grade of testY using the equation located above
@@ -1481,18 +1480,21 @@ class prepross(object):
 				# compute errors
 				errorList, errorPercent, errorsum = [], [], 0
 				for index in xrange(2,len(predictGrades)):
-					error = float(predictGrades[index]) - float(ygrades[index])
+					error = float(ygrades[index]) - float(predictGrades[index])
 					errorList.append(format(error, '.1f'))
 
 					if float(ygrades[index]) != 0:
-						errorPercent.append(format(error/float(ygrades[index]), '.2f'))
+						percent = float(format(abs(error)/float(ygrades[index]), '.3f'))
+						errorPercent.append(str(percent*100)+str('%'))
 					else:
-						errorPercent.append(format(1.0, '.2f'))
+						errorPercent.append('100%')
+
 					if error < 0:
 						errorsum += error * (-1.0)
 					else:
 						errorsum += error
 
+				errorave = format(errorsum/len(errorList), '.2f')
 				xgrades.insert(0, 'predictor')
 				ygrades.insert(0, 'real')
 				predictGrades.insert(0, 'predicting')				
@@ -1501,13 +1503,14 @@ class prepross(object):
 					errorList.insert(x, '')
 					errorPercent.insert(x, '')
 
-				errorList.insert(2, 'error')
-				errorPercent.insert(2, 'error percent')
+				errorList.insert(2, 'Err:')
+				errorPercent.insert(2, 'Err Per:')
 
-				# appendix = [ 'Coefficient:', coefficient, 'average error:', format(errorsum/len(errorList), '.2f')]
-				appendix = [ 'average error:', format(errorsum/len(errorList), '.2f')]
+				# appendix = ['point#', pointFreq, 'Coefficient:', coefficient, 'average error:', errorave]
+				appendix = [ 'Average Err:', errorave]
 
-				writer.writerows([xgrades, ygrades, predictGrades, errorList, errorPercent, appendix, []])
+				# writer.writerows([xgrades, ygrades, predictGrades, errorList, errorPercent, appendix, []])
+				writer.writerows([ygrades, predictGrades, errorList, errorPercent, appendix, []])
 				print xgrades
 				print ygrades
 				print predictGrades
@@ -1525,6 +1528,10 @@ class prepross(object):
 
 			if len(xgrades) > 2:
 				pairsList.append([xgrades, ygrades])
+
+		if len(pairsList) > 1:
+			randomIndex = randint(0,len(pairsList)-1)
+			return [pairsList[randomIndex]]
 
 		return pairsList
 
