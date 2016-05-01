@@ -20,65 +20,35 @@ class splitRawData(object):
 		for x in xrange(0,len(pathList[1:-2])):
 			path = path + pathList[1:-1][x] + '/'
 
-		path = path + 'users/splits' + time.strftime('%Y%m%d') + '/'
+		path = path + 'users/splits/'
 		if not os.path.exists(path):
 			os.makedirs(path)
-		# todo: file names need to be optimized
-		self.trainReg = path + 'trainReg.csv'
-		self.trainDeg = path + 'trainDeg.csv'
 
-		self.testDeg = path + 'testDeg.csv'
-		self.testDeg12 = path + 'testDeg12.csv'
-		self.testDeg13 = path + 'testDeg13.csv'
-		self.testDeg14 = path + 'testDeg14.csv'
-		self.testDeg15 = path + 'testDeg15.csv'
+		self.regFileList, self.degFileList = [], []
+		self.yearList = ['2010', '2011', '2012', '2013', '2014', '2015']
+		for yr in self.yearList:
+			self.regFileList.append(path+'reg'+yr+'.csv')
+			self.degFileList.append(path+'deg'+yr+'.csv')
 
-		self.testReg = path + 'testReg.csv'
-		self.testReg12 = path + 'testReg12.csv'
-		self.testReg13 = path + 'testReg13.csv'
-		self.testReg14 = path + 'testReg14.csv'
-		self.testReg15 = path + 'testReg15.csv'
+		self.IDDict = self.degIDListByYr()
 
 	def doBatch(self):
-		rsrcList = [self.rawReg, self.trainReg, self.testReg12, self.testReg13, self.testReg14, self.testReg15, self.testReg]
-		dsrcList = [self.rawDeg, self.trainDeg, self.testDeg12, self.testDeg13, self.testDeg14, self.testDeg15, self.testDeg]
-		yrList = [['2010', '2011'], ['2012'], ['2013'], ['2014'], ['2015'], ['2012', '2013', '2014', '2015']]
+		for index in xrange(0, len(self.yearList)):
+			self.groupRawData(self.rawDeg, self.degFileList[index], self.yearList[index])
+			self.groupRawData(self.rawReg, self.regFileList[index], self.yearList[index])
 
-		for src in [rsrcList, dsrcList]:
-			for x in xrange(1,len(src)):
-				self.groupRegData(src[0], src[x], yrList[x-1])
+	def groupRawData(self, src, dest, yr):
+		reader = csv.reader(open(src), delimiter=',')
+		rheader = reader.next()
 
-		# self.groupRegData(self.rawReg, self.trainReg, ['2010', '2011'])
-		# self.groupRegData(self.rawReg, self.testReg12, ['2012'])
-		# self.groupRegData(self.rawReg, self.testReg13, ['2013'])
-		# self.groupRegData(self.rawReg, self.testReg14, ['2014'])
-		# self.groupRegData(self.rawReg, self.testReg15, ['2015'])
-		# self.groupRegData(self.rawReg, self.testReg, ['2012', '2013', '2014', '2015'])
+		writer = csv.writer(open(dest, 'w'))
+		writer.writerow(rheader)
+		for row in reader:
+			rowID, IDList = row[1], self.IDDict[yr]
+			if rowID in IDList:
+				writer.writerow(row)
 
-		# self.groupRegData(self.rawDeg, self.trainDeg, ['2010', '2011'])
-		# self.groupRegData(self.rawDeg, self.testDeg12, ['2012'])
-		# self.groupRegData(self.rawDeg, self.testDeg13, ['2013'])
-		# self.groupRegData(self.rawDeg, self.testDeg14, ['2014'])
-		# self.groupRegData(self.rawDeg, self.testDeg15, ['2015'])
-		# self.groupRegData(self.rawDeg, self.testDeg, ['2012', '2013', '2014', '2015'])
-
-	def groupRegData(self, dataSource, saveRegFileName, yrArray):
-		yrDict = self.spliteGruaduateYr()
-
-		regReader = csv.reader(open(dataSource), delimiter=',')
-		rheader = regReader.next()
-
-		regWrter = csv.writer(open(saveRegFileName, 'w'))
-		regWrter.writerow(rheader)
-		for reg in regReader:
-			regID = reg[1]
-			for yr in yrArray:
-				yrIDList = yrDict[yr]
-				if regID in yrIDList:
-					regWrter.writerow(reg)
-					break
-
-	def spliteGruaduateYr(self):
+	def degIDListByYr(self):
 		degReader = csv.reader(open(self.rawDeg), delimiter=',')
 		# degree data includes graduates from 2010 to 2015
 		DegIDList10, DegIDList11, DegIDList12, DegIDList13, DegIDList14, DegIDList15 = [], [], [], [], [], []
@@ -100,48 +70,168 @@ class splitRawData(object):
 
 		return {'2010':DegIDList10, '2011':DegIDList11, '2012':DegIDList12, '2013':DegIDList13, '2014':DegIDList14, '2015':DegIDList15}
 
-	def fetchDegRegFileName(self):
-		return [self.trainDeg, self.trainReg, self.testReg, self.testReg12, self.testReg13, self.testReg14, self.testReg15]
+	def splitedRawData(self):
+		return [self.regFileList, self.degFileList, self.yearList]
 
 class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
-		self.splitDataFileNameList = degRegFiles
-		self.degDataPath, self.regDataPath = self.splitDataFileNameList[0:2]
+		self.trainYrs = ['2010', '2011', '2012', '2013']
+		# self.splitDataFileNameList = degRegFiles
+		# self.degDataPath, self.regDataPath = self.splitDataFileNameList[0:2]
 		self.threshold = 1
+
+		self.regFileList, self.degFileList, self.yearList = degRegFiles
+
+	def statsPath(self):
+		pathList = self.regFileList[0].split('/')
+		# degFilename, regFileName = pathList[-1], self.regDataPath.split('/')[-1]
+		path = '/'
+		for x in xrange(0,len(pathList[1:-2])):
+			path = path + pathList[1:-1][x] + '/'
+
+		# creat training data
+		self.rheader, self.dheader = '', ''
+		self.degDataPath = path+'splits/trainDeg_'+str(len(self.trainYrs))+'.csv'
+		self.regDataPath = path+'splits/trainReg_'+str(len(self.trainYrs))+'.csv'
+		regFileName, degFilename = self.regDataPath.split('/')[-1], self.degDataPath.split('/')[-1]
+		for yr in self.trainYrs:
+			index = self.yearList.index(yr)
+			reg, deg = self.regFileList[index], self.degFileList[index]
+			self.createTrainData(reg, self.regDataPath, 'reg')
+			self.createTrainData(deg, self.degDataPath, 'deg')
+
+		self.techCrsFile = path + 'techcourses/' + 'TechCrs' + str(self.threshold) + '.csv'
+		self.allTechCrs = path + 'techcourses/' + 'technicalCourse.csv'
+		self.availableTechCrsList = []
+
+		# self.currDir = path + 'raw/' + time.strftime('%Y%m%d') + '/'
+		self.currDir = path + time.strftime('%Y%m%d') + '_' + str(len(self.trainYrs)) + '/'
+		if not os.path.exists(self.currDir):
+			os.makedirs(self.currDir)
+
+		self.dataDir = self.currDir + 'data/'
+		if not os.path.exists(self.dataDir+'Test/'):
+			os.makedirs(self.dataDir+'Test/')
+
+		# for test reg data
+		# store test data's noDup filenames
+		self.fTestRegFileNameList = []
+		# store stats filenames for all of the test data
+		self.fTestStatFileNameList = []
+		# store test filenames
+		self.testFileList = []
+		# create year combined test data
+		combineYrsTestData = path + 'splits/testCom_'+str(len(self.trainYrs))+'.csv'
+		self.comYrsTestHeader = ''
+		for yr in self.yearList:
+			if yr not in self.trainYrs:
+				index = self.yearList.index(yr)
+				reg = self.regFileList[index]
+				self.testFileList.append(reg)
+				self.createTrainData(reg, combineYrsTestData, 'testCom')
+
+		self.testFileList.append(combineYrsTestData)
+		# for fname in self.regFileList[len(self.trainYrs):]:
+		for fname in self.testFileList:
+			filename = fname.split('/')[-1]
+			self.fTestRegFileNameList.append(self.dataDir +'Test/' + filename.split('.')[0] + '_Test.csv')
+
+			tmpList = []
+			prefix = self.dataDir +'Test/' + filename.split('.')[0]
+			for item in ['CRSPERSTU', 'STUREGISTERED', 'EMPTY', 'CRS_STU', 'CRS_STU_GRADE', 'STU_CRS']:
+				tmpList.append(prefix + '_' + item +'.csv')
+
+			self.fTestStatFileNameList.append(tmpList)
+			# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
+
+		# predictor file path
+		self.predictorFile = ''
+
+		# others
+		self.pairsFrequency, self.pairsHistDir = self.dataDir + 'pairsFrequency.csv', self.currDir + 'pairs_hist/'
+
+		# self.corrAVEResults, self.corrORIResults = self.dataDir + 'corr_ave.csv', self.dataDir + 'corr_ori.csv'
+		self.corrORIResults = self.dataDir + 'corr_ori.csv'
+		self.fV1Reulsts = self.dataDir + 'fv1_ori_result.csv'
+		# self.valAVE, self.valORI = self.dataDir + 'corr_ave_val.csv', self.dataDir + 'corr_ori_val.csv'
+
+		[self.plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori] = [self.currDir + 'plots_ori/', self.currDir + 'coefficient_ori/', self.currDir + 'hist_ori/', self.currDir + 'bars_ori/', self.currDir + 'course_ori/']
+
+		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
+		fileNameList = []
+		for x in xrange(0,17):
+			fileNameList.append(self.dataDir)
+
+		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
+
+		for x in xrange(0, len(regFileName.split('_'))-1):
+			for indx in xrange(0,len(fileNameList)):
+				fileNameList[indx] += regFileName.split('_')[x] + '_'
+
+		for x in xrange(0,len(fileNameList)):
+			fileNameList[x] += fileNameSuffix[x]
+
+		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
+
+		self.degREPL = self.IDMAPPER = self.dataDir
+		for x in xrange(0, len(degFilename.split('_'))-1):
+			self.degREPL, self.IDMAPPER = self.degREPL + degFilename.split('_')[x] + '_', self.IDMAPPER + degFilename.split('_')[x] + '_'
+
+		self.degREPL, self.IDMAPPER = self.degREPL + 'REPL_SAS.csv', self.IDMAPPER + 'IDMAPPER_SAS.csv'
+
+	def createTrainData(self, src, dest, datatype):
+		writer = csv.writer(open(dest, 'a'))
+		reader = csv.reader(open(src), delimiter=',')
+		header = reader.next()
+
+		if datatype == 'reg':
+			if len(self.rheader) == 0:
+				self.rheader = header
+				writer.writerow(header)
+
+		if datatype == 'deg':
+			if len(self.dheader) == 0:
+				self.dheader = header
+				writer.writerow(header)
+
+		if datatype == 'testCom':
+			if len(self.comYrsTestHeader) == 0:
+				self.comYrsTestHeader = header
+				writer.writerow(header)
+
+		for row in reader:
+			writer.writerow(row)
 
 	def doBatch(self):
 		self.statsPath()
-		# self.flow()
-		# for w1 in [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]:
-		self.formulaV1(1.4,1)
-		# w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
-		# w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		# self.formulaV1Integrate(w1,w2)
+		self.flow()
+
+		# self.formulaV1(1.4,1)
+
+		# trying to find the good weights
+		w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
+		w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+		self.formulaV1Integrate(w1,w2)
 		# self.cryptID()
 		# self.techCrsHists()
 
 		# testRegLoc:
-		# 2012-2015: [0, 3]
-		# 2012: [1, 3]
-		# 2013: [2, 3]
-		# 2014: [3, 3]
-		# 2015: [4, 3]
-		for x in xrange(0,5):
-			self.predictProcess([x,3])
+		# for testFile in self.fTestStatFileNameList:
+		# 	self.predictProcess(testFile[3])
 
 	def flow(self):
 		self.techCrs()
 		self.formatRegSAS(self.regDataPath, self.regNODUP)
 		self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
 
-		for fname in self.splitDataFileNameList[2:]:
-			indx = self.splitDataFileNameList.index(fname)
-			noDupFile = self.fTestRegFileNameList[indx-2]
-			self.formatRegSAS(fname, noDupFile)
+		for testFile in self.testFileList:
+				index = self.testFileList.index(testFile)
+				noDupFile = self.fTestRegFileNameList[index]
+				self.formatRegSAS(testFile, noDupFile)
 
-			statList = self.fTestStatFileNameList[indx-2]
-			self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5])
+				statList = self.fTestStatFileNameList[index]
+				self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5])
 
 		self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS)
 		self.pairs()
@@ -152,11 +242,11 @@ class prepross(object):
 
 		# compute correlation coefficients and draw correlation plots
 		self.corrPlot(self.CRS_STU, self.plots_ori, self.corrORIResults)
-		self.coefficientHists(self.hist_ori, self.corrORIResults)
-		self.groupPlots(self.plots_ori, self.corrORIResults)
-		self.plotsPickByCoefficient(1.0, self.corrORIResults)
-		self.plotsPickByCoefficient(-1.0, self.corrORIResults)
-		self.plotsPickByCoefficient(0.0, self.corrORIResults)
+		# self.coefficientHists(self.hist_ori, self.corrORIResults)
+		# self.groupPlots(self.plots_ori, self.corrORIResults)
+		# self.plotsPickByCoefficient(1.0, self.corrORIResults)
+		# self.plotsPickByCoefficient(-1.0, self.corrORIResults)
+		# self.plotsPickByCoefficient(0.0, self.corrORIResults)
 
 	def groupPlots(self, fromDir, corr):
 		todir = self.currDir + 'groups/'
@@ -241,77 +331,6 @@ class prepross(object):
 	def pairsHists(self):
 		for x in xrange(1,11):
 			self.pairsHist(x)
-
-	def statsPath(self):
-		pathList = self.degDataPath.split('/')
-		degFilename, regFileName = pathList[-1], self.regDataPath.split('/')[-1]
-
-		path = '/'
-		for x in xrange(0,len(pathList[1:-2])):
-			path = path + pathList[1:-1][x] + '/'
-
-		self.techCrsFile = path + 'techcourses/' + 'TechCrs' + str(self.threshold) + '.csv'
-		self.allTechCrs = path + 'techcourses/' + 'technicalCourse.csv'
-		self.availableTechCrsList = []
-
-		# self.currDir = path + 'raw/' + time.strftime('%Y%m%d') + '/'
-		self.currDir = path + time.strftime('%Y%m%d') + '/'
-		if not os.path.exists(self.currDir):
-			os.makedirs(self.currDir)
-		
-		self.dataDir = self.currDir + 'data/'
-		if not os.path.exists(self.dataDir+'Test/'):
-			os.makedirs(self.dataDir+'Test/')
-
-		# for test reg data
-		self.fTestRegFileNameList = []
-		self.fTestStatFileNameList = []
-		for fname in self.splitDataFileNameList[2:]:
-			filename = fname.split('/')[-1]
-			self.fTestRegFileNameList.append(self.dataDir +'Test/' + filename.split('.')[0] + '_Test.csv')
-
-			tmpList = []
-			prefix = self.dataDir +'Test/' + filename.split('.')[0]
-			for item in ['CRSPERSTU', 'STUREGISTERED', 'EMPTY', 'CRS_STU', 'CRS_STU_GRADE', 'STU_CRS']:
-				tmpList.append(prefix + '_' + item +'.csv')
-
-			self.fTestStatFileNameList.append(tmpList)
-		# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
-
-		# predictor file path
-		self.predictorFile = ''
-
-		# others
-		self.pairsFrequency, self.pairsHistDir = self.dataDir + 'pairsFrequency.csv', self.currDir + 'pairs_hist/'
-
-		# self.corrAVEResults, self.corrORIResults = self.dataDir + 'corr_ave.csv', self.dataDir + 'corr_ori.csv'
-		self.corrORIResults = self.dataDir + 'corr_ori.csv'
-		self.fV1Reulsts = self.dataDir + 'fv1_ori_result.csv'
-		# self.valAVE, self.valORI = self.dataDir + 'corr_ave_val.csv', self.dataDir + 'corr_ori_val.csv'
-
-		[self.plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori] = [self.currDir + 'plots_ori/', self.currDir + 'coefficient_ori/', self.currDir + 'hist_ori/', self.currDir + 'bars_ori/', self.currDir + 'course_ori/']
-
-		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
-		fileNameList = []
-		for x in xrange(0,17):
-			fileNameList.append(self.dataDir)
-
-		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
-
-		for x in xrange(0, len(regFileName.split('_'))-1):
-			for indx in xrange(0,len(fileNameList)):
-				fileNameList[indx] += regFileName.split('_')[x] + '_'
-
-		for x in xrange(0,len(fileNameList)):
-			fileNameList[x] += fileNameSuffix[x]
-
-		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
-
-		self.degREPL = self.IDMAPPER = self.dataDir
-		for x in xrange(0, len(degFilename.split('_'))-1):
-			self.degREPL, self.IDMAPPER = self.degREPL + degFilename.split('_')[x] + '_', self.IDMAPPER + degFilename.split('_')[x] + '_'
-
-		self.degREPL, self.IDMAPPER = self.degREPL + 'REPL_SAS.csv', self.IDMAPPER + 'IDMAPPER_SAS.csv'
 
 	def encodeVnumber(self):
 		fDegree = self.degDataPath
@@ -716,6 +735,7 @@ class prepross(object):
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 
+					"""
 					fig = plt.figure()
 
 					for j in xrange(0,len(xdata)):
@@ -742,14 +762,16 @@ class prepross(object):
 					plt.ylabel(yaxis)
 					plt.axis([0, 9, 0, 9])
 					plt.grid(True)
+					"""
 					# plt.legend(loc='best')
 
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept])
-
+					"""
 					figName = plotDir + course[0] + course[1] + ' ' + newCourse[0] + newCourse[1] + ' ' + str(r) + '.png'
 					fig.savefig(figName)
 					plt.close(fig)
-					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(xdata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
+					"""
+					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir + 'nocorr/'):
@@ -1408,7 +1430,7 @@ class prepross(object):
 
 		return ylist
 
-	def predictProcess(self, testRegLoc):
+	def predictProcess(self, testReg):
 		# build equation dict
 		r1 = csv.reader(open(self.predictorFile), delimiter=',')
 		header1 = r1.next()
@@ -1423,7 +1445,7 @@ class prepross(object):
 			# print predictorDict[key]
 
 		# test data reg file: build test reg dict
-		testReg = self.fTestStatFileNameList[testRegLoc[0]][testRegLoc[1]]
+		# testReg = self.fTestStatFileNameList[testRegLoc[0]][testRegLoc[1]]
 		r2 = csv.reader(open(testReg), delimiter=',')
 		header2 = r2.next()
 		testRegDict = {}
@@ -1475,6 +1497,8 @@ class prepross(object):
 				predictGrades = [ygrades[0], ygrades[1]]
 				for x in xgrades[2:]:
 					grade = float(slope) * float(x) + float(intercept)
+					# if grade > 9:
+					# 	grade = 9.0
 					predictGrades.append(format(grade, '.1f'))
 
 				# compute errors
@@ -1509,8 +1533,8 @@ class prepross(object):
 				# appendix = ['point#', pointFreq, 'Coefficient:', coefficient, 'average error:', errorave]
 				appendix = [ 'Average Err:', errorave]
 
-				# writer.writerows([xgrades, ygrades, predictGrades, errorList, errorPercent, appendix, []])
-				writer.writerows([ygrades, predictGrades, errorList, errorPercent, appendix, []])
+				writer.writerows([xgrades, ygrades, predictGrades, errorList, errorPercent, appendix, []])
+				# writer.writerows([ygrades, predictGrades, errorList, errorPercent, appendix, []])
 				print xgrades
 				print ygrades
 				print predictGrades
@@ -1536,5 +1560,5 @@ class prepross(object):
 		return pairsList
 
 prepare = splitRawData(sys.argv)
-# prepare.doBatch()
-prepross(prepare.fetchDegRegFileName()).doBatch()
+prepare.doBatch()
+prepross(prepare.splitedRawData()).doBatch()
