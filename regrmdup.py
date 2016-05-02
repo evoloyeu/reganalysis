@@ -77,8 +77,9 @@ class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
 		# self.trainYrs = ['2010', '2011']
-		self.trainYrs = ['2010', '2011', '2012']
+		# self.trainYrs = ['2010', '2011', '2012']
 		# self.trainYrs = ['2010', '2011', '2012', '2013']
+		self.trainYrs = ['2010', '2011', '2012', '2013', '2014']
 
 		self.threshold = 1
 		self.alreadyConcatenated = True
@@ -126,16 +127,20 @@ class prepross(object):
 		# create year combined test data
 		combineYrsTestData = path + 'splits/testCom_'+str(len(self.trainYrs))+'.csv'
 		self.comYrsTestHeader = ''
-		for yr in self.yearList:
-			if yr not in self.trainYrs:
-				index = self.yearList.index(yr)
-				reg = self.regFileList[index]
-				self.testFileList.append(reg)
+		if len(self.trainYrs) < 4:
+			for yr in self.yearList:
+				if yr not in self.trainYrs:
+					index = self.yearList.index(yr)
+					reg = self.regFileList[index]
+					self.testFileList.append(reg)
 
-				if not self.alreadyConcatenated:
-					self.concatenateData(reg, combineYrsTestData, 'testCom')
+					if not self.alreadyConcatenated:
+						self.concatenateData(reg, combineYrsTestData, 'testCom')
 
-		self.testFileList.append(combineYrsTestData)
+			self.testFileList.append(combineYrsTestData)
+		else:
+			self.testFileList.append(self.regFileList[-1])
+
 		# for fname in self.regFileList[len(self.trainYrs):]:
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1]
@@ -232,6 +237,7 @@ class prepross(object):
 		self.formatRegSAS(self.regDataPath, self.regNODUP)
 		self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
 
+		# compute the stats data for the test datasets
 		for testFile in self.testFileList:
 				index = self.testFileList.index(testFile)
 				noDupFile = self.fTestRegFileNameList[index]
@@ -1480,7 +1486,11 @@ class prepross(object):
 					predictingList.append(pairsList)
 
 		# predict
-		predictResults = self.dataDir + 'fv1_predicting_grades' + str(testRegLoc[0]) + '_' + str(testRegLoc[1]) +'.csv'
+		# predictResults = self.dataDir + 'fv1_predicting_grades' + str(testRegLoc[0]) + '_' + str(testRegLoc[1]) +'.csv'
+		testReg = testReg.split('/')[-1]
+		testReg = testReg.split('.')[0]
+		testReg = testReg.split('_')[0]
+		predictResults = self.dataDir + 'fv1_predicting_grades_' + testReg +'.csv'
 		writer = csv.writer(open(predictResults, 'w'))
 		for pairsList in predictingList:
 			for pairs in pairsList:
