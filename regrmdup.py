@@ -76,11 +76,12 @@ class splitRawData(object):
 class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
-		self.trainYrs = ['2010', '2011', '2012', '2013']
-		# self.splitDataFileNameList = degRegFiles
-		# self.degDataPath, self.regDataPath = self.splitDataFileNameList[0:2]
-		self.threshold = 1
+		# self.trainYrs = ['2010', '2011']
+		self.trainYrs = ['2010', '2011', '2012']
+		# self.trainYrs = ['2010', '2011', '2012', '2013']
 
+		self.threshold = 1
+		self.alreadyConcatenated = True
 		self.regFileList, self.degFileList, self.yearList = degRegFiles
 
 	def statsPath(self):
@@ -98,8 +99,9 @@ class prepross(object):
 		for yr in self.trainYrs:
 			index = self.yearList.index(yr)
 			reg, deg = self.regFileList[index], self.degFileList[index]
-			self.createTrainData(reg, self.regDataPath, 'reg')
-			self.createTrainData(deg, self.degDataPath, 'deg')
+			if not self.alreadyConcatenated:
+				self.concatenateData(reg, self.regDataPath, 'reg')
+				self.concatenateData(deg, self.degDataPath, 'deg')
 
 		self.techCrsFile = path + 'techcourses/' + 'TechCrs' + str(self.threshold) + '.csv'
 		self.allTechCrs = path + 'techcourses/' + 'technicalCourse.csv'
@@ -129,7 +131,9 @@ class prepross(object):
 				index = self.yearList.index(yr)
 				reg = self.regFileList[index]
 				self.testFileList.append(reg)
-				self.createTrainData(reg, combineYrsTestData, 'testCom')
+
+				if not self.alreadyConcatenated:
+					self.concatenateData(reg, combineYrsTestData, 'testCom')
 
 		self.testFileList.append(combineYrsTestData)
 		# for fname in self.regFileList[len(self.trainYrs):]:
@@ -180,7 +184,7 @@ class prepross(object):
 
 		self.degREPL, self.IDMAPPER = self.degREPL + 'REPL_SAS.csv', self.IDMAPPER + 'IDMAPPER_SAS.csv'
 
-	def createTrainData(self, src, dest, datatype):
+	def concatenateData(self, src, dest, datatype):
 		writer = csv.writer(open(dest, 'a'))
 		reader = csv.reader(open(src), delimiter=',')
 		header = reader.next()
@@ -207,18 +211,21 @@ class prepross(object):
 		self.statsPath()
 		self.flow()
 
-		# self.formulaV1(1.4,1)
+		# create predictors
+		self.formulaV1(1.4,1)
 
 		# trying to find the good weights
-		w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
-		w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		self.formulaV1Integrate(w1,w2)
+		# w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
+		# w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+		# self.formulaV1Integrate(w1,w2)
+
+
 		# self.cryptID()
 		# self.techCrsHists()
 
 		# testRegLoc:
-		# for testFile in self.fTestStatFileNameList:
-		# 	self.predictProcess(testFile[3])
+		for testFile in self.fTestStatFileNameList:
+			self.predictProcess(testFile[3])
 
 	def flow(self):
 		self.techCrs()
@@ -1560,5 +1567,5 @@ class prepross(object):
 		return pairsList
 
 prepare = splitRawData(sys.argv)
-prepare.doBatch()
+# prepare.doBatch()
 prepross(prepare.splitedRawData()).doBatch()
