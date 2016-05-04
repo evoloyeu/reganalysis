@@ -20,7 +20,7 @@ class splitRawData(object):
 		for x in xrange(0,len(pathList[1:-2])):
 			path = path + pathList[1:-1][x] + '/'
 
-		path = path + 'users/splits/'
+		path = path + 'users/splits_' + time.strftime('%Y%m%d') +'/'
 		if not os.path.exists(path):
 			os.makedirs(path)
 
@@ -76,13 +76,13 @@ class splitRawData(object):
 class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
-		# self.trainYrs = ['2010', '2011']
+		self.trainYrs = ['2010', '2011']
 		# self.trainYrs = ['2010', '2011', '2012']
 		# self.trainYrs = ['2010', '2011', '2012', '2013']
-		self.trainYrs = ['2010', '2011', '2012', '2013', '2014']
+		# self.trainYrs = ['2010', '2011', '2012', '2013', '2014']
 
 		self.threshold = 1
-		self.alreadyConcatenated = True
+		self.alreadyConcatenated = False
 		self.regFileList, self.degFileList, self.yearList = degRegFiles
 
 	def statsPath(self):
@@ -92,10 +92,15 @@ class prepross(object):
 		for x in xrange(0,len(pathList[1:-2])):
 			path = path + pathList[1:-1][x] + '/'
 
+		# self.currDir = path + 'raw/' + time.strftime('%Y%m%d') + '/'
+		self.currDir = path + time.strftime('%Y%m%d') + '_' + str(len(self.trainYrs)) + '/'
+		if not os.path.exists(self.currDir):
+			os.makedirs(self.currDir)
+
 		# creat training data
 		self.rheader, self.dheader = '', ''
-		self.degDataPath = path+'splits/trainDeg_'+str(len(self.trainYrs))+'.csv'
-		self.regDataPath = path+'splits/trainReg_'+str(len(self.trainYrs))+'.csv'
+		self.degDataPath = path+'splits_'+time.strftime('%Y%m%d')+'/trainDeg_'+str(len(self.trainYrs))+'.csv'
+		self.regDataPath = path+'splits_'+time.strftime('%Y%m%d')+'/trainReg_'+str(len(self.trainYrs))+'.csv'
 		regFileName, degFilename = self.regDataPath.split('/')[-1], self.degDataPath.split('/')[-1]
 		for yr in self.trainYrs:
 			index = self.yearList.index(yr)
@@ -107,11 +112,6 @@ class prepross(object):
 		self.techCrsFile = path + 'techcourses/' + 'TechCrs' + str(self.threshold) + '.csv'
 		self.allTechCrs = path + 'techcourses/' + 'technicalCourse.csv'
 		self.availableTechCrsList = []
-
-		# self.currDir = path + 'raw/' + time.strftime('%Y%m%d') + '/'
-		self.currDir = path + time.strftime('%Y%m%d') + '_' + str(len(self.trainYrs)) + '/'
-		if not os.path.exists(self.currDir):
-			os.makedirs(self.currDir)
 
 		self.dataDir = self.currDir + 'data/'
 		if not os.path.exists(self.dataDir+'Test/'):
@@ -125,7 +125,7 @@ class prepross(object):
 		# store test filenames
 		self.testFileList = []
 		# create year combined test data
-		combineYrsTestData = path + 'splits/testCom_'+str(len(self.trainYrs))+'.csv'
+		combineYrsTestData = path + 'splits_'+time.strftime('%Y%m%d')+'/testCom_'+str(len(self.trainYrs))+'.csv'
 		self.comYrsTestHeader = ''
 		if len(self.trainYrs) < 4:
 			for yr in self.yearList:
@@ -226,7 +226,7 @@ class prepross(object):
 
 
 		# self.cryptID()
-		# self.techCrsHists()
+		self.techCrsHists()
 
 		# testRegLoc:
 		for testFile in self.fTestStatFileNameList:
@@ -255,11 +255,11 @@ class prepross(object):
 
 		# compute correlation coefficients and draw correlation plots
 		self.corrPlot(self.CRS_STU, self.plots_ori, self.corrORIResults)
-		# self.coefficientHists(self.hist_ori, self.corrORIResults)
-		# self.groupPlots(self.plots_ori, self.corrORIResults)
-		# self.plotsPickByCoefficient(1.0, self.corrORIResults)
-		# self.plotsPickByCoefficient(-1.0, self.corrORIResults)
-		# self.plotsPickByCoefficient(0.0, self.corrORIResults)
+		self.coefficientHists(self.hist_ori, self.corrORIResults)
+		self.groupPlots(self.plots_ori, self.corrORIResults)
+		self.plotsPickByCoefficient(1.0, self.corrORIResults)
+		self.plotsPickByCoefficient(-1.0, self.corrORIResults)
+		self.plotsPickByCoefficient(0.0, self.corrORIResults)
 
 	def groupPlots(self, fromDir, corr):
 		todir = self.currDir + 'groups/'
@@ -748,7 +748,7 @@ class prepross(object):
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 
-					"""
+					# """
 					fig = plt.figure()
 
 					for j in xrange(0,len(xdata)):
@@ -775,15 +775,15 @@ class prepross(object):
 					plt.ylabel(yaxis)
 					plt.axis([0, 9, 0, 9])
 					plt.grid(True)
-					"""
+					# """
 					# plt.legend(loc='best')
 
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept])
-					"""
+					# """
 					figName = plotDir + course[0] + course[1] + ' ' + newCourse[0] + newCourse[1] + ' ' + str(r) + '.png'
 					fig.savefig(figName)
 					plt.close(fig)
-					"""
+					# """
 					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
 
 			if len(noCorrList) > 0:
@@ -1375,13 +1375,20 @@ class prepross(object):
 		# search the predictor course
 		maxPxy = max(pxyArr)
 		freq = Counter(item for item in pxyArr)
+		# there is only one maximun pxy
 		if freq[maxPxy] == 1:
 			index = pxyArr.index(maxPxy)			
 			predictorList.append(ylist[index])
 		else:
+			xCrsNums, maxPxyList = [], []
 			for sublist in ylist:
 				if sublist[6] == maxPxy:
-					predictorList.append(sublist)
+					maxPxyList.append(sublist)
+					xCrsNums.append(sublist[1][0:-1])
+
+			mincrsnum = min(xCrsNums)
+			index = xCrsNums.index(mincrsnum)
+			predictorList.append(maxPxyList[index])
 
 		return [ylist, predictorList]
 
@@ -1487,9 +1494,9 @@ class prepross(object):
 
 		# predict
 		# predictResults = self.dataDir + 'fv1_predicting_grades' + str(testRegLoc[0]) + '_' + str(testRegLoc[1]) +'.csv'
-		testReg = testReg.split('/')[-1]
-		testReg = testReg.split('.')[0]
-		testReg = testReg.split('_')[0]
+		testReg = testReg.split('/')[-1].split('.')[0].split('_')[0]
+		# testReg = testReg.split('.')[0]
+		# testReg = testReg.split('_')[0]
 		predictResults = self.dataDir + 'fv1_predicting_grades_' + testReg +'.csv'
 		writer = csv.writer(open(predictResults, 'w'))
 		for pairsList in predictingList:
@@ -1524,11 +1531,8 @@ class prepross(object):
 					error = float(ygrades[index]) - float(predictGrades[index])
 					errorList.append(format(error, '.1f'))
 
-					if float(ygrades[index]) != 0:
-						percent = float(format(abs(error)/float(ygrades[index]), '.3f'))
-						errorPercent.append(str(percent*100)+str('%'))
-					else:
-						errorPercent.append('100%')
+					percent = float(format(abs(error)/9, '.3f'))
+					errorPercent.append(str(percent*100)+str('%'))
 
 					if error < 0:
 						errorsum += error * (-1.0)
@@ -1555,10 +1559,12 @@ class prepross(object):
 				print xgrades
 				print ygrades
 				print predictGrades
+				print errorList
+				print errorPercent
 				print '\n'
 
 	def gradePairs(self, testY, testXs):
-		pairsList = []
+		resultPairs, pairsList, xCrsNums = [], [], []
 		for x in testXs:
 			xgrades = [x[0], x[1]]
 			ygrades = [testY[0], testY[1]]
@@ -1569,13 +1575,21 @@ class prepross(object):
 
 			if len(xgrades) > 2:
 				pairsList.append([xgrades, ygrades])
+				# save course number for later predictor pickup
+				xCrsNums.append(x[1][0:-1])
 
 		if len(pairsList) > 1:
-			randomIndex = randint(0,len(pairsList)-1)
-			return [pairsList[randomIndex]]
+			# randomIndex = randint(0,len(pairsList)-1)
+			# return [pairsList[randomIndex]]
+			# to pick up the course with min course number as the predictor
+			mincrsnum = min(xCrsNums)
+			index = xCrsNums.index(mincrsnum)
+			resultPairs.append(pairsList[index])
+		else:
+			return pairsList
 
-		return pairsList
+		return resultPairs
 
 prepare = splitRawData(sys.argv)
-# prepare.doBatch()
+prepare.doBatch()
 prepross(prepare.splitedRawData()).doBatch()
