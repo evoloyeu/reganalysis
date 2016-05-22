@@ -76,14 +76,17 @@ class splitRawData(object):
 class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
-		self.trainYrs = ['2010', '2011']
-		# self.trainYrs = ['2010', '2011', '2012']
-		# self.trainYrs = ['2010', '2011', '2012', '2013']
-		# self.trainYrs = ['2010', '2011', '2012', '2013', '2014']
-
+		self.trainYrsList = [['2010', '2011'],
+		['2010', '2011', '2012'],
+		['2010', '2011', '2012', '2013'],
+		['2010', '2011', '2012', '2013', '2014']
+		]
+		# self.trainYrs = ['2010', '2011']
 		self.threshold = 1
-		self.alreadyConcatenated = False
 		self.regFileList, self.degFileList, self.yearList = degRegFiles
+		rwList = [1.4,1.4,1.2,1.1]
+		pwList = [1,1,1,1]
+		self.wdict = {2:1.4, 3:1.4, 4:1.2, 5:1.1}
 
 	def statsPath(self):
 		pathList = self.regFileList[0].split('/')
@@ -105,9 +108,8 @@ class prepross(object):
 		for yr in self.trainYrs:
 			index = self.yearList.index(yr)
 			reg, deg = self.regFileList[index], self.degFileList[index]
-			if not self.alreadyConcatenated:
-				self.concatenateData(reg, self.regDataPath, 'reg')
-				self.concatenateData(deg, self.degDataPath, 'deg')
+			self.concatenateData(reg, self.regDataPath, 'reg')
+			self.concatenateData(deg, self.degDataPath, 'deg')
 
 		self.techCrsFile = path + 'techcourses/' + 'TechCrs' + str(self.threshold) + '.csv'
 		self.allTechCrs = path + 'techcourses/' + 'technicalCourse.csv'
@@ -117,37 +119,40 @@ class prepross(object):
 		if not os.path.exists(self.dataDir+'Test/'):
 			os.makedirs(self.dataDir+'Test/')
 
+		self.errPlotsDir = self.currDir + 'errPlotsDir/'
+		if not os.path.exists(self.errPlotsDir):
+			os.makedirs(self.errPlotsDir)
+
 		# for test reg data
 		# store test data's noDup filenames
 		self.fTestRegFileNameList = []
 		# store stats filenames for all of the test data
 		self.fTestStatFileNameList = []
 		# store test filenames
-		self.testFileList = []
+		self.testFileList = [self.regDataPath]
 		# create year combined test data
 		combineYrsTestData = path + 'splits_'+time.strftime('%Y%m%d')+'/testCom_'+str(len(self.trainYrs))+'.csv'
 		self.comYrsTestHeader = ''
-		if len(self.trainYrs) < 4:
-			for yr in self.yearList:
-				if yr not in self.trainYrs:
-					index = self.yearList.index(yr)
-					reg = self.regFileList[index]
-					self.testFileList.append(reg)
+		for yr in self.yearList:
+			if (yr not in self.trainYrs):
+				index = self.yearList.index(yr)
+				reg = self.regFileList[index]
+				self.testFileList.append(reg)
+				if len(self.trainYrs) != 5:
+					self.concatenateData(reg, combineYrsTestData, 'testCom')
 
-					if not self.alreadyConcatenated:
-						self.concatenateData(reg, combineYrsTestData, 'testCom')
-
+		if len(self.trainYrs) != 5:
 			self.testFileList.append(combineYrsTestData)
-		else:
-			self.testFileList.append(self.regFileList[-1])
 
-		# for fname in self.regFileList[len(self.trainYrs):]:
+		# build test stats filenames and the predicting result and errors filenames
+		self.predictResultsList, self.predictResultsAveErr = [], []
 		for fname in self.testFileList:
-			filename = fname.split('/')[-1]
-			self.fTestRegFileNameList.append(self.dataDir +'Test/' + filename.split('.')[0] + '_Test.csv')
+			filename = fname.split('/')[-1].split('.')[0]
+			self.predictResultsList.append(self.dataDir + 'fv1_predicting_grades_' + filename +'.csv')
+			self.predictResultsAveErr.append(self.dataDir + 'fv1_predicting_aveErr_' + filename +'.csv')
 
-			tmpList = []
-			prefix = self.dataDir +'Test/' + filename.split('.')[0]
+			self.fTestRegFileNameList.append(self.dataDir +'Test/' + filename + '_Test.csv')
+			tmpList, prefix = [], self.dataDir +'Test/' + filename
 			for item in ['CRSPERSTU', 'STUREGISTERED', 'EMPTY', 'CRS_STU', 'CRS_STU_GRADE', 'STU_CRS']:
 				tmpList.append(prefix + '_' + item +'.csv')
 
@@ -165,7 +170,7 @@ class prepross(object):
 		self.fV1Reulsts = self.dataDir + 'fv1_ori_result.csv'
 		# self.valAVE, self.valORI = self.dataDir + 'corr_ave_val.csv', self.dataDir + 'corr_ori_val.csv'
 
-		[self.plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori] = [self.currDir + 'plots_ori/', self.currDir + 'coefficient_ori/', self.currDir + 'hist_ori/', self.currDir + 'bars_ori/', self.currDir + 'course_ori/']
+		[self.linear_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori] = [self.currDir + 'linear_plots_ori/', self.currDir + 'coefficient_ori/', self.currDir + 'hist_ori/', self.currDir + 'bars_ori/', self.currDir + 'course_ori/']
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
 		fileNameList = []
@@ -213,38 +218,29 @@ class prepross(object):
 			writer.writerow(row)
 
 	def doBatch(self):
-		self.statsPath()
-		self.flow()
-
-		# create predictors
-		self.formulaV1(1.4,1)
-
-		# trying to find the good weights
-		# w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
-		# w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-		# self.formulaV1Integrate(w1,w2)
-
-
-		# self.cryptID()
-		self.techCrsHists()
-
-		# testRegLoc:
-		for testFile in self.fTestStatFileNameList:
-			self.predictProcess(testFile[3])
+		for yrList in self.trainYrsList:
+			self.trainYrs = yrList
+			self.statsPath()
+			self.prepare()
+			self.testWeights()
+			self.predicting(self.wdict[len(self.trainYrs)], 1.0)
 
 	def flow(self):
+		self.prepare()
+		self.testWeights()
+
+	def predicting(self, rw, pw):
+		self.testSetsStats()
+		# create predictors
+		self.formulaV1(rw,pw)
+		# predicting
+		for x in xrange(0,len(self.fTestStatFileNameList)):
+			self.predictProcess(self.fTestStatFileNameList[x][3], self.predictResultsList[x], self.predictResultsAveErr[x])
+
+	def prepare(self):
 		self.techCrs()
 		self.formatRegSAS(self.regDataPath, self.regNODUP)
 		self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
-
-		# compute the stats data for the test datasets
-		for testFile in self.testFileList:
-				index = self.testFileList.index(testFile)
-				noDupFile = self.fTestRegFileNameList[index]
-				self.formatRegSAS(testFile, noDupFile)
-
-				statList = self.fTestStatFileNameList[index]
-				self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5])
 
 		self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS)
 		self.pairs()
@@ -253,19 +249,71 @@ class prepross(object):
 		self.uniqueCourseList()
 		self.uniqueTechCrsList()
 
+		# self.cryptID()
+		self.techCrsHists()
+
 		# compute correlation coefficients and draw correlation plots
-		self.corrPlot(self.CRS_STU, self.plots_ori, self.corrORIResults)
+		self.corrPlot(self.CRS_STU, self.linear_plots_ori, self.corrORIResults)
+
+	def testSetsStats(self):
+		# compute the stats data for the test datasets
+		for testFile in self.testFileList:
+			index = self.testFileList.index(testFile)
+			noDupFile = self.fTestRegFileNameList[index]
+			self.formatRegSAS(testFile, noDupFile)
+
+			statList = self.fTestStatFileNameList[index]
+			self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5])
+
+	def testWeights(self):
+		# trying to find the good weights
+		w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
+		w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+		self.formulaV1Integrate(w1,w2)
+
+	def misc(self):
 		self.coefficientHists(self.hist_ori, self.corrORIResults)
-		self.groupPlots(self.plots_ori, self.corrORIResults)
+		self.groupPlots(self.linear_plots_ori, self.corrORIResults)
 		self.plotsPickByCoefficient(1.0, self.corrORIResults)
 		self.plotsPickByCoefficient(-1.0, self.corrORIResults)
 		self.plotsPickByCoefficient(0.0, self.corrORIResults)
+
+	def discardFunction(self):
+		pass
+		# self.techCrs()
+		# self.formatRegSAS(self.regDataPath, self.regNODUP)
+		# self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
+
+		# compute the stats data for the test datasets
+		# for testFile in self.testFileList:
+		# 	index = self.testFileList.index(testFile)
+		# 	noDupFile = self.fTestRegFileNameList[index]
+		# 	self.formatRegSAS(testFile, noDupFile)
+
+		# 	statList = self.fTestStatFileNameList[index]
+		# 	self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5])
+
+		# self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS)
+		# self.pairs()
+		# self.pairsHists()
+
+		# self.uniqueCourseList()
+		# self.uniqueTechCrsList()
+
+		# compute correlation coefficients and draw correlation plots
+		# self.corrPlot(self.CRS_STU, self.linear_plots_ori, self.corrORIResults)
+
+		# self.coefficientHists(self.hist_ori, self.corrORIResults)
+		# self.groupPlots(self.linear_plots_ori, self.corrORIResults)
+		# self.plotsPickByCoefficient(1.0, self.corrORIResults)
+		# self.plotsPickByCoefficient(-1.0, self.corrORIResults)
+		# self.plotsPickByCoefficient(0.0, self.corrORIResults)
 
 	def groupPlots(self, fromDir, corr):
 		todir = self.currDir + 'groups/'
 		intervals = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
 		for item in intervals:
-			self.figureSelect(float(format(item, '.2f')), 0.1, self.plots_ori, todir, corr)
+			self.figureSelect(float(format(item, '.2f')), 0.1, self.linear_plots_ori, todir, corr)
 
 	def figureSelect(self, threshold, interval, fromDir, toDir, corr):
 		savePath = toDir + str(threshold) +'_'+ str(threshold + interval)
@@ -301,7 +349,7 @@ class prepross(object):
 		for row in reader:
 			if float(row[4]) == coefficient:
 				fig = row[0] + row[1] + ' ' + row[2] + row[3] +  ' ' + row[4] + '.png'
-				shutil.copy2(self.plots_ori + fig, toDir + '/' + fig)
+				shutil.copy2(self.linear_plots_ori + fig, toDir + '/' + fig)
 
 	def copyPlots(self, fromDir, toDir, corr):
 		reader = csv.reader(open(corr), delimiter = ',')
@@ -750,33 +798,31 @@ class prepross(object):
 
 					# """
 					fig = plt.figure()
-
-					for j in xrange(0,len(xdata)):
-						plt.scatter(xdata[j], ydata[j], c = 'red')
-
-					# plt.title('Grades Scatter (Pearson Correlation)')
-					xdata.insert(0, 0.0)
-					xdata.insert(-1, 9.0)
-					instant = ''
-					if intercept > 0:
-						instant = '+' + str(intercept)
-					elif intercept < 0:
-						instant = str(intercept)
-
 					if r_value != 0.0:
-						plt.title('r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + instant)
-						yp = [x*slope+intercept for x in xdata]
-						# plt.plot(xdata, yp, c='green', label = 'r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + '+' +str(intercept))
-						plt.plot(xdata, yp, c='blue')
+						if intercept > 0:
+							plt.title('r = ' + str(r_value) + ', y = ' + str(slope) + 'x+' + str(intercept))
+						else:
+							plt.title('r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + str(intercept))
 					else:
 						plt.title('r = ' + str(r_value))
+					
+
+					xarray = np.array(xdata)
+					yarray = np.array(ydata)
+					z = np.polyfit(xarray, yarray, 1)
+					p = np.poly1d(z)
+					
+					# print z
+					# print 'slope:', slope, '\tintercept:', intercept, '\n'
+
+					xp = np.linspace(0, 9, 100)
+					plt.plot(xarray, yarray, '.', xp, p(xp), '-')
 
 					plt.xlabel(xaxis)
 					plt.ylabel(yaxis)
-					plt.axis([0, 9, 0, 9])
+
+					plt.ylim(0,9)
 					plt.grid(True)
-					# """
-					# plt.legend(loc='best')
 
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept])
 					# """
@@ -1450,11 +1496,10 @@ class prepross(object):
 
 		return ylist
 
-	def predictProcess(self, testReg):
+	def predictProcess(self, testReg, predictResults, aveErrResults):
 		# build equation dict
 		r1 = csv.reader(open(self.predictorFile), delimiter=',')
-		header1 = r1.next()
-		predictorDict = {}
+		header1, predictorDict = r1.next(), {}
 		for row in r1:
 			key = row[2]+row[3]
 			if key not in predictorDict:
@@ -1462,26 +1507,19 @@ class prepross(object):
 			else:
 				predictorDict[key].append(row)
 
-			# print predictorDict[key]
-
 		# test data reg file: build test reg dict
-		# testReg = self.fTestStatFileNameList[testRegLoc[0]][testRegLoc[1]]
 		r2 = csv.reader(open(testReg), delimiter=',')
-		header2 = r2.next()
-		testRegDict = {}
+		header2, testRegDict = r2.next(), {}
 		for row in r2:
 			key = row[0]+row[1]
 			if key not in testRegDict:
 				testRegDict[key] = row
 
 		# search predictable courses
-		predictingList = []
-		keys = predictorDict.keys()
+		predictingList, keys = [], predictorDict.keys()
 		for key in keys:
 			if key in testRegDict:
-				testY = testRegDict[key]
-				testXs = []
-				predictors = predictorDict[key]
+				testY, testXs, predictors = testRegDict[key], [], predictorDict[key]
 				for x in predictors:
 					testXKey = x[0]+x[1]
 					if testXKey in testRegDict:
@@ -1493,12 +1531,14 @@ class prepross(object):
 					predictingList.append(pairsList)
 
 		# predict
-		# predictResults = self.dataDir + 'fv1_predicting_grades' + str(testRegLoc[0]) + '_' + str(testRegLoc[1]) +'.csv'
-		testReg = testReg.split('/')[-1].split('.')[0].split('_')[0]
-		# testReg = testReg.split('.')[0]
-		# testReg = testReg.split('_')[0]
-		predictResults = self.dataDir + 'fv1_predicting_grades_' + testReg +'.csv'
 		writer = csv.writer(open(predictResults, 'w'))
+		errw = csv.writer(open(aveErrResults, 'w'))
+		errw.writerow(['aveErr', 'r', '#point'])
+		# [errorave, coefficient, pointFreq]
+		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList = [], [], [], [], []
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'std', 'aveErr', 'aveAbsErr', 'insOneCrs', 'minErr', 'maxErr', 'interval']
+		errRangeStdErrList.append(header)
+
 		for pairsList in predictingList:
 			for pairs in pairsList:
 				[xgrades, ygrades] = pairs
@@ -1506,40 +1546,45 @@ class prepross(object):
 				key = ygrades[0] + ygrades[1]
 				predictors = predictorDict[key]
 				# equation: y = slope * x + intercept
-				slope = intercept = coefficient = pointFreq = 0
+				slope = intercept = coefficient = pointFreq = xSubj = xNum = ySubj = yNum = 0
 				for predictor in predictors:
-					xcourse = xgrades[0] + xgrades[1]
-					predictorCourse = predictor[0] + predictor[1]
+					xcourse, predictorCourse = xgrades[0] + xgrades[1], predictor[0] + predictor[1]
 					if xcourse == predictorCourse:
-						slope = predictor[-2]
-						intercept = predictor[-1]
-						coefficient = predictor[4]
-						pointFreq = predictor[5]
+						xSubj,xNum,ySubj,yNum,slope,intercept,coefficient,pointFreq = predictor[0], predictor[1], predictor[2], predictor[3], predictor[-2], predictor[-1], predictor[4], predictor[5]
+						pointsList.append(int(pointFreq))
+						rList.append(float(coefficient))
 						break
 
 				# compute predicting grade of testY using the equation located above
 				predictGrades = [ygrades[0], ygrades[1]]
 				for x in xgrades[2:]:
 					grade = float(slope) * float(x) + float(intercept)
-					# if grade > 9:
-					# 	grade = 9.0
 					predictGrades.append(format(grade, '.1f'))
 
 				# compute errors
 				errorList, errorPercent, errorsum = [], [], 0
 				for index in xrange(2,len(predictGrades)):
 					error = float(ygrades[index]) - float(predictGrades[index])
-					errorList.append(format(error, '.1f'))
+					# errorList.append(format(error, '.1f'))
+					errorList.append(error)
 
-					percent = float(format(abs(error)/9, '.3f'))
-					errorPercent.append(str(percent*100)+str('%'))
+					# percent = float(format(abs(error)/9, '.3f'))
+					# errorPercent.append(str(percent*100)+str('%'))
+					errorsum += abs(error)
+					errorPercent.append(str(abs(error)/9*100)+str('%'))
 
-					if error < 0:
-						errorsum += error * (-1.0)
-					else:
-						errorsum += error
+				aveAbsErr = format(errorsum/len(errorList), '.2f')
+				aveAbsErrList.append(float(aveAbsErr))
+				errArr = np.array(errorList)
+				errorave = format(np.average(errArr), '.2f')
+				std = format(np.std(errArr), '.2f')
+				tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,std,errorave,aveAbsErr,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
+				for error in errorList:
+					tempList.append(error)
+				
+				errRangeStdErrList.append(tempList)
+				# errRangeStdErrList.append()
 
-				errorave = format(errorsum/len(errorList), '.2f')
 				xgrades.insert(0, 'predictor')
 				ygrades.insert(0, 'real')
 				predictGrades.insert(0, 'predicting')				
@@ -1555,13 +1600,27 @@ class prepross(object):
 				appendix = [ 'Average Err:', errorave]
 
 				writer.writerows([xgrades, ygrades, predictGrades, errorList, errorPercent, appendix, []])
-				# writer.writerows([ygrades, predictGrades, errorList, errorPercent, appendix, []])
-				print xgrades
-				print ygrades
-				print predictGrades
-				print errorList
-				print errorPercent
-				print '\n'
+				errw.writerow([errorave, coefficient, pointFreq])
+				AERPList.append([errorave, coefficient, pointFreq])
+
+				print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', errorPercent, '\n'
+
+		writer.writerows(errRangeStdErrList)
+
+		prefix = testReg.split('/')[-1].split('_')[0]
+		# points vs aveAbsErr
+		xtitle = 'sample points from training set'
+		ytitle = 'average of absolute error'
+		title = prefix+' Points from training set vs average of absolute error'
+		figName = self.errPlotsDir+prefix+'_point_aveAbsErr.png'
+		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName)
+
+		# r vs aveAbsErr
+		xtitle = 'coefficients from training set'
+		ytitle = 'average of absolute error'
+		title = prefix+' coefficients from training set vs average of absolute error'
+		figName = self.errPlotsDir+prefix+'_r_aveAbsErr.png'
+		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName)
 
 	def gradePairs(self, testY, testXs):
 		resultPairs, pairsList, xCrsNums = [], [], []
@@ -1589,6 +1648,23 @@ class prepross(object):
 			return pairsList
 
 		return resultPairs
+
+	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName):
+		x = np.array(xdata)
+		y = np.array(ydata)
+
+		fig = plt.figure()
+		plt.plot(x, y, '.')
+		plt.xlabel(xtitle)
+		plt.ylabel(ytitle)
+		plt.title(title)
+
+		plt.ylim(min(ydata), max(ydata))
+		plt.xlim(min(xdata), max(xdata))
+		plt.grid(True)
+		# plt.show()
+		fig.savefig(figName)
+		plt.close(fig)
 
 prepare = splitRawData(sys.argv)
 prepare.doBatch()
