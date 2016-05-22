@@ -102,8 +102,8 @@ class prepross(object):
 
 		# creat training data
 		self.rheader, self.dheader = '', ''
-		self.degDataPath = path+'splits_'+time.strftime('%Y%m%d')+'/trainDeg_'+str(len(self.trainYrs))+'.csv'
-		self.regDataPath = path+'splits_'+time.strftime('%Y%m%d')+'/trainReg_'+str(len(self.trainYrs))+'.csv'
+		self.degDataPath = path+'splits_'+time.strftime('%Y%m%d')+'/degtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'_'+str(len(self.trainYrs))+'.csv'
+		self.regDataPath = path+'splits_'+time.strftime('%Y%m%d')+'/regtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'_'+str(len(self.trainYrs))+'.csv'
 		regFileName, degFilename = self.regDataPath.split('/')[-1], self.degDataPath.split('/')[-1]
 		for yr in self.trainYrs:
 			index = self.yearList.index(yr)
@@ -131,7 +131,7 @@ class prepross(object):
 		# store test filenames
 		self.testFileList = [self.regDataPath]
 		# create year combined test data
-		combineYrsTestData = path + 'splits_'+time.strftime('%Y%m%d')+'/testCom_'+str(len(self.trainYrs))+'.csv'
+		combineYrsTestData = path + 'splits_'+time.strftime('%Y%m%d')+'/regtest'+ self.yearList[len(self.trainYrs)]+'-'+self.yearList[-1]+'_'+str(len(self.trainYrs))+'.csv'
 		self.comYrsTestHeader = ''
 		for yr in self.yearList:
 			if (yr not in self.trainYrs):
@@ -151,8 +151,14 @@ class prepross(object):
 			self.predictResultsList.append(self.dataDir + 'fv1_predicting_grades_' + filename +'.csv')
 			self.predictResultsAveErr.append(self.dataDir + 'fv1_predicting_aveErr_' + filename +'.csv')
 
-			self.fTestRegFileNameList.append(self.dataDir +'Test/' + filename + '_Test.csv')
-			tmpList, prefix = [], self.dataDir +'Test/' + filename
+			tmpList, prefix = [], ''
+			if (fname == self.regDataPath) or (combineYrsTestData == fname):
+				prefix = self.dataDir +'Test/' + filename
+				self.fTestRegFileNameList.append(self.dataDir +'Test/' + filename + '_Test.csv')
+			else:
+				prefix = self.dataDir +'Test/' + filename[0:3] + 'test' + filename[3:]
+				self.fTestRegFileNameList.append(self.dataDir +'Test/' + filename[0:3] + 'test' + filename[3:] + '_Test.csv')
+
 			for item in ['CRSPERSTU', 'STUREGISTERED', 'EMPTY', 'CRS_STU', 'CRS_STU_GRADE', 'STU_CRS']:
 				tmpList.append(prefix + '_' + item +'.csv')
 
@@ -1611,16 +1617,16 @@ class prepross(object):
 		# points vs aveAbsErr
 		xtitle = 'sample points from training set'
 		ytitle = 'average of absolute error'
-		title = prefix+' Points from training set vs average of absolute error'
-		figName = self.errPlotsDir+prefix+'_point_aveAbsErr.png'
-		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName)
+		title = 'points from training set vs average of absolute errors in '+prefix[3:]
+		figName = self.errPlotsDir+prefix[3:]+'_point_aveAbsErr.png'
+		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p')
 
 		# r vs aveAbsErr
 		xtitle = 'coefficients from training set'
 		ytitle = 'average of absolute error'
-		title = prefix+' coefficients from training set vs average of absolute error'
-		figName = self.errPlotsDir+prefix+'_r_aveAbsErr.png'
-		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName)
+		title = 'coefficients from training set vs average of absolute errors in '+prefix[3:]
+		figName = self.errPlotsDir+prefix[3:]+'_r_aveAbsErr.png'
+		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r')
 
 	def gradePairs(self, testY, testXs):
 		resultPairs, pairsList, xCrsNums = [], [], []
@@ -1649,7 +1655,7 @@ class prepross(object):
 
 		return resultPairs
 
-	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName):
+	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName, flag):
 		x = np.array(xdata)
 		y = np.array(ydata)
 
@@ -1659,8 +1665,12 @@ class prepross(object):
 		plt.ylabel(ytitle)
 		plt.title(title)
 
-		plt.ylim(min(ydata), max(ydata))
-		plt.xlim(min(xdata), max(xdata))
+		plt.ylim(min(ydata), max(ydata)+0.5)
+		if flag == 'r':
+			plt.xlim(-1.0, 1.0)
+		if flag == 'p':
+			plt.xlim(min(xdata), max(xdata)+5)
+
 		plt.grid(True)
 		# plt.show()
 		fig.savefig(figName)
