@@ -1616,14 +1616,14 @@ class prepross(object):
 		prefix = testReg.split('/')[-1].split('_')[0]
 		# points vs aveAbsErr
 		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-		ytitle = 'average of absolute error' + prefix[3:]
+		ytitle = 'average of absolute error from ' + prefix[3:]
 		title = 'points vs average of absolute errors'
 		figName = self.errPlotsDir+prefix[3:]+'_point_aveAbsErr.png'
 		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p')
 
 		# r vs aveAbsErr
 		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-		ytitle = 'average of absolute error '+prefix[3:]
+		ytitle = 'average of absolute error from '+prefix[3:]
 		title = 'coefficients vs average of absolute errors'
 		figName = self.errPlotsDir+prefix[3:]+'_r_aveAbsErr.png'
 		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r')
