@@ -1660,16 +1660,21 @@ class prepross(object):
 		y = np.array(ydata)
 
 		fig = plt.figure()
-		plt.plot(x, y, '.')
+		plt.plot(x, y, '.', c='red')
 		plt.xlabel(xtitle)
 		plt.ylabel(ytitle)
 		plt.title(title)
 
 		plt.ylim(min(ydata), max(ydata)+0.5)
-		if flag == 'r':
+		if flag == 'r':		
 			plt.xlim(-1.0, 1.0)
+			ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
+			ticks.append(1.0)
+			plt.xticks(ticks, rotation=20, fontsize='medium')			
 		if flag == 'p':
 			plt.xlim(min(xdata), max(xdata)+5)
+			ticks = xrange(0, max(xdata)+5, 5)
+			plt.xticks(ticks)
 
 		plt.grid(True)
 		# plt.show()

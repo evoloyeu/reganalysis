@@ -18,12 +18,21 @@ z = np.polyfit(x, y, 2)
 p = np.poly1d(z)
 print type(z), ':\t', z
 
-xp = np.linspace(-1.0, 1.0, 100)
-_ = plt.plot(x, y, '.', xp, p(xp), '-')
+# xp = np.linspace(-1.0, 1.0, 100)
+# _ = plt.plot(x, y, '.', xp, p(xp), '-')
+_ = plt.plot(x, y, '.', c='r')
 plt.xlabel('STD')
 plt.ylabel('Point#')
 plt.title('2012: ERR STD vs POINT#, quadratic regression')
-plt.ylim(0,3.0)
+plt.ylim(min(y),max(y))
+plt.xlim(min(x),max(x))
+
+# ticks = xrange(-1.0, 1.0, 0.2)
+ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
+ticks.append(1.0)
+plt.xticks(ticks, rotation=30, fontsize='medium')
+# plt.xticks(ticks, rotation=30)
+
 plt.grid(True)
 plt.show()
 
