@@ -145,11 +145,13 @@ class prepross(object):
 			self.testFileList.append(combineYrsTestData)
 
 		# build test stats filenames and the predicting result and errors filenames
-		self.predictResultsList, self.predictResultsAveErr = [], []
+		self.linearPredictResultsList, self.linearPredictResultsAveErr, self.quadrPredictResultsList, self.quadrPredictResultsAveErr = [], [], [], []
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
-			self.predictResultsList.append(self.dataDir + 'fv1_predicting_grades_' + filename +'.csv')
-			self.predictResultsAveErr.append(self.dataDir + 'fv1_predicting_aveErr_' + filename +'.csv')
+			self.linearPredictResultsList.append(self.dataDir + 'fv1_predicting_grades_' + filename +'_linear.csv')
+			self.linearPredictResultsAveErr.append(self.dataDir + 'fv1_predicting_aveErr_' + filename +'_linear.csv')
+			self.quadrPredictResultsList.append(self.dataDir + 'fv1_predicting_grades_' + filename +'_quadr.csv')
+			self.quadrPredictResultsAveErr.append(self.dataDir + 'fv1_predicting_aveErr_' + filename +'_quadr.csv')
 
 			tmpList, prefix = [], ''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
@@ -176,7 +178,11 @@ class prepross(object):
 		self.fV1Reulsts = self.dataDir + 'fv1_ori_result.csv'
 		# self.valAVE, self.valORI = self.dataDir + 'corr_ave_val.csv', self.dataDir + 'corr_ori_val.csv'
 
-		[self.linear_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori] = [self.currDir + 'linear_plots_ori/', self.currDir + 'coefficient_ori/', self.currDir + 'hist_ori/', self.currDir + 'bars_ori/', self.currDir + 'course_ori/']
+		folders = [self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori] = [self.currDir + 'linear_plots_ori/', self.currDir + 'quadratic_plots_ori/', self.currDir + 'coefficient_ori/', self.currDir + 'hist_ori/', self.currDir + 'bars_ori/', self.currDir + 'course_ori/']
+
+		for folder in folders:
+			if not os.path.exists(folder):
+				os.makedirs(folder)
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
 		fileNameList = []
@@ -241,7 +247,8 @@ class prepross(object):
 		self.formulaV1(rw,pw)
 		# predicting
 		for x in xrange(0,len(self.fTestStatFileNameList)):
-			self.predictProcess(self.fTestStatFileNameList[x][3], self.predictResultsList[x], self.predictResultsAveErr[x])
+			self.predictProcess(self.fTestStatFileNameList[x][3], self.linearPredictResultsList[x], self.linearPredictResultsAveErr[x], 1)
+			self.predictProcess(self.fTestStatFileNameList[x][3], self.quadrPredictResultsList[x], self.quadrPredictResultsAveErr[x], 2)
 
 	def prepare(self):
 		self.techCrs()
@@ -259,7 +266,7 @@ class prepross(object):
 		self.techCrsHists()
 
 		# compute correlation coefficients and draw correlation plots
-		self.corrPlot(self.CRS_STU, self.linear_plots_ori, self.corrORIResults)
+		self.corrPlot(self.CRS_STU, self.corrORIResults)
 
 	def testSetsStats(self):
 		# compute the stats data for the test datasets
@@ -730,9 +737,10 @@ class prepross(object):
 		w = csv.writer(open(self.crsMatrix, 'w'))
 		w.writerows(matrix)
 
-	def corrPlot(self, source, plotDir, corr):
-		if not os.path.exists(plotDir):
-			os.makedirs(plotDir)
+	# def corrPlot(self, source, plotDir, corr):
+	def corrPlot(self, source, corr):
+		# if not os.path.exists(plotDir):
+		# 	os.makedirs(plotDir)
 
 		reader = csv.reader(open(source), delimiter=',')
 		if source == self.crsMatrix:
@@ -755,7 +763,7 @@ class prepross(object):
 				matrix.append(row)
 
 		w = csv.writer(open(corr, 'w'))
-		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', '#points', 'pValue', 'stderr', 'slope', 'intercept'])
+		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', '#points', 'pValue', 'stderr', 'slope', 'intercept', 'a', 'b', 'c'])
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
 		nocorrlst = self.dataDir + 'nocorr/' + 'no_corr_list.csv'
@@ -797,45 +805,18 @@ class prepross(object):
 						cnt += 1
 						continue
 
-					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 
-					# """
-					fig = plt.figure()
-					if r_value != 0.0:
-						if intercept > 0:
-							plt.title('r = ' + str(r_value) + ', y = ' + str(slope) + 'x+' + str(intercept))
-						else:
-							plt.title('r = ' + str(r_value) + ', y = ' + str(slope) + 'x' + str(intercept))
-					else:
-						plt.title('r = ' + str(r_value))
-					
+					r_value = float(format(r, '.4f'))
+					slope, intercept = self.regressionPlot(xdata, ydata, r_value, 1, xaxis, yaxis, self.linear_plots_ori)
+					a,b,c = self.regressionPlot(xdata, ydata, r_value, 2, xaxis, yaxis, self.quadratic_plots_ori)
 
-					xarray = np.array(xdata)
-					yarray = np.array(ydata)
-					z = np.polyfit(xarray, yarray, 1)
-					p = np.poly1d(z)
-					
-					# print z
-					# print 'slope:', slope, '\tintercept:', intercept, '\n'
+					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
-					xp = np.linspace(0, 9, 100)
-					plt.plot(xarray, yarray, '.', xp, p(xp), '-')
-
-					plt.xlabel(xaxis)
-					plt.ylabel(yaxis)
-
-					plt.ylim(0,9)
-					plt.grid(True)
-
-					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept])
-					# """
-					figName = plotDir + course[0] + course[1] + ' ' + newCourse[0] + newCourse[1] + ' ' + str(r) + '.png'
-					fig.savefig(figName)
-					plt.close(fig)
-					# """
+					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c])
 					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
 
 			if len(noCorrList) > 0:
@@ -913,6 +894,114 @@ class prepross(object):
 
 			if (indx < len(nocomList)-1) and (nocomList[indx][0] != nocomList[indx+1][0]):
 				isHeader = True
+
+	def regressionPlot(self, xdata, ydata, r_value, power, xaxis, yaxis, plotDir):
+		fig = plt.figure()
+		xarray = np.array(xdata)
+		yarray = np.array(ydata)
+		z = np.polyfit(xarray, yarray, power)
+		p = np.poly1d(z)
+
+		if power == 1:
+			slope, intercept = z
+			slope, intercept = [float(format(slope, '.4f')), float(format(intercept, '.4f'))]
+			if r_value != 0.0:
+				if intercept > 0:
+					# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(slope) + r'$x+$'+ str(intercept))
+					plt.title(r'$r=%s,y=%sx+%s$'%(r_value, slope, intercept))
+				elif intercept < 0:
+					# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(slope) + r'$x$' + str(intercept))
+					plt.title(r'$r=%s,y=%sx%s$'%(r_value, slope, intercept))
+				else:
+					plt.title(r'$r=%s,y=%sx$'%(r_value, slope))
+			else:
+				# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(intercept))
+				plt.title(r'$r=%s,y=%s$'%(r_value, intercept))
+		elif power == 2:
+			a, b, c = z
+			a, b, c = [float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
+			if a == 0:
+				if b > 0:
+					if c > 0:
+						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
+						plt.title(r'$r=%s,y=%sx+%s$'%(r_value, b, c))
+					elif c < 0:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
+						plt.title(r'$r=%s,y=%sx%s$'%(r_value, b, c))
+					else:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
+						plt.title(r'$r=%s,y=%sx$'%(r_value, b))
+				elif b < 0:
+					if c > 0:
+						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
+						plt.title(r'$r=%s,y=%sx+%s$'%(r_value, b, c))
+					elif c < 0:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
+						plt.title(r'$r=%s,y=%sx%s$'%(r_value, b, c))
+					else:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
+						plt.title(r'$r=%s,y=%sx$'%(r_value, b))
+				else:
+					if c > 0:
+						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
+						plt.title(r'$r=%s,y=%s$'%(r_value, c))
+					elif c < 0:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
+						plt.title(r'$r=%s,y=%s$'%(r_value, c))
+					# else:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
+						# plt.title(r'$r=%s,x=%s$'%(r_value))
+			else:
+				if b > 0:
+					if c > 0:
+						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
+						plt.title(r'$r=%s,y=%sx^2+%sx+%s$'%(r_value, a, b, c))
+					elif c < 0:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
+						plt.title(r'$r=%s,y=%sx^2+%sx%s$'%(r_value, a, b, c))
+					else:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
+						plt.title(r'$r=%s,y=%sx^2+%sx$'%(r_value, a, b))
+				elif b < 0:
+					if c > 0:
+						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
+						plt.title(r'$r=%s,y=%sx^2%sx+%s$'%(r_value, a, b, c))
+					elif c < 0:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
+						plt.title(r'$r=%s,y=%sx^2%sx%s$'%(r_value, a, b, c))
+					else:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
+						plt.title(r'$r=%s,y=%sx^2%sx$'%(r_value, a, b))
+				else:
+					if c > 0:
+						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
+						plt.title(r'$r=%s,y=%sx^2+%s$'%(r_value, a, c))
+					elif c < 0:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
+						plt.title(r'$r=%s,y=%sx^2%s$'%(r_value, a, c))
+					else:
+						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
+						plt.title(r'$r=%s,y=%sx^2$'%(r_value, a))
+
+		xp = np.linspace(0, 9, 100)
+		plt.plot(xarray, yarray, '.', xp, p(xp), '-')
+
+		plt.xlabel(xaxis)
+		plt.ylabel(yaxis)
+
+		plt.ylim(0,9)
+		plt.grid(True)
+
+		subj, num = xaxis.split(' ')[:2]
+		subjNew, numNew = yaxis.split(' ')[:2]
+		figName = plotDir + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + '.png'
+		fig.savefig(figName)
+		plt.close(fig)
+
+		return z
+
+	def quadraticPlotTitle(self, a, b, c):
+		pass
 
 	def coefficientHist(self, interval, histDir, corr):
 		if not os.path.exists(histDir):
@@ -1474,20 +1563,20 @@ class prepross(object):
 				rlist.append(r)
 
 			plist.append(float(rows[x][5]))
-			print 'cnt: ', cnt, '\t', rows[x]
+			# print 'cnt: ', cnt, '\t', rows[x]
 			if x < (len(rows)-1):
 				if (rows[x][2]+rows[x][3]) != (rows[x+1][2]+rows[x+1][3]):
 					writer.writerow(header)
 					writer.writerows(self.computePxyIntegrade(ylist, rlist, plist, w1list, w2list))
 					writer.writerow([])
 					ylist, rlist, plist = [], [], []
-					print '\n'
+					# print '\n'
 
 		if (len(ylist) == len(rlist)) and (len(ylist) == len(plist)) and (len(ylist) > 0):
 			writer.writerow(header)
 			writer.writerows(self.computePxyIntegrade(ylist, rlist, plist, w1list, w2list))
 			ylist, rlist, plist = [], [], []
-			print '\n'
+			# print '\n'
 
 	def computePxyIntegrade(self, ylist, rlist, plist, w1list, w2list):
 		for sublist in ylist:
@@ -1502,7 +1591,7 @@ class prepross(object):
 
 		return ylist
 
-	def predictProcess(self, testReg, predictResults, aveErrResults):
+	def predictProcess(self, testReg, predictResults, aveErrResults, power):
 		# build equation dict
 		r1 = csv.reader(open(self.predictorFile), delimiter=',')
 		header1, predictorDict = r1.next(), {}
@@ -1556,7 +1645,9 @@ class prepross(object):
 				for predictor in predictors:
 					xcourse, predictorCourse = xgrades[0] + xgrades[1], predictor[0] + predictor[1]
 					if xcourse == predictorCourse:
-						xSubj,xNum,ySubj,yNum,slope,intercept,coefficient,pointFreq = predictor[0], predictor[1], predictor[2], predictor[3], predictor[-2], predictor[-1], predictor[4], predictor[5]
+						# caution: for the index
+						xSubj,xNum,ySubj,yNum, coefficient,pointFreq = predictor[0], predictor[1], predictor[2], predictor[3], predictor[4], predictor[5]
+						slope,intercept,a,b,c = predictor[9], predictor[10], predictor[11], predictor[12], predictor[13]
 						pointsList.append(int(pointFreq))
 						rList.append(float(coefficient))
 						break
@@ -1564,7 +1655,15 @@ class prepross(object):
 				# compute predicting grade of testY using the equation located above
 				predictGrades = [ygrades[0], ygrades[1]]
 				for x in xgrades[2:]:
-					grade = float(slope) * float(x) + float(intercept)
+					grade = ''
+					if power == 1:
+						grade = float(slope) * float(x) + float(intercept)
+					if power == 2:
+						grade = float(a)*pow(float(x), 2)+float(b)*float(x)+float(c)
+						print '\n************************************************'
+						print 'power:', power, ' x:', x, 'a:', a, ' b:', b, ' c:', c, ' grade:', grade, 'xcrs:', xgrades[:2], ' ycrs:', ygrades[:2]
+						print '************************************************\n'
+
 					predictGrades.append(format(grade, '.1f'))
 
 				# compute errors
@@ -1609,7 +1708,7 @@ class prepross(object):
 				errw.writerow([errorave, coefficient, pointFreq])
 				AERPList.append([errorave, coefficient, pointFreq])
 
-				print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', errorPercent, '\n'
+				# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', errorPercent, '\n'
 
 		writer.writerows(errRangeStdErrList)
 

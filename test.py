@@ -18,9 +18,9 @@ z = np.polyfit(x, y, 2)
 p = np.poly1d(z)
 print type(z), ':\t', z
 
-# xp = np.linspace(-1.0, 1.0, 100)
-# _ = plt.plot(x, y, '.', xp, p(xp), '-')
-_ = plt.plot(x, y, '.', c='r')
+xp = np.linspace(-1.0, 1.0, 100)
+_ = plt.plot(x, y, '.', xp, p(xp), '-')
+# _ = plt.plot(x, y, '.', c='r')
 plt.xlabel('STD')
 plt.ylabel('Point#')
 plt.title('2012: ERR STD vs POINT#, quadratic regression')
