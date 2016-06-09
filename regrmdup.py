@@ -737,11 +737,7 @@ class prepross(object):
 		w = csv.writer(open(self.crsMatrix, 'w'))
 		w.writerows(matrix)
 
-	# def corrPlot(self, source, plotDir, corr):
 	def corrPlot(self, source, corr):
-		# if not os.path.exists(plotDir):
-		# 	os.makedirs(plotDir)
-
 		reader = csv.reader(open(source), delimiter=',')
 		if source == self.crsMatrix:
 			reader.next()
@@ -999,9 +995,6 @@ class prepross(object):
 		plt.close(fig)
 
 		return z
-
-	def quadraticPlotTitle(self, a, b, c):
-		pass
 
 	def coefficientHist(self, interval, histDir, corr):
 		if not os.path.exists(histDir):
@@ -1713,18 +1706,23 @@ class prepross(object):
 		writer.writerows(errRangeStdErrList)
 
 		prefix = testReg.split('/')[-1].split('_')[0]
+		suffix = ''
+		if power == 1:
+			suffix = 'linear'
+		elif power == 2:
+			suffix = 'quadratic'		
 		# points vs aveAbsErr
 		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'average of absolute error from ' + prefix[3:]
-		title = 'points vs average of absolute errors'
-		figName = self.errPlotsDir+prefix[3:]+'_point_aveAbsErr.png'
+		title = 'points vs average of absolute errors ('+suffix+')'
+		figName = self.errPlotsDir+prefix[3:]+'_point_aveAbsErr_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p')
 
 		# r vs aveAbsErr
 		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'average of absolute error from '+prefix[3:]
-		title = 'coefficients vs average of absolute errors'
-		figName = self.errPlotsDir+prefix[3:]+'_r_aveAbsErr.png'
+		title = 'coefficients vs average of absolute errors ('+suffix+')'
+		figName = self.errPlotsDir+prefix[3:]+'_r_aveAbsErr_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r')
 
 	def gradePairs(self, testY, testXs):
@@ -1764,15 +1762,18 @@ class prepross(object):
 		plt.ylabel(ytitle)
 		plt.title(title)
 
-		plt.ylim(min(ydata), max(ydata)+0.5)
-		if flag == 'r':		
+		# plt.ylim(min(ydata), max(ydata)+0.5)
+		plt.ylim(0, 15)
+		if flag == 'r':
 			plt.xlim(-1.0, 1.0)
 			ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
 			ticks.append(1.0)
 			plt.xticks(ticks, rotation=20, fontsize='medium')			
 		if flag == 'p':
-			plt.xlim(min(xdata), max(xdata)+5)
-			ticks = xrange(0, max(xdata)+5, 5)
+			# plt.xlim(min(xdata), max(xdata)+5)
+			plt.xlim(0, 120)
+			# ticks = xrange(0, max(xdata)+5, 5)
+			ticks = xrange(0, 120, 10)
 			plt.xticks(ticks)
 
 		plt.grid(True)
