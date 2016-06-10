@@ -237,10 +237,6 @@ class prepross(object):
 			self.testWeights()
 			self.predicting(self.wdict[len(self.trainYrs)], 1.0)
 
-	def flow(self):
-		self.prepare()
-		self.testWeights()
-
 	def predicting(self, rw, pw):
 		self.testSetsStats()
 		# create predictors
@@ -1585,10 +1581,11 @@ class prepross(object):
 		return ylist
 
 	def predictProcess(self, testReg, predictResults, aveErrResults, power):
-		# build equation dict
+		# build equation/predictor dict
 		r1 = csv.reader(open(self.predictorFile), delimiter=',')
 		header1, predictorDict = r1.next(), {}
 		for row in r1:
+			# key: the predicting course, value of key: row of predictor & predicting course
 			key = row[2]+row[3]
 			if key not in predictorDict:
 				predictorDict[key] = [row]
@@ -1599,11 +1596,12 @@ class prepross(object):
 		r2 = csv.reader(open(testReg), delimiter=',')
 		header2, testRegDict = r2.next(), {}
 		for row in r2:
+			# key: course code(subject code and course number); value of key: course record
 			key = row[0]+row[1]
 			if key not in testRegDict:
 				testRegDict[key] = row
 
-		# search predictable courses
+		# search predictable courses; keys: the predicting courses
 		predictingList, keys = [], predictorDict.keys()
 		for key in keys:
 			if key in testRegDict:
@@ -1624,84 +1622,91 @@ class prepross(object):
 		errw.writerow(['aveErr', 'r', '#point'])
 		# [errorave, coefficient, pointFreq]
 		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList = [], [], [], [], []
-		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'std', 'aveErr', 'aveAbsErr', 'insOneCrs', 'minErr', 'maxErr', 'interval']
+		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'std', 'ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		errRangeStdErrList.append(header)
 
 		for pairsList in predictingList:
 			for pairs in pairsList:
 				[xgrades, ygrades] = pairs
-				# locate predicting equation
+				# locate predicting equation; key: predicting course
 				key = ygrades[0] + ygrades[1]
 				predictors = predictorDict[key]
-				# equation: y = slope * x + intercept
+				# linear: y = slope * x + intercept
+				# quadratic: y = ax^2+bx+c
 				slope = intercept = coefficient = pointFreq = xSubj = xNum = ySubj = yNum = 0
 				for predictor in predictors:
 					xcourse, predictorCourse = xgrades[0] + xgrades[1], predictor[0] + predictor[1]
 					if xcourse == predictorCourse:
-						# caution: for the index
+						# !!!caution: for the index
 						xSubj,xNum,ySubj,yNum, coefficient,pointFreq = predictor[0], predictor[1], predictor[2], predictor[3], predictor[4], predictor[5]
 						slope,intercept,a,b,c = predictor[9], predictor[10], predictor[11], predictor[12], predictor[13]
 						pointsList.append(int(pointFreq))
 						rList.append(float(coefficient))
-						break
+						# compute errors: aesum: absolute err sum; aepsum: absolute err percent sum
+						errorList, absErrPerList, aesum, aepsum = [], [], 0, 0
+						# compute predicting grade of testY using the equation located above
+						predictGrades = [ygrades[0], ygrades[1]]
+						for index in xrange(2, len(xgrades)):
+							x, grade = xgrades[index], 0
+							if power == 1:
+								grade = float(slope) * float(x) + float(intercept)
+							if power == 2:
+								grade = float(a)*pow(float(x), 2)+float(b)*float(x)+float(c)
 
-				# compute predicting grade of testY using the equation located above
-				predictGrades = [ygrades[0], ygrades[1]]
-				for x in xgrades[2:]:
-					grade = ''
-					if power == 1:
-						grade = float(slope) * float(x) + float(intercept)
-					if power == 2:
-						grade = float(a)*pow(float(x), 2)+float(b)*float(x)+float(c)
-						print '\n************************************************'
-						print 'power:', power, ' x:', x, 'a:', a, ' b:', b, ' c:', c, ' grade:', grade, 'xcrs:', xgrades[:2], ' ycrs:', ygrades[:2]
-						print '************************************************\n'
+							grade = float(format(grade, '.1f'))
+							predictGrades.append(grade)
+							# fetch the actual grade from ygrades list
+							actualGrade = float(ygrades[index])
+							# calculate predicting err
+							error = actualGrade - grade
 
-					predictGrades.append(format(grade, '.1f'))
+							errorList.append(error)
+							aesum += abs(error)
 
-				# compute errors
-				errorList, errorPercent, errorsum = [], [], 0
-				for index in xrange(2,len(predictGrades)):
-					error = float(ygrades[index]) - float(predictGrades[index])
-					# errorList.append(format(error, '.1f'))
-					errorList.append(error)
+							absErrPer = 0 
+							if actualGrade == 0:
+								absErrPer = abs(error)/1
+							else:
+								absErrPer = abs(error)/actualGrade
 
-					# percent = float(format(abs(error)/9, '.3f'))
-					# errorPercent.append(str(percent*100)+str('%'))
-					errorsum += abs(error)
-					errorPercent.append(str(abs(error)/9*100)+str('%'))
+							aepsum += absErrPer
+							absErrPerList.append(str(format(absErrPer*100, '.2f'))+'%')
 
-				aveAbsErr = format(errorsum/len(errorList), '.2f')
-				aveAbsErrList.append(float(aveAbsErr))
-				errArr = np.array(errorList)
-				errorave = format(np.average(errArr), '.2f')
-				std = format(np.std(errArr), '.2f')
-				tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,std,errorave,aveAbsErr,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
-				for error in errorList:
-					tempList.append(error)
-				
-				errRangeStdErrList.append(tempList)
-				# errRangeStdErrList.append()
+						mae = format(aesum/len(errorList), '.2f')
+						aveAbsErrList.append(float(mae))
 
-				xgrades.insert(0, 'predictor')
-				ygrades.insert(0, 'real')
-				predictGrades.insert(0, 'predicting')				
-				
-				for x in xrange(0,2):
-					errorList.insert(x, '')
-					errorPercent.insert(x, '')
+						mape = format(aepsum/len(errorList), '.2f')
 
-				errorList.insert(2, 'Err:')
-				errorPercent.insert(2, 'Err Per:')
+						errArr = np.array(errorList)
+						errorave = format(np.average(errArr), '.2f')
+						std = format(np.std(errArr), '.2f')
 
-				# appendix = ['point#', pointFreq, 'Coefficient:', coefficient, 'average error:', errorave]
-				appendix = [ 'Average Err:', errorave]
+						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,std,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
+						for error in errorList:
+							tempList.append(error)
+						
+						errRangeStdErrList.append(tempList)
 
-				writer.writerows([xgrades, ygrades, predictGrades, errorList, errorPercent, appendix, []])
-				errw.writerow([errorave, coefficient, pointFreq])
-				AERPList.append([errorave, coefficient, pointFreq])
+						xgrades.insert(0, 'predictor')
+						ygrades.insert(0, 'real')
+						predictGrades.insert(0, 'predicting')				
+						
+						for x in xrange(0,2):
+							errorList.insert(x, '')
+							absErrPerList.insert(x, '')
 
-				# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', errorPercent, '\n'
+						errorList.insert(2, 'Err:')
+						absErrPerList.insert(2, 'AbsErrPer:%')
+
+						# appendix = ['point#', pointFreq, 'Coefficient:', coefficient, 'average error:', errorave]
+						appendix = [ 'mean Err:', errorave, 'mea:', mae, 'mape:', mape]
+
+						writer.writerows([xgrades, ygrades, predictGrades, errorList, absErrPerList, appendix, []])
+						errw.writerow([errorave, coefficient, pointFreq])
+						AERPList.append([errorave, coefficient, pointFreq])
+
+						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
 
 		writer.writerows(errRangeStdErrList)
 
@@ -1728,6 +1733,7 @@ class prepross(object):
 	def gradePairs(self, testY, testXs):
 		resultPairs, pairsList, xCrsNums = [], [], []
 		for x in testXs:
+			# build the xgrades, ygrades lists
 			xgrades = [x[0], x[1]]
 			ygrades = [testY[0], testY[1]]
 			for index in xrange(2,len(testY)):
@@ -1735,6 +1741,7 @@ class prepross(object):
 					xgrades.append(x[index])
 					ygrades.append(testY[index])
 
+			# to see if there are at least one pair between xgrades and ygrades
 			if len(xgrades) > 2:
 				pairsList.append([xgrades, ygrades])
 				# save course number for later predictor pickup
@@ -1748,7 +1755,7 @@ class prepross(object):
 			index = xCrsNums.index(mincrsnum)
 			resultPairs.append(pairsList[index])
 		else:
-			return pairsList
+			resultPairs = pairsList
 
 		return resultPairs
 
