@@ -168,7 +168,7 @@ class prepross(object):
 			# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
 
 		# predictor file path
-		self.predictorFile = ''
+		self.factorsFile, self.top3FactorsFile = '', ''
 
 		# others
 		self.pairsFrequency, self.pairsHistDir = self.dataDir + 'pairsFrequency.csv', self.currDir + 'pairs_hist/'
@@ -262,7 +262,7 @@ class prepross(object):
 		self.techCrsHists()
 
 		# compute correlation coefficients and draw correlation plots
-		self.corrPlot(self.CRS_STU, self.corrORIResults)
+		# self.corrPlot(self.CRS_STU, self.corrORIResults)
 
 	def testSetsStats(self):
 		# compute the stats data for the test datasets
@@ -809,7 +809,7 @@ class prepross(object):
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c])
-					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
+					# print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir + 'nocorr/'):
@@ -1451,52 +1451,51 @@ class prepross(object):
 		fV1Reulsts = self.dataDir + 'fv1_' + str(w1) + '_' + str(w2) +'.csv'
 		writer = csv.writer(open(fV1Reulsts, 'w'))
 		# build the self.predictorFile
-		self.predictorFile = self.dataDir + 'predictors_' + str(w1) + '_' + str(w2) +'.csv'
-		eqw = csv.writer(open(self.predictorFile, 'w'))
+		self.factorsFile = self.dataDir + 'predictors_' + str(w1) + '_' + str(w2) +'.csv'
+		factorWriter = csv.writer(open(self.factorsFile, 'w'))
+		self.top3FactorsFile = self.dataDir + 'predictorsTop3_' + str(w1) + '_' + str(w2) +'.csv'
+		factorTop3Writer = csv.writer(open(self.top3FactorsFile, 'w'))
 
 		header.insert(6, str(w1) + '_' + str(w2))
-		eqw.writerow(header)
+		factorWriter.writerow(header)
+		factorTop3Writer.writerow(header)
 
 		ylist, rlist, plist = [], [], []
 		for x in xrange(0,len(rows)):
 			ylist.append(rows[x])
-
-			r = float(rows[x][4])
-			if r < 0:
-				rlist.append(r*(-1.0))
-			else:
-				rlist.append(r)
-
+			rlist.append(abs(float(rows[x][4])))
 			plist.append(float(rows[x][5]))
 
 			if x < (len(rows)-1):
 				if (rows[x][2]+rows[x][3]) != (rows[x+1][2]+rows[x+1][3]):
 					writer.writerow(header)
+
 					ylist, predictorList = self.PxyPredictors(ylist, rlist, plist, w1, w2)
+
 					writer.writerows(ylist)
 					writer.writerow([])
 
-					eqw.writerows(predictorList)
+					factorWriter.writerows(predictorList)
 
 					ylist, rlist, plist = [], [], []
 
 		if (len(ylist) == len(rlist)) and (len(ylist) == len(plist)) and (len(ylist) > 0):
 			writer.writerow(header)
+
 			ylist, predictorList = self.PxyPredictors(ylist, rlist, plist, w1, w2)
+
 			writer.writerows(ylist)
 
-			eqw.writerows(predictorList)
+			factorWriter.writerows(predictorList)
 
 			ylist, rlist, plist = [], [], []
 
 	def PxyPredictors(self, ylist, rlist, plist, w1, w2):
 		pxyArr, predictorList = [], []
 		for sublist in ylist:
-			r = float(sublist[4])
-			if r < 0:
-				pxy = w1*float(sublist[4])*(-1.0)/float(max(rlist))+w2*float(sublist[5])/float(max(plist))
-			else:
-				pxy = w1*float(sublist[4])/float(max(rlist))+w2*float(sublist[5])/float(max(plist))
+			norm_r = abs(float(sublist[4]))/float(max(rlist))
+			norm_p = float(sublist[5])/float(max(plist))
+			pxy = w1*norm_r + w2*norm_p
 
 			pxy = format(pxy, '.4f')
 			pxyArr.append(pxy)
@@ -1510,13 +1509,23 @@ class prepross(object):
 			index = pxyArr.index(maxPxy)			
 			predictorList.append(ylist[index])
 		else:
+			# several maximum Pxy exist simultaneously
 			xCrsNums, maxPxyList = [], []
 			for sublist in ylist:
 				if sublist[6] == maxPxy:
 					maxPxyList.append(sublist)
-					xCrsNums.append(sublist[1][0:-1])
+					# xCrsNums.append(sublist[1][0:-1])
+					xCrsNums.append(sublist[1][:3])
+					# print sublist[1][:3], 'PxyPredictors\t', 'trainYrsLen:', len(self.trainYrs)
 
 			mincrsnum = min(xCrsNums)
+			freq = Counter(item for item in xCrsNums)
+			if freq[mincrsnum] > 1:
+				print '=========== ', mincrsnum, ' ===========\tPxyPredictors\t', 'trainYrsLen:', len(self.trainYrs)
+				for sublist in ylist:
+					if mincrsnum == sublist[1][0:3]:
+						print sublist
+
 			index = xCrsNums.index(mincrsnum)
 			predictorList.append(maxPxyList[index])
 
@@ -1582,7 +1591,7 @@ class prepross(object):
 
 	def predictProcess(self, testReg, predictResults, aveErrResults, power):
 		# build equation/predictor dict
-		r1 = csv.reader(open(self.predictorFile), delimiter=',')
+		r1 = csv.reader(open(self.factorsFile), delimiter=',')
 		header1, predictorDict = r1.next(), {}
 		for row in r1:
 			# key: the predicting course, value of key: row of predictor & predicting course
@@ -1745,13 +1754,18 @@ class prepross(object):
 			if len(xgrades) > 2:
 				pairsList.append([xgrades, ygrades])
 				# save course number for later predictor pickup
-				xCrsNums.append(x[1][0:-1])
+				xCrsNums.append(x[1][0:3])
+				# print x[1][:3], 'gradePairs\t', 'trainYrsLen:', len(self.trainYrs)
 
 		if len(pairsList) > 1:
 			# randomIndex = randint(0,len(pairsList)-1)
 			# return [pairsList[randomIndex]]
 			# to pick up the course with min course number as the predictor
 			mincrsnum = min(xCrsNums)
+			freq = Counter(item for item in xCrsNums)
+			if freq[mincrsnum] > 1:
+				print '=========== ', mincrsnum, ' ===========\tgradePairs\t', 'trainYrsLen:', len(self.trainYrs)
+			
 			index = xCrsNums.index(mincrsnum)
 			resultPairs.append(pairsList[index])
 		else:
