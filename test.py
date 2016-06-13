@@ -7,6 +7,7 @@ from operator import itemgetter
 from collections import Counter
 from random import randint
 
+"""
 # std
 y = np.array([1.79,2.04,1.4,1.65,0,1.54,2.8,1.55,2.14,1.53,1.83,1.46,2.08,2.03,2.7,1.85,0.2,2.19,2.97,1.8,1.88,1.15,1.05,0.83,0,1.22,1.22,2.07,2.23,1.77,1.1,1.64,1.96,2.08,1.3,1.85,1.68,0.72,1.25,1.43,0,1.39,2.04,2.13,0.24,2.3,2.51,0,1.7,1.88,1.38])
 # point
@@ -35,4 +36,12 @@ plt.xticks(ticks, rotation=30, fontsize='medium')
 
 plt.grid(True)
 plt.show()
+"""
 
+for i in xrange(0, 2):
+	print 'outer for loop'
+	for x in xrange(1,10):
+		print 'inner for loop'
+		if x%2 == 0:
+			print x
+			break

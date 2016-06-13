@@ -145,13 +145,20 @@ class prepross(object):
 			self.testFileList.append(combineYrsTestData)
 
 		# build test stats filenames and the predicting result and errors filenames
-		self.linearPredictResultsList, self.linearPredictResultsAveErr, self.quadrPredictResultsList, self.quadrPredictResultsAveErr = [], [], [], []
+		self.linearPredictResultsListTop1, self.linearPredictResultsAveErrTop1, self.quadrPredictResultsListTop1, self.quadrPredictResultsAveErrTop1 = [], [], [], []
+		self.linearPredictResultsListTop3, self.linearPredictResultsAveErrTop3, self.quadrPredictResultsListTop3, self.quadrPredictResultsAveErrTop3 = [], [], [], []
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
-			self.linearPredictResultsList.append(self.dataDir + 'fv1_predicting_grades_' + filename +'_linear.csv')
-			self.linearPredictResultsAveErr.append(self.dataDir + 'fv1_predicting_aveErr_' + filename +'_linear.csv')
-			self.quadrPredictResultsList.append(self.dataDir + 'fv1_predicting_grades_' + filename +'_quadr.csv')
-			self.quadrPredictResultsAveErr.append(self.dataDir + 'fv1_predicting_aveErr_' + filename +'_quadr.csv')
+			# todo: optimize later
+			self.linearPredictResultsListTop1.append(self.dataDir + 'predicting_grades_' + filename +'_linear'+'_1'+'.csv')
+			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'predicting_aveErr_' + filename +'_linear'+'_1'+'.csv')
+			self.quadrPredictResultsListTop1.append(self.dataDir + 'predicting_grades_' + filename +'_quadr'+'_1'+'.csv')
+			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'predicting_aveErr_' + filename +'_quadr'+'_1'+'.csv')
+
+			self.linearPredictResultsListTop3.append(self.dataDir + 'predicting_grades_' + filename +'_linear'+'_3'+'.csv')
+			self.linearPredictResultsAveErrTop3.append(self.dataDir + 'predicting_aveErr_' + filename +'_linear'+'_3'+'.csv')
+			self.quadrPredictResultsListTop3.append(self.dataDir + 'predicting_grades_' + filename +'_quadr'+'_3'+'.csv')
+			self.quadrPredictResultsAveErrTop3.append(self.dataDir + 'predicting_aveErr_' + filename +'_quadr'+'_3'+'.csv')
 
 			tmpList, prefix = [], ''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
@@ -168,7 +175,7 @@ class prepross(object):
 			# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
 
 		# predictor file path
-		self.factorsFile, self.top3FactorsFile = '', ''
+		self.top1FactorsFile, self.top3FactorsFile = '',''
 
 		# others
 		self.pairsFrequency, self.pairsHistDir = self.dataDir + 'pairsFrequency.csv', self.currDir + 'pairs_hist/'
@@ -243,8 +250,11 @@ class prepross(object):
 		self.formulaV1(rw,pw)
 		# predicting
 		for x in xrange(0,len(self.fTestStatFileNameList)):
-			self.predictProcess(self.fTestStatFileNameList[x][3], self.linearPredictResultsList[x], self.linearPredictResultsAveErr[x], 1)
-			self.predictProcess(self.fTestStatFileNameList[x][3], self.quadrPredictResultsList[x], self.quadrPredictResultsAveErr[x], 2)
+			# self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1)
+			# self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2)
+
+			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop3[x], self.linearPredictResultsAveErrTop3[x], 1)
+			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop3[x], self.quadrPredictResultsAveErrTop3[x], 2)
 
 	def prepare(self):
 		self.techCrs()
@@ -262,7 +272,7 @@ class prepross(object):
 		self.techCrsHists()
 
 		# compute correlation coefficients and draw correlation plots
-		# self.corrPlot(self.CRS_STU, self.corrORIResults)
+		self.corrPlot(self.CRS_STU, self.corrORIResults)
 
 	def testSetsStats(self):
 		# compute the stats data for the test datasets
@@ -809,7 +819,7 @@ class prepross(object):
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c])
-					# print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
+					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir + 'nocorr/'):
@@ -1443,6 +1453,7 @@ class prepross(object):
 		header = reader.next()
 		rows = []
 		for row in reader:
+			# convert r str to r float
 			row[4] = float(row[4])
 			rows.append(row)
 
@@ -1451,9 +1462,9 @@ class prepross(object):
 		fV1Reulsts = self.dataDir + 'fv1_' + str(w1) + '_' + str(w2) +'.csv'
 		writer = csv.writer(open(fV1Reulsts, 'w'))
 		# build the self.predictorFile
-		self.factorsFile = self.dataDir + 'predictors_' + str(w1) + '_' + str(w2) +'.csv'
-		factorWriter = csv.writer(open(self.factorsFile, 'w'))
-		self.top3FactorsFile = self.dataDir + 'predictorsTop3_' + str(w1) + '_' + str(w2) +'.csv'
+		self.top1FactorsFile = self.dataDir + 'top1Factors_' + str(w1) + '_' + str(w2) + '_' + str(len(self.trainYrs)) +'.csv'
+		factorWriter = csv.writer(open(self.top1FactorsFile, 'w'))
+		self.top3FactorsFile = self.dataDir + 'top3Factors_' + str(w1) + '_' + str(w2) + '_' + str(len(self.trainYrs)) +'.csv'
 		factorTop3Writer = csv.writer(open(self.top3FactorsFile, 'w'))
 
 		header.insert(6, str(w1) + '_' + str(w2))
@@ -1469,67 +1480,127 @@ class prepross(object):
 			if x < (len(rows)-1):
 				if (rows[x][2]+rows[x][3]) != (rows[x+1][2]+rows[x+1][3]):
 					writer.writerow(header)
-
-					ylist, predictorList = self.PxyPredictors(ylist, rlist, plist, w1, w2)
-
+					ylist, top1List, top3List = self.PxyPredictors(ylist, rlist, plist, w1, w2)
 					writer.writerows(ylist)
 					writer.writerow([])
-
-					factorWriter.writerows(predictorList)
+					factorWriter.writerows(top1List)
+					factorTop3Writer.writerows(top3List)
 
 					ylist, rlist, plist = [], [], []
 
 		if (len(ylist) == len(rlist)) and (len(ylist) == len(plist)) and (len(ylist) > 0):
 			writer.writerow(header)
-
-			ylist, predictorList = self.PxyPredictors(ylist, rlist, plist, w1, w2)
-
+			ylist, top1List, top3List = self.PxyPredictors(ylist, rlist, plist, w1, w2)
 			writer.writerows(ylist)
-
-			factorWriter.writerows(predictorList)
+			factorWriter.writerows(top1List)
+			factorTop3Writer.writerows(top3List)
 
 			ylist, rlist, plist = [], [], []
 
 	def PxyPredictors(self, ylist, rlist, plist, w1, w2):
-		pxyArr, predictorList = [], []
+		pxyArr, top1List, top3List = [], [], []
 		for sublist in ylist:
 			norm_r = abs(float(sublist[4]))/float(max(rlist))
 			norm_p = float(sublist[5])/float(max(plist))
 			pxy = w1*norm_r + w2*norm_p
 
-			pxy = format(pxy, '.4f')
+			pxy = float(format(pxy, '.6f'))
 			pxyArr.append(pxy)
 			sublist.insert(6, pxy)
 
-		# search the predictor course
+		top1List = self.top1Predictor(ylist, pxyArr)
+		top3List = self.top3Predictors(ylist, pxyArr)
+
+		return [ylist, top1List, top3List]
+
+	def top3Predictors(self, ylist, pxyArr):
+		# the return list
+		top3List = []
+		# locate and get the top 3 Pxy
+		pxyIndexList = sorted(range(len(pxyArr)), key=lambda i: pxyArr[i])
+		# top3Index = pxyIndexList[-3:]
+		# top3Pxy = [ylist[top3Index[0]][6], ylist[top3Index[1]][6], ylist[top3Index[2]][6]]
+		top3Pxy = []
+		for index in pxyIndexList[-3:]:
+			top3Pxy.append(ylist[index][6])
+
+
+		# build the top3Ylist which have the top3 pxy, from ylist
+		top3Ylist = []
+		for sublist in ylist:
+			for pxy in top3Pxy:
+				if float(sublist[6]) == pxy:
+					top3Ylist.append(sublist)
+					break
+
+		# there are just 3 or less items in the top3Ylist, so the answer found & just return it to callback; actually the less than condition does not exist
+		if len(top3Ylist) <= 3:
+			top3List = top3Ylist
+		else:
+			# there are more than 3 items which have the top 3 pxy values
+			freq = Counter(item for item in top3Pxy)
+			if len(freq) == 3:
+				# the top 3 pxy are different, then for each of the top 3 pxy values, locate the bottom course number and the corresponding predictor and predicting course record; and then append them to the return list
+				for pxy in top3Pxy:
+					bottomNumRecList = self.bottomNumBuilder(top3Ylist, pxy, 1)
+					for rec in bottomNumRecList:
+						top3List.append(rec)
+			elif len(freq) == 2:
+				# there are two pxy values of the top 3 pxy values which have the same pxy value; then in this case, for the two pxy, find the bottom two couse numbers and the corresponding predictor and predicting records
+				# for the other one pxy, find the bottom course number and the corresponding predictor and predicting record
+				# after finishing the above two steps, add the the three records to the return list
+				for key in freq.keys():
+					# key: it is the pxy value here
+					bottomNumRecList = self.bottomNumBuilder(top3Ylist, key, freq[key])
+					for rec in bottomNumRecList:
+						top3List.append(rec)
+			elif len(freq) == 1:
+				# the top 3 have the same value, then find the bottom 3 course number and the corresponding records, and add them to the return list
+				# build course number list
+				bottomNumRecList = self.bottomNumBuilder(top3Ylist, top3Pxy[0], 3)
+				for rec in bottomNumRecList:
+					top3List.append(rec)
+
+		return top3List
+
+	def bottomNumBuilder(self, ylist, pxy, bottomN):
+		# bottomN: = 1,2,3
+		xCrsNums, bottomNumRecList, dupPxyRecList = [], [], []
+		for sublist in ylist:
+			if pxy == float(sublist[6]):
+				xCrsNums.append(int(sublist[1][:3]))
+				dupPxyRecList.append(sublist)
+
+		numIndexList = sorted(range(len(xCrsNums)), key=lambda i: xCrsNums[i])
+		bottomNNumsList = []
+		for index in numIndexList[:bottomN]:
+			bottomNNumsList.append(xCrsNums[index])
+
+		for sublist in dupPxyRecList:
+			for bottomNNum in bottomNNumsList:
+				if bottomNNum == int(sublist[1][:3]):
+					bottomNumRecList.append(sublist)
+					# break the inner for loop
+					break
+
+		return bottomNumRecList
+
+	def top1Predictor(self, ylist, pxyArr):
+		top1List = []
+		# search the top one predictor course
 		maxPxy = max(pxyArr)
 		freq = Counter(item for item in pxyArr)
 		# there is only one maximun pxy
 		if freq[maxPxy] == 1:
 			index = pxyArr.index(maxPxy)			
-			predictorList.append(ylist[index])
+			top1List.append(ylist[index])
 		else:
 			# several maximum Pxy exist simultaneously
-			xCrsNums, maxPxyList = [], []
-			for sublist in ylist:
-				if sublist[6] == maxPxy:
-					maxPxyList.append(sublist)
-					# xCrsNums.append(sublist[1][0:-1])
-					xCrsNums.append(sublist[1][:3])
-					# print sublist[1][:3], 'PxyPredictors\t', 'trainYrsLen:', len(self.trainYrs)
+			bottomNumRecList = self.bottomNumBuilder(ylist, maxPxy, 1)
+			for rec in bottomNumRecList:
+				top1List.append(rec)
 
-			mincrsnum = min(xCrsNums)
-			freq = Counter(item for item in xCrsNums)
-			if freq[mincrsnum] > 1:
-				print '=========== ', mincrsnum, ' ===========\tPxyPredictors\t', 'trainYrsLen:', len(self.trainYrs)
-				for sublist in ylist:
-					if mincrsnum == sublist[1][0:3]:
-						print sublist
-
-			index = xCrsNums.index(mincrsnum)
-			predictorList.append(maxPxyList[index])
-
-		return [ylist, predictorList]
+		return top1List
 
 	def formulaV1Integrate(self, w1list, w2list):
 		reader = csv.reader(open(self.corrORIResults), delimiter=',')
@@ -1589,9 +1660,155 @@ class prepross(object):
 
 		return ylist
 
-	def predictProcess(self, testReg, predictResults, aveErrResults, power):
+	def predictProcessTop3Factors(self, testReg, predictResults, aveErrResults, power):
+		# build equation/predictor dict; predictorDict = [key1:[rRec1, rRec2, rRec3, ...], key2:[], key3:[],...]
+		r1 = csv.reader(open(self.top3FactorsFile), delimiter=',')
+		header1, predictorDict, predictingList = r1.next(), {}, []
+		rows = []
+		for row in r1:
+			rows.append(row)
+
+		for x in xrange(0,len(rows)):
+			predictingList.append(rows[x])
+			if x < (len(rows)-1):
+				if (rows[x][2]+rows[x][3]) != (rows[x+1][2]+rows[x+1][3]):
+					# find one preciting course with its top3 predictor courses in the predictor csv file; then, save it in the predictorDict for later predicting
+					key = rows[x][2]+rows[x][3]
+					if key not in predictorDict:
+						predictorDict[key] = predictingList
+					else:
+						existList = predictorDict[key]
+						for item in predictingList:
+							existList.append(item)
+						predictorDict[key] = existList
+
+					predictingList = []
+
+		if len(predictingList) > 0:
+			key = rows[-1][2]+rows[-1][3]
+			if key not in predictorDict:
+				predictorDict[key] = predictingList
+			else:
+				existList = predictorDict[key]
+				for item in predictingList:
+					existList.append(item)
+				predictorDict[key] = existList
+
+			predictingList = []
+
+		# test data reg file: build test reg dict
+		r2 = csv.reader(open(testReg), delimiter=',')
+		header2, testRegDict = r2.next(), {}
+		for row in r2:
+			# key: course code(subject code and course number); value of key: course record
+			key = row[0]+row[1]
+			if key not in testRegDict:
+				testRegDict[key] = row
+
+		# build the prediction list for all possible predicting courses
+		# keys: predicting course numbers; key: predicting course number
+		keys, predictionList = predictorDict.keys(), []
+		for key in keys:
+			# the predictong course exist in the testRegDict
+			if key in testRegDict:
+				predictors, predicting, testPretors = predictorDict[key], testRegDict[key], []
+				for predictor in predictors:
+					crsNum = predictor[0]+predictor[1]
+					# the predictor course also exists
+					if crsNum in testRegDict:
+						predictorCrs = testRegDict[crsNum]
+						testPretors.append(predictorCrs)
+
+				if len(testPretors) > 0:
+					predictionList.append({'predicting': predicting, 'predictors': testPretors})
+
+		# build the testing
+		resultW = csv.writer(open(predictResults, 'w'))
+		for pdict in predictionList:
+			predicting, predictors = pdict['predicting'], pdict['predictors']
+			cleanPair = self.samplePointsFilter(predicting, predictors)
+
+			if len(cleanPair) == 0:
+				continue
+
+			cleanPredicting, cleanPredictors = cleanPair[0], cleanPair[1]
+			# write predictor course records and the predicting record
+			resultW.writerows(cleanPredictors)
+			resultW.writerow(cleanPredicting)
+
+			predictingRecords = self.prediction(predictorDict, cleanPredicting, cleanPredictors, power)
+			resultW.writerows(predictingRecords)
+			resultW.writerow([])
+
+	def prediction(self, predictorDict, cleanPredicting, cleanPredictors, power):
+		# get the predicting equation according to the power
+		key = cleanPredicting[0]+cleanPredicting[1]
+		predictors = predictorDict[key]
+
+		returnList = []
+		for cleanPredictor in cleanPredictors:
+			currentPredictor = ''
+			# find the coefficients of the predictor for prediction
+			for predictor in predictors:
+				if (predictor[0]+predictor[1]) == (cleanPredictor[0]+cleanPredictor[1]):
+					currentPredictor = predictor
+					break
+
+			# calculate the predicting grades
+			predictingGrades = [cleanPredictor[0], cleanPredictor[1]]
+			for x in cleanPredictor[2:]:
+				if x.isdigit():
+					grade = ''
+					# linear prediction
+					if power == 1:
+						slope, intercept = currentPredictor[9], currentPredictor[10]
+						grade = float(slope) * float(x) + float(intercept)
+					# quadratic prediction
+					elif power == 2:
+						a, b, c = currentPredictor[11], currentPredictor[12], currentPredictor[13]
+						grade = float(a)*pow(float(x), 2)+float(b)*float(x)+float(c)
+
+					grade = float(format(grade, '.1f'))
+					predictingGrades.append(grade)
+				else:
+					predictingGrades.append('')
+
+			if len(predictingGrades) > 2:
+				returnList.append(predictingGrades)
+
+		return returnList
+
+	def samplePointsFilter(self, predicting, predictors):
+		resultList = []
+		if len(predicting) <= 2:
+			return []
+
+		gradeIndexList = []
+		# reformed predicting course record, removing the cells in the record whose cooresponding cell in the predictor records do not have grades
+		cleanPredicting = [predicting[0], predicting[1]]
+		for index in xrange(2,len(predicting)):
+			for x in xrange(0,len(predictors)):
+				if (predictors[x][index].isdigit()) and (predicting[index].isdigit()):
+					gradeIndexList.append(index)
+					cleanPredicting.append(predicting[index])
+					break
+
+		cleanPredictors = []		
+		for predictor in predictors:
+			cleanPredictor = [predictor[0], predictor[1]]
+			for index in gradeIndexList:
+				cleanPredictor.append(predictor[index])
+			if len(cleanPredictor) > 2:
+				cleanPredictors.append(cleanPredictor)
+
+		if len(cleanPredictors) > 0:
+			return [cleanPredicting, cleanPredictors]
+		else:
+			return []
+
+	def predictProcessTop1Factors(self, testReg, predictResults, aveErrResults, power):
 		# build equation/predictor dict
-		r1 = csv.reader(open(self.factorsFile), delimiter=',')
+		r1 = csv.reader(open(self.top1FactorsFile), delimiter=',')
 		header1, predictorDict = r1.next(), {}
 		for row in r1:
 			# key: the predicting course, value of key: row of predictor & predicting course
@@ -1754,7 +1971,7 @@ class prepross(object):
 			if len(xgrades) > 2:
 				pairsList.append([xgrades, ygrades])
 				# save course number for later predictor pickup
-				xCrsNums.append(x[1][0:3])
+				xCrsNums.append(int(x[1][0:3]))
 				# print x[1][:3], 'gradePairs\t', 'trainYrsLen:', len(self.trainYrs)
 
 		if len(pairsList) > 1:
@@ -1763,8 +1980,9 @@ class prepross(object):
 			# to pick up the course with min course number as the predictor
 			mincrsnum = min(xCrsNums)
 			freq = Counter(item for item in xCrsNums)
-			if freq[mincrsnum] > 1:
-				print '=========== ', mincrsnum, ' ===========\tgradePairs\t', 'trainYrsLen:', len(self.trainYrs)
+			# after testing, the below case does not exist
+			# if freq[mincrsnum] > 1:
+			# 	print '=========== ', mincrsnum, ' ===========\tgradePairs\t', 'trainYrsLen:', len(self.trainYrs)
 			
 			index = xCrsNums.index(mincrsnum)
 			resultPairs.append(pairsList[index])
