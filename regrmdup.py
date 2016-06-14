@@ -116,12 +116,11 @@ class prepross(object):
 		self.availableTechCrsList = []
 
 		self.dataDir = self.currDir + 'data/'
-		if not os.path.exists(self.dataDir+'Test/'):
-			os.makedirs(self.dataDir+'Test/')
-
 		self.errPlotsDir = self.currDir + 'errPlotsDir/'
-		if not os.path.exists(self.errPlotsDir):
-			os.makedirs(self.errPlotsDir)
+		pathBuilderList = [self.currDir + 'data/', self.dataDir+'Test/', self.dataDir+'Train/', self.currDir + 'errPlotsDir/', self.dataDir+'Top1/', self.dataDir+'Top3/']
+		for item in pathBuilderList:
+			if not os.path.exists(item):
+				os.makedirs(item)
 
 		# for test reg data
 		# store test data's noDup filenames
@@ -150,23 +149,32 @@ class prepross(object):
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
-			self.linearPredictResultsListTop1.append(self.dataDir + 'predicting_grades_' + filename +'_linear'+'_1'+'.csv')
-			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'predicting_aveErr_' + filename +'_linear'+'_1'+'.csv')
-			self.quadrPredictResultsListTop1.append(self.dataDir + 'predicting_grades_' + filename +'_quadr'+'_1'+'.csv')
-			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'predicting_aveErr_' + filename +'_quadr'+'_1'+'.csv')
+			self.linearPredictResultsListTop1.append(self.dataDir + 'Top1/predicting_grades_' + filename +'_linear_Top1.csv')
+			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'Top1/predicting_aveErr_' + filename +'_linear_Top1.csv')
+			self.quadrPredictResultsListTop1.append(self.dataDir + 'Top1/predicting_grades_' + filename +'_quadr_Top1.csv')
+			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'Top1/predicting_aveErr_' + filename +'_quadr_Top1.csv')
 
-			self.linearPredictResultsListTop3.append(self.dataDir + 'predicting_grades_' + filename +'_linear'+'_3'+'.csv')
-			self.linearPredictResultsAveErrTop3.append(self.dataDir + 'predicting_aveErr_' + filename +'_linear'+'_3'+'.csv')
-			self.quadrPredictResultsListTop3.append(self.dataDir + 'predicting_grades_' + filename +'_quadr'+'_3'+'.csv')
-			self.quadrPredictResultsAveErrTop3.append(self.dataDir + 'predicting_aveErr_' + filename +'_quadr'+'_3'+'.csv')
+			self.linearPredictResultsListTop3.append(self.dataDir + 'Top3/predicting_grades_' + filename +'_linear_Top3.csv')
+			self.linearPredictResultsAveErrTop3.append(self.dataDir + 'Top3/predicting_aveErr_' + filename +'_linear_Top3.csv')
+			self.quadrPredictResultsListTop3.append(self.dataDir + 'Top3/predicting_grades_' + filename +'_quadr_Top3.csv')
+			self.quadrPredictResultsAveErrTop3.append(self.dataDir + 'Top3/predicting_aveErr_' + filename +'_quadr_Top3.csv')
 
-			tmpList, prefix = [], ''
+			tmpList, prefix, testPath = [], '', ''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
-				prefix = self.dataDir +'Test/' + filename
-				self.fTestRegFileNameList.append(self.dataDir +'Test/' + filename + '_Test.csv')
+				if fname == self.regDataPath:
+					testPath = self.dataDir +'Test/' + filename[8:17] + '/'
+				else:
+					testPath = self.dataDir +'Test/' + filename[7:16] + '/'
+
+				prefix = testPath + filename
+				self.fTestRegFileNameList.append(prefix + '_Test.csv')
 			else:
-				prefix = self.dataDir +'Test/' + filename[0:3] + 'test' + filename[3:]
-				self.fTestRegFileNameList.append(self.dataDir +'Test/' + filename[0:3] + 'test' + filename[3:] + '_Test.csv')
+				testPath = self.dataDir +'Test/' + filename[3:] + '/'
+				prefix = testPath + filename[0:3] + 'test' + filename[3:]
+				self.fTestRegFileNameList.append(prefix + '_Test.csv')
+
+			if not os.path.exists(testPath):
+				os.makedirs(testPath)
 
 			for item in ['CRSPERSTU', 'STUREGISTERED', 'EMPTY', 'CRS_STU', 'CRS_STU_GRADE', 'STU_CRS']:
 				tmpList.append(prefix + '_' + item +'.csv')
@@ -194,7 +202,7 @@ class prepross(object):
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
 		fileNameList = []
 		for x in xrange(0,17):
-			fileNameList.append(self.dataDir)
+			fileNameList.append(self.dataDir+'Train/')
 
 		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
 
@@ -250,8 +258,8 @@ class prepross(object):
 		self.formulaV1(rw,pw)
 		# predicting
 		for x in xrange(0,len(self.fTestStatFileNameList)):
-			# self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1)
-			# self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2)
+			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1)
+			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2)
 
 			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop3[x], self.linearPredictResultsAveErrTop3[x], 1)
 			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop3[x], self.quadrPredictResultsAveErrTop3[x], 2)
@@ -1736,8 +1744,11 @@ class prepross(object):
 			resultW.writerows(cleanPredictors)
 			resultW.writerow(cleanPredicting)
 
-			predictingRecords = self.prediction(predictorDict, cleanPredicting, cleanPredictors, power)
-			resultW.writerows(predictingRecords)
+			[predictingGradesList, predictingErrList, predictingErrPerList, meanList, meanErrList, MeanErrPerList] = self.prediction(predictorDict, cleanPredicting, cleanPredictors, power)
+			resultW.writerows(predictingGradesList)
+			resultW.writerows(predictingErrList)
+			resultW.writerows(predictingErrPerList)
+			resultW.writerows([meanList, meanErrList, MeanErrPerList])
 			resultW.writerow([])
 
 	def prediction(self, predictorDict, cleanPredicting, cleanPredictors, power):
@@ -1745,7 +1756,7 @@ class prepross(object):
 		key = cleanPredicting[0]+cleanPredicting[1]
 		predictors = predictorDict[key]
 
-		returnList = []
+		predictingGradesList, predictingErrList, predictingErrPerList = [], [], []		
 		for cleanPredictor in cleanPredictors:
 			currentPredictor = ''
 			# find the coefficients of the predictor for prediction
@@ -1755,14 +1766,16 @@ class prepross(object):
 					break
 
 			# calculate the predicting grades
-			predictingGrades = [cleanPredictor[0], cleanPredictor[1]]
-			for x in cleanPredictor[2:]:
+			predictingGrades, predictingErrs, predictingErrPers = [cleanPredictor[0], cleanPredictor[1]], [cleanPredictor[0], cleanPredictor[1]], [cleanPredictor[0], cleanPredictor[1]]
+			# for x in cleanPredictor[2:]:
+			for index in xrange(2, len(cleanPredictor)):
+				x = cleanPredictor[index]
 				if x.isdigit():
 					grade = ''
 					# linear prediction
 					if power == 1:
 						slope, intercept = currentPredictor[9], currentPredictor[10]
-						grade = float(slope) * float(x) + float(intercept)
+						grade = float(slope)*float(x)+float(intercept)
 					# quadratic prediction
 					elif power == 2:
 						a, b, c = currentPredictor[11], currentPredictor[12], currentPredictor[13]
@@ -1770,13 +1783,41 @@ class prepross(object):
 
 					grade = float(format(grade, '.1f'))
 					predictingGrades.append(grade)
+					err = float(cleanPredicting[index]) - grade
+					predictingErrs.append(err)
+					if float(cleanPredicting[index]) == 0:
+						predictingErrPers.append(str(abs(err)/1.0*100)+'%')
+					else:
+						predictingErrPers.append(str(abs(err)/float(cleanPredicting[index])*100)+'%')
 				else:
 					predictingGrades.append('')
+					predictingErrs.append('')
+					predictingErrPers.append('')
 
 			if len(predictingGrades) > 2:
-				returnList.append(predictingGrades)
+				predictingGradesList.append(predictingGrades)
+				predictingErrList.append(predictingErrs)
+				predictingErrPerList.append(predictingErrPers)
 
-		return returnList
+		meanList, meanErrList, MeanErrPerList = [cleanPredicting[0], cleanPredicting[1]], [cleanPredicting[0], cleanPredicting[1]], [cleanPredicting[0], cleanPredicting[1]]
+		for index in xrange(2,len(cleanPredicting)):
+			predictingGradeSum, cnt = 0, 0
+			for predictingGrades in predictingGradesList:
+				if predictingGrades[index] != '':
+					predictingGradeSum += predictingGrades[index]
+					cnt += 1
+
+			mean = float(format(predictingGradeSum/cnt, '.2f'))
+			meanList.append(mean)
+			meanErr = float(cleanPredicting[index]) - mean
+			meanErrList.append(meanErr)
+
+			if float(cleanPredicting[index]) == 0:
+				MeanErrPerList.append(str(format(abs(meanErr)/1.0*100, '.2f'))+'%')
+			else:
+				MeanErrPerList.append(str(format(abs(meanErr)/float(cleanPredicting[index])*100, '.2f'))+'%')
+
+		return [predictingGradesList, predictingErrList, predictingErrPerList, meanList, meanErrList, MeanErrPerList]
 
 	def samplePointsFilter(self, predicting, predictors):
 		resultList = []
@@ -1844,8 +1885,8 @@ class prepross(object):
 
 		# predict
 		writer = csv.writer(open(predictResults, 'w'))
-		errw = csv.writer(open(aveErrResults, 'w'))
-		errw.writerow(['aveErr', 'r', '#point'])
+		# errw = csv.writer(open(aveErrResults, 'w'))
+		# errw.writerow(['aveErr', 'r', '#point'])
 		# [errorave, coefficient, pointFreq]
 		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList = [], [], [], [], []
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
@@ -1929,7 +1970,7 @@ class prepross(object):
 						appendix = [ 'mean Err:', errorave, 'mea:', mae, 'mape:', mape]
 
 						writer.writerows([xgrades, ygrades, predictGrades, errorList, absErrPerList, appendix, []])
-						errw.writerow([errorave, coefficient, pointFreq])
+						# errw.writerow([errorave, coefficient, pointFreq])
 						AERPList.append([errorave, coefficient, pointFreq])
 
 						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
