@@ -117,7 +117,7 @@ class prepross(object):
 
 		self.dataDir = self.currDir + 'data/'
 		self.errPlotsDir = self.currDir + 'errPlotsDir/'
-		pathBuilderList = [self.currDir + 'data/', self.dataDir+'Test/', self.dataDir+'Train/', self.currDir + 'errPlotsDir/', self.dataDir+'Top1/', self.dataDir+'Top3/']
+		pathBuilderList = [self.currDir + 'data/', self.dataDir+'Test/', self.dataDir+'Train/', self.currDir + 'errPlotsDir/', self.dataDir+'Top1/linear/', self.dataDir+'Top3/linear/', self.dataDir+'Top1/quadratic/', self.dataDir+'Top3/quadratic/']
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
@@ -149,15 +149,15 @@ class prepross(object):
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
-			self.linearPredictResultsListTop1.append(self.dataDir + 'Top1/predicting_grades_' + filename +'_linear_Top1.csv')
-			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'Top1/predicting_aveErr_' + filename +'_linear_Top1.csv')
-			self.quadrPredictResultsListTop1.append(self.dataDir + 'Top1/predicting_grades_' + filename +'_quadr_Top1.csv')
-			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'Top1/predicting_aveErr_' + filename +'_quadr_Top1.csv')
+			self.linearPredictResultsListTop1.append(self.dataDir + 'Top1/linear/predicting_grades_' + filename +'_linear_Top1.csv')
+			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'Top1/linear/predicting_aveErr_' + filename +'_linear_Top1.csv')
+			self.quadrPredictResultsListTop1.append(self.dataDir + 'Top1/quadratic/predicting_grades_' + filename +'_quadr_Top1.csv')
+			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'Top1/quadratic/predicting_aveErr_' + filename +'_quadr_Top1.csv')
 
-			self.linearPredictResultsListTop3.append(self.dataDir + 'Top3/predicting_grades_' + filename +'_linear_Top3.csv')
-			self.linearPredictResultsAveErrTop3.append(self.dataDir + 'Top3/predicting_aveErr_' + filename +'_linear_Top3.csv')
-			self.quadrPredictResultsListTop3.append(self.dataDir + 'Top3/predicting_grades_' + filename +'_quadr_Top3.csv')
-			self.quadrPredictResultsAveErrTop3.append(self.dataDir + 'Top3/predicting_aveErr_' + filename +'_quadr_Top3.csv')
+			self.linearPredictResultsListTop3.append(self.dataDir + 'Top3/linear/predicting_grades_' + filename +'_linear_Top3.csv')
+			self.linearPredictResultsAveErrTop3.append(self.dataDir + 'Top3/linear/predicting_aveErr_' + filename +'_linear_Top3.csv')
+			self.quadrPredictResultsListTop3.append(self.dataDir + 'Top3/quadratic/predicting_grades_' + filename +'_quadr_Top3.csv')
+			self.quadrPredictResultsAveErrTop3.append(self.dataDir + 'Top3/quadratic/predicting_aveErr_' + filename +'_quadr_Top3.csv')
 
 			tmpList, prefix, testPath = [], '', ''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
@@ -280,7 +280,7 @@ class prepross(object):
 		self.techCrsHists()
 
 		# compute correlation coefficients and draw correlation plots
-		self.corrPlot(self.CRS_STU, self.corrORIResults)
+		# self.corrPlot(self.CRS_STU, self.corrORIResults)
 
 	def testSetsStats(self):
 		# compute the stats data for the test datasets
@@ -827,7 +827,7 @@ class prepross(object):
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c])
-					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope
+					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\ttrainYrs:', len(self.trainYrs)
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir + 'nocorr/'):
@@ -1732,6 +1732,7 @@ class prepross(object):
 
 		# build the testing
 		resultW = csv.writer(open(predictResults, 'w'))
+		meanLists, cleanPredictingList = [], []
 		for pdict in predictionList:
 			predicting, predictors = pdict['predicting'], pdict['predictors']
 			cleanPair = self.samplePointsFilter(predicting, predictors)
@@ -1740,6 +1741,7 @@ class prepross(object):
 				continue
 
 			cleanPredicting, cleanPredictors = cleanPair[0], cleanPair[1]
+			cleanPredictingList.append(cleanPredicting)
 			# write predictor course records and the predicting record
 			resultW.writerows(cleanPredictors)
 			resultW.writerow(cleanPredicting)
@@ -1749,7 +1751,23 @@ class prepross(object):
 			resultW.writerows(predictingErrList)
 			resultW.writerows(predictingErrPerList)
 			resultW.writerows([meanList, meanErrList, MeanErrPerList])
+			# add r, p, pxy
+			rppxyList = [['xsub', 'xnum', 'ysub', 'ynum', 'r', 'point#', 'pxy']]
+			for cleanPredictor in cleanPredictors:
+				predictingKey = cleanPredicting[0]+cleanPredicting[1]
+				for x in predictorDict[predictingKey]:
+					if (x[0]+x[1])==(cleanPredictor[0]+cleanPredictor[1]):
+						rppxyList.append([x[0], x[1], x[2], x[3], x[4], x[5], x[6]])
+						break
+			if len(rppxyList) > 0:
+				resultW.writerows(rppxyList)
 			resultW.writerow([])
+
+			meanLists.append(meanList)
+
+		[gradesList, statsList] = self.errStatsTop3(cleanPredictingList, meanLists)
+		resultW.writerows(gradesList)
+		resultW.writerows(statsList)
 
 	def prediction(self, predictorDict, cleanPredicting, cleanPredictors, power):
 		# get the predicting equation according to the power
@@ -1767,6 +1785,7 @@ class prepross(object):
 
 			# calculate the predicting grades
 			predictingGrades, predictingErrs, predictingErrPers = [cleanPredictor[0], cleanPredictor[1]], [cleanPredictor[0], cleanPredictor[1]], [cleanPredictor[0], cleanPredictor[1]]
+			predictingGradesSum = predictingErrsSum = predictingErrPersSum = cnt = 0
 			# for x in cleanPredictor[2:]:
 			for index in xrange(2, len(cleanPredictor)):
 				x = cleanPredictor[index]
@@ -1785,21 +1804,34 @@ class prepross(object):
 					predictingGrades.append(grade)
 					err = float(cleanPredicting[index]) - grade
 					predictingErrs.append(err)
+					per = 0
 					if float(cleanPredicting[index]) == 0:
-						predictingErrPers.append(str(abs(err)/1.0*100)+'%')
+						per = abs(err)/1.0*100
 					else:
-						predictingErrPers.append(str(abs(err)/float(cleanPredicting[index])*100)+'%')
+						per = abs(err)/float(cleanPredicting[index])*100
+					predictingErrPers.append(str(per)+'%')
+
+					cnt += 1
+					predictingGradesSum += grade
+					predictingErrsSum += abs(err)
+					predictingErrPersSum += per
 				else:
 					predictingGrades.append('')
 					predictingErrs.append('')
 					predictingErrPers.append('')
 
 			if len(predictingGrades) > 2:
+				if cnt != 0:
+					predictingGrades.append(format(predictingGradesSum/cnt, '.1f'))
+					predictingErrs.append(format(predictingErrsSum/cnt, '.2f'))
+					predictingErrPers.append(str(format(predictingErrPersSum/cnt, '.2f'))+'%')
+
 				predictingGradesList.append(predictingGrades)
 				predictingErrList.append(predictingErrs)
 				predictingErrPerList.append(predictingErrPers)
 
 		meanList, meanErrList, MeanErrPerList = [cleanPredicting[0], cleanPredicting[1]], [cleanPredicting[0], cleanPredicting[1]], [cleanPredicting[0], cleanPredicting[1]]
+		meanSum = errSum = errPerSum = count = 0
 		for index in xrange(2,len(cleanPredicting)):
 			predictingGradeSum, cnt = 0, 0
 			for predictingGrades in predictingGradesList:
@@ -1811,16 +1843,64 @@ class prepross(object):
 			meanList.append(mean)
 			meanErr = float(cleanPredicting[index]) - mean
 			meanErrList.append(meanErr)
-
+			per = 0
 			if float(cleanPredicting[index]) == 0:
-				MeanErrPerList.append(str(format(abs(meanErr)/1.0*100, '.2f'))+'%')
+				per = abs(meanErr)/1.0*100
 			else:
-				MeanErrPerList.append(str(format(abs(meanErr)/float(cleanPredicting[index])*100, '.2f'))+'%')
+				per = abs(meanErr)/float(cleanPredicting[index])*100
+			MeanErrPerList.append(str(format(per, '.2f'))+'%')
+			meanSum += mean
+			errSum += abs(meanErr)
+			errPerSum += per
+			count += 1
+
+		errArr = np.array(meanList[2:])
+		std = format(np.std(errArr), '.2f')
+		meanList.append(format(meanSum/count, '.2f'))
+		meanList.append(std)
+		meanErrList.append(format(errSum/count, '.2f'))
+		MeanErrPerList.append(str(format(errPerSum/count, '.2f')+'%'))
 
 		return [predictingGradesList, predictingErrList, predictingErrPerList, meanList, meanErrList, MeanErrPerList]
 
+	def errStatsTop3(self, cleanPredictingList, meanLists):
+		# mean, me, mae, mape
+		statsList, gradesList = [['subj', 'num', 'mean', 'std', 'me', 'mae', 'mape', 'insOneCrs', 'minErr', 'maxErr', 'interval']], []
+		for index in xrange(0,len(cleanPredictingList)):
+			cleanPredicting, meanList = cleanPredictingList[index], meanLists[index]
+			grades, means = cleanPredicting[2:], meanList[2:len(cleanPredicting)]
+			grades = [float(i) for i in grades]
+			# print 'grades:', grades, '\nmeans:', means
+
+			gradesList.append(cleanPredicting)
+			gradesList.append(meanList[:len(cleanPredicting)])
+			gradesList.append([])
+
+			gradesArr = np.array(grades)
+			mean, std = np.average(gradesArr), np.std(gradesArr)
+			errList, errAList, perList = [], [], []
+			for x in xrange(0,len(grades)):
+				err = grades[x] - means[x]
+				errList.append(err)
+				errAList.append(abs(err))
+
+				per = 0
+				if grades[x] == 0:
+					per = abs(err)/1.0
+				else:
+					per = abs(err)/grades[x]
+				perList.append(per)
+
+			errArr, errAArr, perListArr = np.array(errList), np.array(errAList), np.array(perList)
+			me, mae, mape, minerr, maxerr = np.average(errArr), np.average(errAList), np.average(perList), min(errList), max(errList), 
+			interval, insOneCrs = maxerr-minerr, len(errList)
+
+			stat = [cleanPredicting[0], cleanPredicting[1], format(mean, '.2f'), format(std, '.2f'), format(me, '.2f'), format(mae, '.2f'), format(mape, '.2f'), insOneCrs, minerr, maxerr, interval]
+			statsList.append(stat)
+
+		return [gradesList, statsList]
+
 	def samplePointsFilter(self, predicting, predictors):
-		resultList = []
 		if len(predicting) <= 2:
 			return []
 
@@ -1888,9 +1968,9 @@ class prepross(object):
 		# errw = csv.writer(open(aveErrResults, 'w'))
 		# errw.writerow(['aveErr', 'r', '#point'])
 		# [errorave, coefficient, pointFreq]
-		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList = [], [], [], [], []
+		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList = [], [], [], [], [], []
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
-		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'std', 'ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		errRangeStdErrList.append(header)
 
 		for pairsList in predictingList:
@@ -1944,12 +2024,16 @@ class prepross(object):
 						aveAbsErrList.append(float(mae))
 
 						mape = format(aepsum/len(errorList), '.2f')
+						mapeList.append(mape)
 
 						errArr = np.array(errorList)
 						errorave = format(np.average(errArr), '.2f')
 						std = format(np.std(errArr), '.2f')
 
-						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,std,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
+						gradesArr = np.array(predictGrades[2:])
+						mean = format(np.average(gradesArr), '.2f')
+
+						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
 						for error in errorList:
 							tempList.append(error)
 						
@@ -1988,14 +2072,28 @@ class prepross(object):
 		ytitle = 'average of absolute error from ' + prefix[3:]
 		title = 'points vs average of absolute errors ('+suffix+')'
 		figName = self.errPlotsDir+prefix[3:]+'_point_aveAbsErr_'+suffix+'.png'
-		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p')
+		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p', 'ma')
 
 		# r vs aveAbsErr
 		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'average of absolute error from '+prefix[3:]
 		title = 'coefficients vs average of absolute errors ('+suffix+')'
 		figName = self.errPlotsDir+prefix[3:]+'_r_aveAbsErr_'+suffix+'.png'
-		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r')
+		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r', 'ma')
+
+		# r vs mape
+		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
+		ytitle = 'mean absolute percentage error from '+prefix[3:]
+		title = 'points vs mean absolute percentage error (MAPE) ('+suffix+')'
+		figName = self.errPlotsDir+prefix[3:]+'_p_mape_'+suffix+'.png'
+		self.errScatter(xtitle, ytitle, title, pointsList, mapeList, figName, 'p', 'mape')
+
+		# points vs mape
+		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
+		ytitle = 'mean absolute percentage error from '+prefix[3:]
+		title = 'coefficients vs mean absolute percentage error (MAPE) ('+suffix+')'
+		figName = self.errPlotsDir+prefix[3:]+'_r_mape_'+suffix+'.png'
+		self.errScatter(xtitle, ytitle, title, rList, mapeList, figName, 'r', 'mape')
 
 	def gradePairs(self, testY, testXs):
 		resultPairs, pairsList, xCrsNums = [], [], []
@@ -2032,7 +2130,7 @@ class prepross(object):
 
 		return resultPairs
 
-	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName, flag):
+	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName, xflag, yflag):
 		x = np.array(xdata)
 		y = np.array(ydata)
 
@@ -2043,13 +2141,24 @@ class prepross(object):
 		plt.title(title)
 
 		# plt.ylim(min(ydata), max(ydata)+0.5)
-		plt.ylim(0, 15)
-		if flag == 'r':
+		if yflag == 'ma':
+			plt.ylim(0, 16)
+			# ticks = xrange(0, 16, 2)
+			ticks = np.linspace(0.0, 16.0, 8, endpoint=False).tolist()
+			ticks.append(16)
+			plt.yticks(ticks)
+		if yflag == 'mape':
+			plt.ylim(0, 5)
+			ticks = np.linspace(0.0, 5.0, 10, endpoint=False).tolist()
+			ticks.append(5.0)
+			plt.yticks(ticks)
+
+		if xflag == 'r':
 			plt.xlim(-1.0, 1.0)
 			ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
 			ticks.append(1.0)
 			plt.xticks(ticks, rotation=20, fontsize='medium')			
-		if flag == 'p':
+		if xflag == 'p':
 			# plt.xlim(min(xdata), max(xdata)+5)
 			plt.xlim(0, 120)
 			# ticks = xrange(0, max(xdata)+5, 5)
