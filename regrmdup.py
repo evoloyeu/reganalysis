@@ -87,6 +87,7 @@ class prepross(object):
 		rwList = [1.4,1.4,1.2,1.1]
 		pwList = [1,1,1,1]
 		self.wdict = {2:1.4, 3:1.4, 4:1.2, 5:1.1}
+		self.top1top3Stats = False
 
 	def statsPath(self):
 		pathList = self.regFileList[0].split('/')
@@ -186,11 +187,11 @@ class prepross(object):
 		self.top1FactorsFile, self.top3FactorsFile = '',''
 
 		# others
-		self.pairsFrequency, self.pairsHistDir = self.dataDir + 'pairsFrequency.csv', self.currDir + 'pairs_hist/'
+		self.pairsFrequency, self.pairsHistDir = self.dataDir+'pairsFrequency.csv', self.currDir+'pairs_hist/'
 
 		# self.corrAVEResults, self.corrORIResults = self.dataDir + 'corr_ave.csv', self.dataDir + 'corr_ori.csv'
-		self.corrORIResults = self.dataDir + 'corr_ori.csv'
-		self.fV1Reulsts = self.dataDir + 'fv1_ori_result.csv'
+		self.corrORIResults, self.fV1Reulsts = self.dataDir+'corr_ori.csv', self.dataDir+'fv1_ori_result.csv'
+		self.linearTop1Top3Stats, self.quadraticTop1Top3Stats = self.dataDir+'linearTop1Top3Stats_'+str(len(self.trainYrs))+'.csv', self.dataDir+'quadraticTop1Top3Stats_'+str(len(self.trainYrs))+'.csv'
 		# self.valAVE, self.valORI = self.dataDir + 'corr_ave_val.csv', self.dataDir + 'corr_ori_val.csv'
 
 		folders = [self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori] = [self.currDir + 'linear_plots_ori/', self.currDir + 'quadratic_plots_ori/', self.currDir + 'coefficient_ori/', self.currDir + 'hist_ori/', self.currDir + 'bars_ori/', self.currDir + 'course_ori/']
@@ -251,6 +252,11 @@ class prepross(object):
 			self.prepare()
 			self.testWeights()
 			self.predicting(self.wdict[len(self.trainYrs)], 1.0)
+
+			# todo: stats
+			if self.top1top3Stats:
+				self.errStatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
+				self.errStatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
 
 	def predicting(self, rw, pw):
 		self.testSetsStats()
@@ -1743,30 +1749,35 @@ class prepross(object):
 			cleanPredicting, cleanPredictors = cleanPair[0], cleanPair[1]
 			cleanPredictingList.append(cleanPredicting)
 			# write predictor course records and the predicting record
-			resultW.writerows(cleanPredictors)
-			resultW.writerow(cleanPredicting)
+			if not self.top1top3Stats:
+				resultW.writerows(cleanPredictors)
+				resultW.writerow(cleanPredicting)
 
 			[predictingGradesList, predictingErrList, predictingErrPerList, meanList, meanErrList, MeanErrPerList] = self.prediction(predictorDict, cleanPredicting, cleanPredictors, power)
-			resultW.writerows(predictingGradesList)
-			resultW.writerows(predictingErrList)
-			resultW.writerows(predictingErrPerList)
-			resultW.writerows([meanList, meanErrList, MeanErrPerList])
-			# add r, p, pxy
-			rppxyList = [['xsub', 'xnum', 'ysub', 'ynum', 'r', 'point#', 'pxy']]
-			for cleanPredictor in cleanPredictors:
-				predictingKey = cleanPredicting[0]+cleanPredicting[1]
-				for x in predictorDict[predictingKey]:
-					if (x[0]+x[1])==(cleanPredictor[0]+cleanPredictor[1]):
-						rppxyList.append([x[0], x[1], x[2], x[3], x[4], x[5], x[6]])
-						break
-			if len(rppxyList) > 0:
-				resultW.writerows(rppxyList)
-			resultW.writerow([])
+
+			if not self.top1top3Stats:
+				resultW.writerows(predictingGradesList)
+				resultW.writerows(predictingErrList)
+				resultW.writerows(predictingErrPerList)
+				resultW.writerows([meanList, meanErrList, MeanErrPerList])
+
+				# add r, p, pxy
+				rppxyList = [['xsub', 'xnum', 'ysub', 'ynum', 'r', 'point#', 'pxy']]
+				for cleanPredictor in cleanPredictors:
+					predictingKey = cleanPredicting[0]+cleanPredicting[1]
+					for x in predictorDict[predictingKey]:
+						if (x[0]+x[1])==(cleanPredictor[0]+cleanPredictor[1]):
+							rppxyList.append([x[0], x[1], x[2], x[3], x[4], x[5], x[6]])
+							break
+				if len(rppxyList) > 0:
+					resultW.writerows(rppxyList)
+				resultW.writerow([])
 
 			meanLists.append(meanList)
 
 		[gradesList, statsList] = self.errStatsTop3(cleanPredictingList, meanLists)
-		resultW.writerows(gradesList)
+		if not self.top1top3Stats:
+			resultW.writerows(gradesList)
 		resultW.writerows(statsList)
 
 	def prediction(self, predictorDict, cleanPredicting, cleanPredictors, power):
@@ -2053,7 +2064,8 @@ class prepross(object):
 						# appendix = ['point#', pointFreq, 'Coefficient:', coefficient, 'average error:', errorave]
 						appendix = [ 'mean Err:', errorave, 'mea:', mae, 'mape:', mape]
 
-						writer.writerows([xgrades, ygrades, predictGrades, errorList, absErrPerList, appendix, []])
+						if not self.top1top3Stats:
+							writer.writerows([xgrades, ygrades, predictGrades, errorList, absErrPerList, appendix, []])
 						# errw.writerow([errorave, coefficient, pointFreq])
 						AERPList.append([errorave, coefficient, pointFreq])
 
@@ -2169,6 +2181,58 @@ class prepross(object):
 		# plt.show()
 		fig.savefig(figName)
 		plt.close(fig)
+
+	def errStatsMerger(self, dest, resultTop1, resultTop3):
+		w = csv.writer(open(dest, 'w'))
+		for x in xrange(0,len(resultTop3)):
+			top1, top3 = resultTop1[x], resultTop3[x]
+			yr = top1.split('/')[-1].split('.')[0].split('_')[2][3:]
+
+			w.writerow([yr])
+
+			r1, r2 = csv.reader(open(top1), delimiter=','), csv.reader(open(top3), delimiter=',')
+			h1, h2 = r1.next(), r2.next()
+
+			w.writerow(h2[:8]+['']+h1[2:4]+h1[6:12])
+
+			row1List, row2List = [], []
+			for row in r1:
+				row1List.append(row)
+			for row in r2:
+				row2List.append(row)
+
+			maxLen = 0
+			if len(row1List) > len(row2List):
+				maxLen = len(row1List)
+			else:
+				maxLen = len(row2List)
+
+			for x in xrange(0,maxLen):
+				row1, row2 = row1List[x], row2List[x]
+				if (row1[2]+row1[3]) != (row2[0]+row2[1]):
+					row = ''
+					if len(row1List) > len(row2List):
+						row2List.insert(x, ['' for i in xrange(0, 8)])
+						row = ['' for i in xrange(0, 8)]+['']+row1[2:4]+row1[6:12]
+					else:
+						row1List.insert(x, ['' for i in xrange(0, 8)])
+						row = row2[:8]+['']+['' for i in xrange(0, 8)]
+					w.writerow(row)
+				else:
+					w.writerow(row2[:8]+['']+row1[2:4]+row1[6:12])
+
+			# for x in xrange(0,maxLen):
+			# 	row1, row2 = row1List[x], row2List[x]
+			# 	w.writerow(row2[:8]+['']+row1[2:4]+row1[6:12])
+
+			# if maxLen < len(row2List):
+			# 	for x in xrange(maxLen,len(row2List)):
+			# 		w.writerow(row2List[x][:8])
+
+			# if maxLen < len(row1List):
+			# 	for x in xrange(maxLen,len(row1List)):
+			# 		w.writerow(['' for i in row2List[0][:8]]+['']+row1List[x][2:4]+row1List[x][6:12])
+
 
 prepare = splitRawData(sys.argv)
 prepare.doBatch()
