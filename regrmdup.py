@@ -12,6 +12,7 @@ class splitRawData(object):
 	def __init__(self, arg):
 		super(splitRawData, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
+		['degtrain2010-2011.csv', 'degtrain2010-2012.csv', ]
 		self.rawDeg, self.rawReg = arg[1], arg[2]
 
 		pathList = self.rawDeg.split('/')
@@ -32,13 +33,15 @@ class splitRawData(object):
 			self.degFileList.append(self.currDir+'deg'+yr+'.csv')
 
 		self.IDDict = self.degIDListByYr()
+		self.cDataNameList = self.combinedDataNameList()
 
 	def doBatch(self):
-		for index in xrange(0, len(self.yearList)):
-			self.groupRawData(self.rawDeg, self.degFileList[index], self.yearList[index])
-			self.groupRawData(self.rawReg, self.regFileList[index], self.yearList[index])
+		if not os.path.exists(self.cDataNameList[0]):
+			for index in xrange(0, len(self.yearList)):
+				self.groupRawData(self.rawDeg, self.degFileList[index], self.yearList[index])
+				self.groupRawData(self.rawReg, self.regFileList[index], self.yearList[index])
 
-		self.dataBuilder()
+			self.dataMerger()
 
 	def groupRawData(self, src, dest, yr):
 		reader = csv.reader(open(src), delimiter=',')
@@ -76,26 +79,34 @@ class splitRawData(object):
 	def splitedRawData(self):
 		return [self.regFileList, self.degFileList, self.yearList]
 
-	def dataBuilder(self):
+	def combinedDataNameList(self):
+		nameList = []
 		for yrList in self.trainYrsList:
-			self.trainYrs = yrList
+			nameList.append(self.currDir+'degtrain'+yrList[0]+'-'+yrList[-1]+'.csv')
+			nameList.append(self.currDir+'regtrain'+yrList[0]+'-'+yrList[-1]+'.csv')
+			if len(yrList) != 5:
+				nameList.append(self.currDir+'regtest'+self.yearList[len(yrList)]+'-'+self.yearList[-1]+'.csv')
 
+		return nameList
+
+	def dataMerger(self):
+		for yrList in self.trainYrsList:
 			self.rheader, self.dheader = '', ''
-			self.degDataPath = self.currDir+'degtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
-			self.regDataPath = self.currDir+'regtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
-			for yr in self.trainYrs:
+			degDataPath = self.currDir+'degtrain'+yrList[0]+'-'+yrList[-1]+'.csv'
+			regDataPath = self.currDir+'regtrain'+yrList[0]+'-'+yrList[-1]+'.csv'
+			for yr in yrList:
 				index = self.yearList.index(yr)
 				reg, deg = self.regFileList[index], self.degFileList[index]
-				self.concatenateData(reg, self.regDataPath, 'reg')
-				self.concatenateData(deg, self.degDataPath, 'deg')
+				self.concatenateData(reg, regDataPath, 'reg')
+				self.concatenateData(deg, degDataPath, 'deg')
 
-			combineYrsTestData = self.currDir+'regtest'+self.yearList[len(self.trainYrs)]+'-'+self.yearList[-1]+'.csv'
+			combineYrsTestData = self.currDir+'regtest'+self.yearList[len(yrList)]+'-'+self.yearList[-1]+'.csv'
 			self.comYrsTestHeader = ''
 			for yr in self.yearList:
-				if (yr not in self.trainYrs):
+				if (yr not in yrList):
 					index = self.yearList.index(yr)
 					reg = self.regFileList[index]
-					if len(self.trainYrs) != 5:
+					if len(yrList) != 5:
 						self.concatenateData(reg, combineYrsTestData, 'testCom')
 
 	def concatenateData(self, src, dest, datatype):
