@@ -141,7 +141,14 @@ class prepross(object):
 		self.regFileList, self.degFileList, self.yearList = degRegFiles
 		rwList = [1.4,1.4,1.2,1.1]
 		pwList = [1,1,1,1]
-		self.wdict = {2:1.4, 3:1.4, 4:1.2, 5:1.1}
+
+		# weights dictionary: 
+		# key: the threshold; value: a dictionary with keys of train data length and value of weights
+		self.wdict = {
+		1:{2:1.4, 3:1.4, 4:1.2, 5:1.1},
+		5:{2:1.4, 3:1.0, 4:1.2, 5:1.2},
+		10:{2:1.3, 3:1.2, 4:1.2, 5:1.2}
+		}
 		self.top1top3Stats = True
 
 	def statsPath(self):
@@ -274,7 +281,8 @@ class prepross(object):
 				self.statsPath()
 				self.prepare()
 				self.testWeights()
-				self.predicting(self.wdict[len(self.trainYrs)], 1.0)
+				# self.predicting(self.wdict[len(self.trainYrs)], 1.0)
+				self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 
 				# todo: stats
 				if self.top1top3Stats:
@@ -310,7 +318,7 @@ class prepross(object):
 		self.techCrsHists()
 
 		# compute correlation coefficients and draw correlation plots
-		self.corrPlot(self.CRS_STU, self.pearsoncorr)
+		# self.corrPlot(self.CRS_STU, self.pearsoncorr)
 
 	def testSetsStats(self):
 		# compute the stats data for the test datasets
@@ -1656,7 +1664,7 @@ class prepross(object):
 
 		rows.sort(key=itemgetter(2,3,4,5), reverse=True)
 
-		fV1Reulsts = self.dataDir + 'fv1_w1_w2.csv'
+		fV1Reulsts = self.dataDir + 'fv1_w1_w2_'+self.trainYrsText+'_'+str(self.threshold)+'.csv'
 		writer = csv.writer(open(fV1Reulsts, 'w'))
 
 		header = header[0:6]
@@ -2106,34 +2114,36 @@ class prepross(object):
 		prefix, suffix = testReg.split('/')[-1].split('_')[0], ''
 		if power == 1:
 			suffix = 'L'
+			tSuffix = 'Linear'
 		elif power == 2:
-			suffix = 'Q'		
+			suffix = 'Q'
+			tSuffix = 'Quadratic'		
 
 		# points vs MAE
 		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-		ytitle = 'MAE from ' + prefix[3:]
-		title = 'Sample points vs MAE ('+suffix+')'
+		ytitle = 'MAE from '+prefix[3:]
+		title = 'Sample points vs MAE ('+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+')'
 		figName = self.errPlotsDir+'mae/point/'+suffix+'/'+prefix[3:]+'_pMAE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p', 'mae')
 
 		# r vs MAE
 		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'MAE from '+prefix[3:]
-		title = 'coefficients vs MAE ('+suffix+')'
+		title = 'coefficients vs MAE ('+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+')'
 		figName = self.errPlotsDir+'/mae/r/'+suffix+'/'+prefix[3:]+'_rMAE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r', 'mae')
 
 		# r vs MAPE
 		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'MAPE from '+prefix[3:]
-		title = 'Sample points vs MAPE ('+suffix+')'
+		title = 'Sample points vs MAPE ('+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+')'
 		figName = self.errPlotsDir+'mape/point/'+suffix+'/'+prefix[3:]+'_pMAPE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, pointsList, mapeList, figName, 'p', 'mape')
 
 		# points vs MAPE
 		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'MAPE from '+prefix[3:]
-		title = 'coefficients vs MAPE ('+suffix+')'
+		title = 'coefficients vs MAPE ('+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+')'
 		figName = self.errPlotsDir+'mape/r/'+suffix+'/'+prefix[3:]+'_rMAPE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, rList, mapeList, figName, 'r', 'mape')
 

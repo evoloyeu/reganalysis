@@ -1,11 +1,11 @@
-import csv, sys, os, time, hashlib, shutil
+import csv, sys, os, time, hashlib, shutil, numpy as np
 from pylab import *
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, linregress
-import numpy as np
 from operator import itemgetter
 from collections import Counter
-from random import randint
+from datetime import datetime
+import random
 
 """
 # std
@@ -38,10 +38,17 @@ plt.grid(True)
 plt.show()
 """
 
-for i in xrange(0, 2):
-	print 'outer for loop'
-	for x in xrange(1,10):
-		print 'inner for loop'
-		if x%2 == 0:
-			print x
-			break
+exist = []
+while True:
+	random.seed(datetime.now())
+	# for x in xrange(0,10):
+	rnum = random.randint(0,9)
+	if rnum not in exist:
+		exist.append(rnum)
+
+	print rnum
+	print '---------------'
+	if len(exist) >= 10:
+		print exist
+		break
+
