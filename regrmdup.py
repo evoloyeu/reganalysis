@@ -250,10 +250,10 @@ class prepross(object):
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
 		fileNameList = []
-		for x in xrange(0,17):
+		for x in xrange(0,18):
 			fileNameList.append(self.dataDir+'Train/')
 
-		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
+		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
 
 		for x in xrange(0, len(regFileName.split('_'))-1):
 			for indx in xrange(0,len(fileNameList)):
@@ -262,7 +262,7 @@ class prepross(object):
 		for x in xrange(0,len(fileNameList)):
 			fileNameList[x] += fileNameSuffix[x]
 
-		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
+		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
 
 		self.degREPL = self.IDMAPPER = self.dataDir
 		for x in xrange(0, len(degFilename.split('_'))-1):
@@ -271,23 +271,23 @@ class prepross(object):
 		self.degREPL, self.IDMAPPER = self.degREPL+'REPL_SAS.csv', self.IDMAPPER+'IDMAPPER_SAS.csv'
 
 	def doBatch(self):
-		# self.matrixBuilder()
+		self.matrixBuilder()
 
-		for yrList in self.trainYrsList:
-			for threshold in self.thresholdList:
-				self.threshold = threshold
-				self.trainYrs = yrList
-				self.statsPath()
-				self.prepare()
-				self.testWeights()
-				self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
+		# for yrList in self.trainYrsList:
+		# 	for threshold in self.thresholdList:
+		# 		self.threshold = threshold
+		# 		self.trainYrs = yrList
+		# 		self.statsPath()
+		# 		self.prepare()
+		# 		self.testWeights()
+		# 		self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 
-				# # todo: stats
-				if self.top1top3Stats:
-					self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
-					self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
-					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
-					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+		# 		# # todo: stats
+		# 		if self.top1top3Stats:
+		# 			self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
+		# 			self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
+		# 			self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+		# 			self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
 
 	def predicting(self, rw, pw):
 		self.testSetsStats()
@@ -563,7 +563,7 @@ class prepross(object):
 				# if len(record[8]) > 0:
 				fRegNodupWrter.writerow(record)
 
-	def simpleStats(self, noDupRegFile, CRSPERSTU, STUREGISTERED, EMPTY, CRS_STU, CRS_STU_GRADE, STU_CRS):
+	def simpleStats(self, noDupRegFile, CRSPERSTU, STUREGISTERED, EMPTY, CRS_STU, CRS_STU_GRADE, STU_CRS, STU_CRS_GRADE):
 		fRegNodupRder = csv.reader(open(noDupRegFile), delimiter=',')
 		# skip header
 		header = fRegNodupRder.next()
@@ -691,14 +691,16 @@ class prepross(object):
 
 		# create course matrix
 		w = csv.writer(open(STU_CRS, 'w'))
+		w1 = csv.writer(open(STU_CRS_GRADE, 'w'))
 		# header: [v_num, crs1, crs2, ......]
 		header = ['V_NUMBER']
 		for crs in distinctCRSLst:
 			header.append(crs)
 		w.writerow(header)
+		w1.writerow(header)
 
 		# init rows
-		rowLst = []
+		rowLst, rowLst1 = [],[]
 		for stu in distinctSTULst:
 			# row: [v_num, 'NA', 'NA', ......]
 			row = [stu]
@@ -707,6 +709,7 @@ class prepross(object):
 				row.append('')
 
 			rowLst.append(row)
+			rowLst1.append(row)
 
 		# fill course grade point for each course		
 		for row in rowLst:
@@ -714,10 +717,21 @@ class prepross(object):
 				# row: [v_num, 'NA', 'NA', ......]
 				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
 				if row[0] == reg[0]:
-					index = distinctCRSLst.index(reg[1] + reg[2])
+					index = distinctCRSLst.index(reg[1]+reg[2])
 					row[index+1] = reg[3]
 
 			w.writerow(row)
+
+		# fill course grade point for each course		
+		for row in rowLst1:
+			for reg in regLst:
+				# row: [v_num, 'NA', 'NA', ......]
+				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
+				if row[0] == reg[0]:
+					index = distinctCRSLst.index(reg[1]+reg[2])
+					row[index+1] = reg[4]
+
+			w1.writerow(row)
 
 	def crsStuMatrix(self):
 		# create course matrix and fill the blank grades
@@ -2301,24 +2315,30 @@ class prepross(object):
 				os.makedirs(path)
 
 			fileNameList = []
-			fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
+			fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
 			for suffix in fileNameSuffix:
 				fileNameList.append(path+yr+'_'+suffix)
-			[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
+			[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
 
 			self.regDataPath = regFile
 			self.techCrs()
 			self.formatRegSAS(self.regDataPath, self.regNODUP)
 			self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
-			self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS)
+			self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS, self.STU_CRS_GRADE)
 
 			randomOrderReg = path+'randomOrderReg'+yr+'.csv'
 			randomOrderRegList.append(randomOrderReg)
-			self.randomize(self.CRS_STU_GRADE, randomOrderReg, crsDict)
+			self.randomize(self.STU_CRS_GRADE, randomOrderReg, crsDict)
 
 	def randomize(self, src, dest, crsDict):
 		reader = csv.reader(open(src), delimiter=',')
 		header = reader.next()
+		header = header[1:]
+
+		newHeader = []
+		for crs in header:
+			newHeader.append(crsDict[crs])
+
 		rowList = []
 		for row in reader:
 			rowList.append(row)
@@ -2330,16 +2350,12 @@ class prepross(object):
 			if rnum not in indexList:
 				indexList.append(rnum)				
 				row = rowList[rnum]
-				key = row[0]+row[1]
-				value = crsDict[key]+row[1][0]
-				toWriteList.append([value]+row[2:])
-				# writer.writerow([value]+row[2:])
+				toWriteList.append(row[1:])
 			if len(indexList) == len(rowList):
 				break
 
-		length = len(toWriteList[0])
-		for x in xrange(0,length):
-			writer.writerow([rec[x] for rec in toWriteList])
+		writer.writerow(newHeader)
+		writer.writerows(toWriteList)
 
 prepare = splitRawData(sys.argv)
 prepare.doBatch()
