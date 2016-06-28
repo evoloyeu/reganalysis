@@ -5,14 +5,16 @@ from scipy.stats import pearsonr, linregress
 import numpy as np
 from operator import itemgetter
 from collections import Counter
-from random import randint
+# from random import randint
+from datetime import datetime
+import random
 
 class splitRawData(object):
 	"""docstring for splitRawData"""
 	def __init__(self, arg):
 		super(splitRawData, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
-		['degtrain2010-2011.csv', 'degtrain2010-2012.csv', ]
+		# ['degtrain2010-2011.csv', 'degtrain2010-2012.csv', ]
 		self.rawDeg, self.rawReg = arg[1], arg[2]
 
 		pathList = self.rawDeg.split('/')
@@ -26,7 +28,7 @@ class splitRawData(object):
 		if not os.path.exists(self.currDir):
 			os.makedirs(self.currDir)
 
-		self.regFileList, self.degFileList = [], []
+		self.regFileList, self.degFileList = [],[]
 		self.yearList = ['2010', '2011', '2012', '2013', '2014', '2015']
 		for yr in self.yearList:
 			self.regFileList.append(self.currDir+'reg'+yr+'.csv')
@@ -136,7 +138,7 @@ class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
-		self.thresholdList = [1,5,10]
+		self.thresholdList = [1,5,10,15,20]
 		# self.threshold = 1
 		self.regFileList, self.degFileList, self.yearList = degRegFiles
 		rwList = [1.4,1.4,1.2,1.1]
@@ -147,7 +149,9 @@ class prepross(object):
 		self.wdict = {
 		1:{2:1.4, 3:1.4, 4:1.2, 5:1.1},
 		5:{2:1.4, 3:1.0, 4:1.2, 5:1.2},
-		10:{2:1.3, 3:1.2, 4:1.2, 5:1.2}
+		10:{2:1.3, 3:1.2, 4:1.2, 5:1.2},
+		15:{2:1.4, 3:1.2, 4:1.2, 5:1.2},
+		20:{2:1.4, 3:1.2, 4:1.2, 5:1.2}
 		}
 		self.top1top3Stats = True
 
@@ -163,12 +167,13 @@ class prepross(object):
 		else:
 			self.trainYrsText = str(self.trainYrs[0])
 
+		self.matrixDir = path+'matrix/'
 		self.currDir = path+time.strftime('%Y%m%d')+'_'+self.trainYrsText+'/'+str(self.threshold)+'/'
 		self.dataDir, self.errPlotsDir = self.currDir+'data/', self.currDir+'errPlotsT1/'
 
 		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits_'+time.strftime('%Y%m%d')+'/']
 
-		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.errPlotsDir+'mae/point/L/', self.errPlotsDir+'mae/point/Q/', self.errPlotsDir+'mae/r/L/', self.errPlotsDir+'mae/r/Q/', self.errPlotsDir+'mape/point/L/', self.errPlotsDir+'mape/point/Q/', self.errPlotsDir+'mape/r/L/', self.errPlotsDir+'mape/r/Q/', self.dataDir+'T1/L/', self.dataDir+'T3/L/', self.dataDir+'T1/Q/', self.dataDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir]
+		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.errPlotsDir+'mae/point/L/', self.errPlotsDir+'mae/point/Q/', self.errPlotsDir+'mae/r/L/', self.errPlotsDir+'mae/r/Q/', self.errPlotsDir+'mape/point/L/', self.errPlotsDir+'mape/point/Q/', self.errPlotsDir+'mape/r/L/', self.errPlotsDir+'mape/r/Q/', self.dataDir+'T1/L/', self.dataDir+'T3/L/', self.dataDir+'T1/Q/', self.dataDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir]
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
@@ -177,11 +182,6 @@ class prepross(object):
 		self.rheader, self.dheader = '', ''
 		self.degDataPath, self.regDataPath = self.splitsDir+'degtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'regtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
 		regFileName, degFilename = self.regDataPath.split('/')[-1], self.degDataPath.split('/')[-1]
-		# for yr in self.trainYrs:
-			# index = self.yearList.index(yr)
-			# reg, deg = self.regFileList[index], self.degFileList[index]
-			# self.concatenateData(reg, self.regDataPath, 'reg')
-			# self.concatenateData(deg, self.degDataPath, 'deg')
 
 		self.techCrsFile, self.allTechCrs = path+'techcourses/'+'TechCrs'+str(self.threshold)+'.csv', path+'techcourses/'+'technicalCourse.csv'
 		self.availableTechCrsList = []
@@ -201,8 +201,6 @@ class prepross(object):
 				index = self.yearList.index(yr)
 				reg = self.regFileList[index]
 				self.testFileList.append(reg)
-				# if len(self.trainYrs) != 5:
-					# self.concatenateData(reg, combineYrsTestData, 'testCom')
 
 		if len(self.trainYrs) != 5:
 			self.testFileList.append(combineYrsTestData)
@@ -273,18 +271,18 @@ class prepross(object):
 		self.degREPL, self.IDMAPPER = self.degREPL+'REPL_SAS.csv', self.IDMAPPER+'IDMAPPER_SAS.csv'
 
 	def doBatch(self):
+		# self.matrixBuilder()
+
 		for yrList in self.trainYrsList:
 			for threshold in self.thresholdList:
 				self.threshold = threshold
-
 				self.trainYrs = yrList
 				self.statsPath()
 				self.prepare()
 				self.testWeights()
-				# self.predicting(self.wdict[len(self.trainYrs)], 1.0)
 				self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 
-				# todo: stats
+				# # todo: stats
 				if self.top1top3Stats:
 					self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
 					self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
@@ -605,7 +603,7 @@ class prepross(object):
 		w = csv.writer(open(EMPTY, 'w'))
 		noGradeRecs.insert(0, header)
 		w.writerows(noGradeRecs)
-		
+		"""
 		# r = csv.reader(open(self.EMPTY), delimiter=',')
 		# r.next()
 		# uniStu, uniCrs = {}, {}
@@ -629,7 +627,7 @@ class prepross(object):
 		# w = csv.writer(open(self.EMPTY_CRS, 'w'))
 		# w.writerow(['Course', '#_of_Students_Reg_No_Grade'])
 		# w.writerows(uniCrs.items())
-		
+		"""
 		# create course list
 		r = csv.reader(open(noDupRegFile), delimiter=',')
 		# skip the header
@@ -679,7 +677,7 @@ class prepross(object):
 				indx = vnumLst.index(reg[0])
 				# cell: [subj_code, course_code, 'NA', ......]
 				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
-				if cell[0] == reg[1] and cell[1] == reg[2]:
+				if (cell[0] == reg[1]) and (cell[1] == reg[2]):
 					if reg[3] == '':
 						# crs_stu[indx+2] = 'NG'
 						# crs_stu_grade[indx+2] = 'NG'
@@ -857,7 +855,7 @@ class prepross(object):
 						cnt += 1
 						continue
 
-					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
@@ -951,8 +949,7 @@ class prepross(object):
 
 	def regressionPlot(self, xdata, ydata, r_value, power, xaxis, yaxis, plotDir):
 		fig = plt.figure()
-		xarray = np.array(xdata)
-		yarray = np.array(ydata)
+		xarray, yarray = np.array(xdata), np.array(ydata)
 		z = np.polyfit(xarray, yarray, power)
 		p = np.poly1d(z)
 
@@ -2037,7 +2034,7 @@ class prepross(object):
 						# !!!caution: for the index
 						xSubj,xNum,ySubj,yNum, coefficient,pointFreq = predictor[0], predictor[1], predictor[2], predictor[3], predictor[4], predictor[5]
 						slope,intercept,a,b,c = predictor[9], predictor[10], predictor[11], predictor[12], predictor[13]
-						pointsList.append(int(pointFreq))
+						pointsList.append(float(pointFreq))
 						rList.append(float(coefficient))
 						# compute errors: aesum: absolute err sum; aepsum: absolute err percent sum
 						errorList, absErrPerList, aesum, aepsum = [], [], 0, 0
@@ -2073,7 +2070,7 @@ class prepross(object):
 						aveAbsErrList.append(float(mae))
 
 						mape = format(aepsum/len(errorList), '.2f')
-						mapeList.append(mape)
+						mapeList.append(float(mape))
 
 						errArr = np.array(errorList)
 						errorave = format(np.average(errArr), '.2f')
@@ -2122,28 +2119,28 @@ class prepross(object):
 		# points vs MAE
 		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'MAE from '+prefix[3:]
-		title = 'Sample points vs MAE ('+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+')'
+		title = 'Sample points vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
 		figName = self.errPlotsDir+'mae/point/'+suffix+'/'+prefix[3:]+'_pMAE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p', 'mae')
 
 		# r vs MAE
 		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'MAE from '+prefix[3:]
-		title = 'coefficients vs MAE ('+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+')'
+		title = 'coefficients vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
 		figName = self.errPlotsDir+'/mae/r/'+suffix+'/'+prefix[3:]+'_rMAE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r', 'mae')
 
 		# r vs MAPE
 		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'MAPE from '+prefix[3:]
-		title = 'Sample points vs MAPE ('+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+')'
+		title = 'Sample points vs MAPE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
 		figName = self.errPlotsDir+'mape/point/'+suffix+'/'+prefix[3:]+'_pMAPE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, pointsList, mapeList, figName, 'p', 'mape')
 
 		# points vs MAPE
 		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'MAPE from '+prefix[3:]
-		title = 'coefficients vs MAPE ('+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+')'
+		title = 'coefficients vs MAPE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
 		figName = self.errPlotsDir+'mape/r/'+suffix+'/'+prefix[3:]+'_rMAPE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, rList, mapeList, figName, 'r', 'mape')
 
@@ -2183,11 +2180,16 @@ class prepross(object):
 		return resultPairs
 
 	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName, xflag, yflag):
+		fig = plt.figure()
 		x = np.array(xdata)
 		y = np.array(ydata)
 
-		fig = plt.figure()
-		plt.plot(x, y, '.', c='red')
+		z = np.polyfit(x, y, 1)
+		p = np.poly1d(z)
+		plt.plot(x, y, 'o', c='red')
+		# xp = np.linspace(0, 9, 100)
+		plt.plot(x, p(x), 'b--')
+
 		plt.xlabel(xtitle)
 		plt.ylabel(ytitle)
 		plt.title(title)
@@ -2281,6 +2283,63 @@ class prepross(object):
 				row = row2List[index][:12]+['']+row1List[index][:12]
 				w.writerow(row)
 			w.writerow([])
+
+	def matrixBuilder(self):
+		self.threshold, self.trainYrs, randomOrderRegList = 1, ['2010', '2011'], []
+		self.statsPath()		
+		
+		reader = csv.reader(open(self.allTechCrs), delimiter=',')
+		crsDict = {}
+		for row in reader:
+			key, value = row[0]+row[1], row[2]
+			crsDict[key] = value
+
+		for regFile in self.regFileList:
+			yr = regFile.split('/')[-1].split('.')[0][3:]
+			path = self.matrixDir+yr+'/'
+			if not os.path.exists(path):
+				os.makedirs(path)
+
+			fileNameList = []
+			fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
+			for suffix in fileNameSuffix:
+				fileNameList.append(path+yr+'_'+suffix)
+			[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
+
+			self.regDataPath = regFile
+			self.techCrs()
+			self.formatRegSAS(self.regDataPath, self.regNODUP)
+			self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
+			self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS)
+
+			randomOrderReg = path+'randomOrderReg'+yr+'.csv'
+			randomOrderRegList.append(randomOrderReg)
+			self.randomize(self.CRS_STU_GRADE, randomOrderReg, crsDict)
+
+	def randomize(self, src, dest, crsDict):
+		reader = csv.reader(open(src), delimiter=',')
+		header = reader.next()
+		rowList = []
+		for row in reader:
+			rowList.append(row)
+
+		indexList, toWriteList, writer = [],[],csv.writer(open(dest, 'w'))
+		random.seed(datetime.now())		
+		while True:
+			rnum = random.randint(0,len(rowList)-1)
+			if rnum not in indexList:
+				indexList.append(rnum)				
+				row = rowList[rnum]
+				key = row[0]+row[1]
+				value = crsDict[key]+row[1][0]
+				toWriteList.append([value]+row[2:])
+				# writer.writerow([value]+row[2:])
+			if len(indexList) == len(rowList):
+				break
+
+		length = len(toWriteList[0])
+		for x in xrange(0,length):
+			writer.writerow([rec[x] for rec in toWriteList])
 
 prepare = splitRawData(sys.argv)
 prepare.doBatch()
