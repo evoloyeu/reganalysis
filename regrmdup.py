@@ -64,17 +64,23 @@ class splitRawData(object):
 		for deg in degReader:
 			graduateYr = deg[9]
 			if (graduateYr == '2010') and (not graduateYr in DegIDList10):
-				DegIDList10.append(deg[1])
+				if deg[1] not in DegIDList10:
+					DegIDList10.append(deg[1])
 			elif (graduateYr == '2011') and (not graduateYr in DegIDList11):
-				DegIDList11.append(deg[1])
+				if deg[1] not in DegIDList11:
+					DegIDList11.append(deg[1])
 			elif (graduateYr == '2012') and (not graduateYr in DegIDList12):
-				DegIDList12.append(deg[1])
+				if deg[1] not in DegIDList12:
+					DegIDList12.append(deg[1])
 			elif (graduateYr == '2013') and (not graduateYr in DegIDList13):
-				DegIDList13.append(deg[1])
+				if deg[1] not in DegIDList13:
+					DegIDList13.append(deg[1])
 			elif (graduateYr == '2014') and (not graduateYr in DegIDList14):
-				DegIDList14.append(deg[1])
+				if deg[1] not in DegIDList14:
+					DegIDList14.append(deg[1])
 			elif (graduateYr == '2015') and (not graduateYr in DegIDList15):
-				DegIDList15.append(deg[1])
+				if deg[1] not in DegIDList15:
+					DegIDList15.append(deg[1])
 
 		return {'2010':DegIDList10, '2011':DegIDList11, '2012':DegIDList12, '2013':DegIDList13, '2014':DegIDList14, '2015':DegIDList15}
 
@@ -221,7 +227,7 @@ class prepross(object):
 			self.quadrPredictResultsListTop3.append(self.dataDir + 'T3/Q/PGrades_' + filename +'_QT3.csv')
 			self.quadrPredictResultsAveErrTop3.append(self.dataDir + 'T3/Q/PAveErr_' + filename +'_QT3.csv')
 
-			tmpList, prefix, testPath = [], '', ''
+			tmpList, prefix, testPath, yr = [], '', '',''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
 				if fname == self.regDataPath:
 					testPath = self.dataDir +'Test/' + filename[8:17] + '/'
@@ -238,7 +244,7 @@ class prepross(object):
 			if not os.path.exists(testPath):
 				os.makedirs(testPath)
 
-			for item in ['CRSPERSTU', 'STUREGISTERED', 'EMPTY', 'CRS_STU', 'CRS_STU_GRADE', 'STU_CRS']:
+			for item in ['CRSPERSTU', 'STUREGISTERED', 'EMPTY', 'CRS_STU', 'CRS_STU_GRADE', 'STU_CRS', 'STU_CRS_GRADE']:
 				tmpList.append(prefix + '_' + item +'.csv')
 
 			self.fTestStatFileNameList.append(tmpList)
@@ -271,23 +277,23 @@ class prepross(object):
 		self.degREPL, self.IDMAPPER = self.degREPL+'REPL_SAS.csv', self.IDMAPPER+'IDMAPPER_SAS.csv'
 
 	def doBatch(self):
-		self.matrixBuilder()
+		# self.matrixBuilder()
 
-		# for yrList in self.trainYrsList:
-		# 	for threshold in self.thresholdList:
-		# 		self.threshold = threshold
-		# 		self.trainYrs = yrList
-		# 		self.statsPath()
-		# 		self.prepare()
-		# 		self.testWeights()
-		# 		self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
+		for yrList in self.trainYrsList:
+			for threshold in self.thresholdList:
+				self.threshold = threshold
+				self.trainYrs = yrList
+				self.statsPath()
+				self.prepare()
+				self.testWeights()
+				self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 
-		# 		# # todo: stats
-		# 		if self.top1top3Stats:
-		# 			self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
-		# 			self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
-		# 			self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
-		# 			self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+				# # todo: stats
+				if self.top1top3Stats:
+					self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
+					self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
+					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
 
 	def predicting(self, rw, pw):
 		self.testSetsStats()
@@ -305,7 +311,7 @@ class prepross(object):
 		self.techCrs()
 		self.formatRegSAS(self.regDataPath, self.regNODUP)
 		self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
-		self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS)
+		self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS, self.STU_CRS_GRADE)
 		self.pairs()
 		self.pairsHists()
 
@@ -316,7 +322,7 @@ class prepross(object):
 		self.techCrsHists()
 
 		# compute correlation coefficients and draw correlation plots
-		# self.corrPlot(self.CRS_STU, self.pearsoncorr)
+		self.corrPlot(self.CRS_STU, self.pearsoncorr)
 
 	def testSetsStats(self):
 		# compute the stats data for the test datasets
@@ -326,7 +332,7 @@ class prepross(object):
 			self.formatRegSAS(testFile, noDupFile)
 
 			statList = self.fTestStatFileNameList[index]
-			self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5])
+			self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5], statList[6])
 
 	def testWeights(self):
 		# trying to find the good weights
