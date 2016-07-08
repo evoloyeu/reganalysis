@@ -145,6 +145,7 @@ class prepross(object):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
 		self.thresholdList = [1,5,10,15,20]
+		# self.thresholdList = [1,5,10]
 		# self.threshold = 1
 		self.regFileList, self.degFileList, self.yearList = degRegFiles
 		rwList = [1.4,1.4,1.2,1.1]
@@ -836,6 +837,7 @@ class prepross(object):
 		nocommstulst = self.dataDir+'nocomstu/nocomstu_list.csv'
 		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
 
+		rlist, plist = [],[]
 		for x in xrange(0,len(matrix)):
 			# course is a row with all marks
 			course = matrix[x]
@@ -887,6 +889,8 @@ class prepross(object):
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c])
+					rlist.append(r_value)
+					plist.append(len(ydata))
 					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\ttrainYrs:', self.trainYrsText, ' Thresh:', self.threshold
 
 			if len(noCorrList) > 0:
@@ -935,6 +939,8 @@ class prepross(object):
 					wnocommstulst.writerow(['', nocommstuList[indx][0]+nocommstuList[indx][1]])
 				wnocommstulst.writerow([])
 
+		self.coefficientPointsPlot(rlist, plist)
+
 		if len(nocorrDict) > 0:
 			nocorr = self.dataDir+'nocorr/no_corr_list_fre.csv'
 			wnocorr = csv.writer(open(nocorr, 'w'))
@@ -966,6 +972,28 @@ class prepross(object):
 
 				if (indx < len(nocomList)-1) and (nocomList[indx][0] != nocomList[indx+1][0]):
 					isHeader = True
+
+	def coefficientPointsPlot(self, rlist, plist):
+		fig = plt.figure()
+		xarray, yarray = np.array(plist), np.array(rlist)
+		plt.plot(xarray, yarray, '.')
+
+		plt.ylim(-1.0, 1.0)
+		ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
+		ticks.append(1.0)
+
+		plt.xlim(0, 120)
+		ticks = xrange(0, 120, 10)
+		plt.xticks(ticks)
+
+		plt.xlabel('Number of sample points')
+		plt.ylabel('Pearson Coefficient')
+		plt.title('Pearson Coefficient vs Number of sample points')
+		plt.grid(True)
+
+		figName = self.currDir + 'RvsP.png'
+		fig.savefig(figName)
+		plt.close(fig)
 
 	def regressionPlot(self, xdata, ydata, r_value, power, xaxis, yaxis, plotDir):
 		fig = plt.figure()
@@ -2231,7 +2259,7 @@ class prepross(object):
 			plt.xlim(-1.0, 1.0)
 			ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
 			ticks.append(1.0)
-			plt.xticks(ticks, rotation=20, fontsize='medium')			
+			plt.xticks(ticks, rotation=20, fontsize='medium')
 		if xflag == 'p':
 			# plt.xlim(min(xdata), max(xdata)+5)
 			plt.xlim(0, 120)
