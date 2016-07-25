@@ -150,6 +150,7 @@ class prepross(object):
 		self.regFileList, self.degFileList, self.yearList = degRegFiles
 		rwList = [1.4,1.4,1.2,1.1]
 		pwList = [1,1,1,1]
+		self.coefficientList = ['Pearson']
 
 		# weights dictionary: 
 		# key: the threshold; value: a dictionary with keys of train data length and value of weights
@@ -175,7 +176,7 @@ class prepross(object):
 			self.trainYrsText = str(self.trainYrs[0])
 
 		self.matrixDir = path+'matrix/'
-		self.currDir = path+time.strftime('%Y%m%d')+'_'+self.trainYrsText+'/'+str(self.threshold)+'/'
+		self.currDir = path+time.strftime('%Y%m%d')+'_'+self.trainYrsText+'/'+self.coe+'/'+str(self.threshold)+'/'
 		self.dataDir, self.errPlotsDir = self.currDir+'data/', self.currDir+'errPlotsT1/'
 
 		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits_'+time.strftime('%Y%m%d')+'/']
@@ -279,22 +280,23 @@ class prepross(object):
 
 	def doBatch(self):
 		# self.matrixBuilder()
+		for coe in self.coefficientList:
+			self.coe = coe
+			for yrList in self.trainYrsList:
+				for threshold in self.thresholdList:
+					self.threshold = threshold
+					self.trainYrs = yrList
+					self.statsPath()
+					self.prepare()
+					self.testWeights()
+					self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 
-		for yrList in self.trainYrsList:
-			for threshold in self.thresholdList:
-				self.threshold = threshold
-				self.trainYrs = yrList
-				self.statsPath()
-				self.prepare()
-				self.testWeights()
-				self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
-
-				# # todo: stats
-				if self.top1top3Stats:
-					self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
-					self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
-					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
-					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+					# # todo: stats
+					if self.top1top3Stats:
+						self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
+						self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
+						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
 
 	def predicting(self, rw, pw):
 		self.testSetsStats()
@@ -988,7 +990,7 @@ class prepross(object):
 
 		plt.xlabel('Number of sample points')
 		plt.ylabel('Pearson Coefficient')
-		plt.title('Pearson Coefficient vs Number of sample points')
+		plt.title('Pearson Coefficient vs Number of sample points \nfrom '+self.trainYrsText)
 		plt.grid(True)
 
 		figName = self.currDir + 'RvsP.png'
