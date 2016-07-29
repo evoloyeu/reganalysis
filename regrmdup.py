@@ -144,8 +144,8 @@ class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
-		self.thresholdList = [1,5,10,15,20]
-		# self.thresholdList = [1,5,10]
+		# self.thresholdList = [1,5,10,15,20]
+		self.thresholdList = [1,5,10]
 		# self.threshold = 1
 		self.regFileList, self.degFileList, self.yearList = degRegFiles
 		rwList = [1.4,1.4,1.2,1.1]
@@ -176,7 +176,9 @@ class prepross(object):
 			self.trainYrsText = str(self.trainYrs[0])
 
 		self.matrixDir = path+'matrix/'
-		self.currDir = path+time.strftime('%Y%m%d')+'_'+self.trainYrsText+'/'+self.coe+'/'+str(self.threshold)+'/'
+		# self.currDir = path+time.strftime('%Y%m%d')+'_'+self.trainYrsText+'/'+self.coe+'/'+str(self.threshold)+'/'
+		# self.currDir = path+time.strftime('%Y%m%d')+'/'+self.trainYrsText+'/'+self.coe+'/'+str(self.threshold)+'/'
+		self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'
 		self.dataDir, self.errPlotsDir = self.currDir+'data/', self.currDir+'errPlotsT1/'
 
 		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits_'+time.strftime('%Y%m%d')+'/']
@@ -832,7 +834,7 @@ class prepross(object):
 				matrix.append(row)
 
 		w = csv.writer(open(corr, 'w'))
-		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', '#points', 'pValue', 'stderr', 'slope', 'intercept', 'a', 'b', 'c'])
+		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', '#points', 'pValue', 'stderr', 'slope', 'intercept', 'a', 'b', 'c', 'R^2', 'xmin', 'xmax'])
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
 		nocorrlst = self.dataDir+'nocorr/no_corr_list.csv'
@@ -884,13 +886,13 @@ class prepross(object):
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 
-					r_value = float(format(r, '.4f'))
+					# r_value = float(format(r, '.4f'))
 					slope, intercept = self.regressionPlot(xdata, ydata, r_value, 1, xaxis, yaxis, self.linear_plots_ori)
 					a,b,c = self.regressionPlot(xdata, ydata, r_value, 2, xaxis, yaxis, self.quadratic_plots_ori)
 
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
-					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c])
+					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
 					rlist.append(r_value)
 					plist.append(len(ydata))
 					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\ttrainYrs:', self.trainYrsText, ' Thresh:', self.threshold
@@ -2045,17 +2047,19 @@ class prepross(object):
 				testRegDict[key] = row
 
 		# search predictable courses; keys: the predicting courses
-		predictingList, keys = [], predictorDict.keys()
+		predictingList, keys = [],predictorDict.keys()
 		for key in keys:
 			if key in testRegDict:
-				testY, testXs, predictors = testRegDict[key], [], predictorDict[key]
+				testY, testXs, predictors, minList, maxList = testRegDict[key],[],predictorDict[key],[],[]
 				for x in predictors:
 					testXKey = x[0]+x[1]
 					if testXKey in testRegDict:
+						minList.append(x[15])
+						maxList.append(x[16])
 						testXs.append(testRegDict[testXKey])
 
 				# have located the predictable course pairs stored in pairsList
-				pairsList = self.gradePairs(testY, testXs)
+				pairsList = self.gradePairs(testY, testXs, minList, maxList)
 				if len(pairsList) > 0:
 					predictingList.append(pairsList)
 
@@ -2194,14 +2198,15 @@ class prepross(object):
 		figName = self.errPlotsDir+'mape/r/'+suffix+'/'+prefix[3:]+'_rMAPE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, rList, mapeList, figName, 'r', 'mape')
 
-	def gradePairs(self, testY, testXs):
+	def gradePairs(self, testY, testXs, minList, maxList):
 		resultPairs, pairsList, xCrsNums = [], [], []
 		for x in testXs:
 			# build the xgrades, ygrades lists
-			xgrades = [x[0], x[1]]
-			ygrades = [testY[0], testY[1]]
+			xgrades, ygrades = [x[0], x[1]],[testY[0], testY[1]]
+			xindex = testXs.index(x)
+			xmin, xmax = minList[xindex],maxList[xindex]
 			for index in xrange(2,len(testY)):
-				if x[index].isdigit() and testY[index].isdigit():
+				if (x[index].isdigit() and testY[index].isdigit()) and (x[index]>=xmin) and (x[index]<=xmax):
 					xgrades.append(x[index])
 					ygrades.append(testY[index])
 
@@ -2238,7 +2243,8 @@ class prepross(object):
 		p = np.poly1d(z)
 		plt.plot(x, y, 'o', c='red')
 		# xp = np.linspace(0, 9, 100)
-		plt.plot(x, p(x), 'b--')
+		if not (xflag == 'r'):
+			plt.plot(x, p(x), 'b--')
 
 		plt.xlabel(xtitle)
 		plt.ylabel(ytitle)
