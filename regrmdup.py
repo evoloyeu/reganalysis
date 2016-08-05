@@ -1,13 +1,12 @@
-import csv, sys, os, time, hashlib, shutil
+import csv, sys, os, time, hashlib, shutil, random
 from pylab import *
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 from scipy.stats import pearsonr, linregress
 import numpy as np
 from operator import itemgetter
 from collections import Counter
-# from random import randint
 from datetime import datetime
-import random
 
 class splitRawData(object):
 	"""docstring for splitRawData"""
@@ -895,7 +894,7 @@ class prepross(object):
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
 					rlist.append(r_value)
 					plist.append(len(ydata))
-					print 'cnt: ', cnt, '\t', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '\t\tlen: ', len(ydata), '\tr: ', r, '\tr_value:', r_value, '\tslope: ', slope, '\ttrainYrs:', self.trainYrsText, ' Thresh:', self.threshold
+					print 'cnt: ', cnt, ' ', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '  len: ', len(ydata), ' r: ', r, ' r_value:', r_value, ' slope: ', slope, ' trainYrs:', self.trainYrsText, ' Thresh:', self.threshold
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir+'nocorr/'):
@@ -2250,30 +2249,49 @@ class prepross(object):
 		plt.ylabel(ytitle)
 		plt.title(title)
 
-		# plt.ylim(min(ydata), max(ydata)+0.5)
-		if yflag == 'mae':
-			plt.ylim(0, 16)
-			# ticks = xrange(0, 16, 2)
-			ticks = np.linspace(0.0, 16.0, 8, endpoint=False).tolist()
-			ticks.append(16)
-			plt.yticks(ticks)
-		if yflag == 'mape':
-			plt.ylim(0, 5)
-			ticks = np.linspace(0.0, 5.0, 10, endpoint=False).tolist()
-			ticks.append(5.0)
-			plt.yticks(ticks)
+		plt.ylim(0.0, max(ydata)+0.5)
+
+		ax = plt.axes()
+		minorLocator = MultipleLocator(0.1)
+		majorLocator = MultipleLocator(0.5)
+		ax.yaxis.set_minor_locator(minorLocator)
+		ax.yaxis.set_major_locator(majorLocator)
+
+		# if yflag == 'mae':
+		# 	plt.ylim(0, 16)
+		# 	ticks = xrange(0, 16, 2)
+		# 	ticks = np.linspace(0.0, 16.0, 8, endpoint=False).tolist()
+		# 	ticks.append(16)
+		# 	plt.yticks(ticks)			
+		# if yflag == 'mape':
+		# 	plt.ylim(0, 5)
+		# 	ticks = np.linspace(0.0, 5.0, 10, endpoint=False).tolist()
+		# 	ticks.append(5.0)
+		# 	plt.yticks(ticks)
 
 		if xflag == 'r':
 			plt.xlim(-1.0, 1.0)
-			ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
-			ticks.append(1.0)
-			plt.xticks(ticks, rotation=20, fontsize='medium')
+			# ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
+			# ticks.append(1.0)
+			# plt.xticks(ticks, rotation=20, fontsize='medium')
+
+			minorLocator = MultipleLocator(0.1)
+			majorLocator = MultipleLocator(0.1)
+			plt.xticks(rotation=20, fontsize='medium')
 		if xflag == 'p':
-			# plt.xlim(min(xdata), max(xdata)+5)
 			plt.xlim(0, 120)
 			# ticks = xrange(0, max(xdata)+5, 5)
-			ticks = xrange(0, 120, 10)
-			plt.xticks(ticks)
+			# ticks = xrange(0, 120, 10)
+			# plt.xticks(ticks)
+
+			minorLocator = MultipleLocator(2)
+			majorLocator = MultipleLocator(10)
+			# ax.grid(which = 'minor')
+			plt.xticks(rotation=90, fontsize='small')
+
+		ax.xaxis.set_minor_locator(minorLocator)
+		ax.xaxis.set_major_locator(majorLocator)
+		# ax.grid(which = 'minor')
 
 		plt.grid(True)
 		# plt.show()
