@@ -1096,7 +1096,13 @@ class prepross(object):
 
 		subj, num = xaxis.split(' ')[:2]
 		subjNew, numNew = yaxis.split(' ')[:2]
-		figName = plotDir + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + '.png'
+
+		# create Predicting course folder
+		folder = plotDir + subjNew + numNew
+		if not os.path.exists(folder):
+			os.makedirs(folder)
+
+		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + '.png'
 		fig.savefig(figName)
 		plt.close(fig)
 
