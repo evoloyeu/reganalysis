@@ -143,8 +143,8 @@ class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
-		# self.thresholdList = [1,5,10,15,20]
-		self.thresholdList = [1,5,10]
+		self.thresholdList = [1,5,10,15,20]
+		# self.thresholdList = [1,5,10]
 		# self.threshold = 1
 		self.regFileList, self.degFileList, self.yearList = degRegFiles
 		rwList = [1.4,1.4,1.2,1.1]
@@ -259,10 +259,10 @@ class prepross(object):
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
 		fileNameList = []
-		for x in xrange(0,18):
+		for x in xrange(0,19):
 			fileNameList.append(self.dataDir+'Train/')
 
-		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
+		fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv']
 
 		for x in xrange(0, len(regFileName.split('_'))-1):
 			for indx in xrange(0,len(fileNameList)):
@@ -271,7 +271,7 @@ class prepross(object):
 		for x in xrange(0,len(fileNameList)):
 			fileNameList[x] += fileNameSuffix[x]
 
-		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
+		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV, self.nancsv] = fileNameList
 
 		self.degREPL = self.IDMAPPER = self.dataDir
 		for x in xrange(0, len(degFilename.split('_'))-1):
@@ -834,6 +834,7 @@ class prepross(object):
 
 		w = csv.writer(open(corr, 'w'))
 		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', '#points', 'pValue', 'stderr', 'slope', 'intercept', 'a', 'b', 'c', 'R^2', 'xmin', 'xmax'])
+		wnan = csv.writer(open(self.nancsv, 'w'))
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
 		nocorrlst = self.dataDir+'nocorr/no_corr_list.csv'
@@ -868,16 +869,23 @@ class prepross(object):
 							cnt += 1
 							nocommstuList.append(newCourse)
 							nocomList.append([course[0]+' '+course[1], newCourse[0]+' '+newCourse[1]])
+							print 'cnt:',cnt,'no common students course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
 							continue
 
 					if len(xdata) < self.threshold:
 						cnt += 1
+						print 'cnt:',cnt,'less than threshold course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
 						continue
 
 					(r, p) = pearsonr(xdata, ydata)
 					if str(r) == 'nan':
 						noCorrList.append(newCourse)
 						cnt += 1
+						print 'cnt:',cnt,'no Pearson r course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
+						wnan.writerow([course[0]+course[1],newCourse[0]+newCourse[1],'len:',len(ydata)])
+						wnan.writerow([course[0]+course[1]]+xdata)
+						wnan.writerow([newCourse[0]+newCourse[1]]+ydata)
+						wnan.writerow([])
 						continue
 
 					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
@@ -894,7 +902,7 @@ class prepross(object):
 					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
 					rlist.append(r_value)
 					plist.append(len(ydata))
-					print 'cnt: ', cnt, ' ', course[0], course[1], ' vs ', newCourse[0], newCourse[1], '  len: ', len(ydata), ' r: ', r, ' r_value:', r_value, ' slope: ', slope, ' trainYrs:', self.trainYrsText, ' Thresh:', self.threshold
+					print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope, 'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir+'nocorr/'):
@@ -2347,7 +2355,7 @@ class prepross(object):
 		w = csv.writer(open(dest, 'w'))
 		for x in xrange(0,len(linearResult)):
 			linear, quadratic = linearResult[x], quadraticResult[x]
-			yr = linear.split('/')[-1].split('.')[0].split('_')[2][3:]
+			yr = linear.split('/')[-1].split('.')[0].split('_')[1][3:]
 			w.writerow([yr, 'quadratic', 'linear'])
 			r1, r2 = csv.reader(open(linear), delimiter=','), csv.reader(open(quadratic), delimiter=',')
 			h1, h2 = r1.next(), r2.next()
