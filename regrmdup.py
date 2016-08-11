@@ -1112,7 +1112,7 @@ class prepross(object):
 		if not os.path.exists(folder):
 			os.makedirs(folder)
 
-		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + str(points) + '.png'
+		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + ' ' + str(points) + '.png'
 		fig.savefig(figName)
 		plt.close(fig)
 
