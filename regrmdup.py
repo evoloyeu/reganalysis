@@ -1,6 +1,7 @@
 import csv, sys, os, time, hashlib, shutil, random
 from pylab import *
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import MultipleLocator
 from scipy.stats import pearsonr, linregress
 import numpy as np
@@ -180,9 +181,9 @@ class prepross(object):
 		self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'
 		self.dataDir, self.errPlotsDir = self.currDir+'data/', self.currDir+'errPlotsT1/'
 
-		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits_'+time.strftime('%Y%m%d')+'/']
+		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits_'+time.strftime('%Y%m%d')+'/', self.currDir+'3d/']
 
-		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.errPlotsDir+'mae/point/L/', self.errPlotsDir+'mae/point/Q/', self.errPlotsDir+'mae/r/L/', self.errPlotsDir+'mae/r/Q/', self.errPlotsDir+'mape/point/L/', self.errPlotsDir+'mape/point/Q/', self.errPlotsDir+'mape/r/L/', self.errPlotsDir+'mape/r/Q/', self.dataDir+'T1/L/', self.dataDir+'T3/L/', self.dataDir+'T1/Q/', self.dataDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir]
+		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.errPlotsDir+'mae/point/L/', self.errPlotsDir+'mae/point/Q/', self.errPlotsDir+'mae/r/L/', self.errPlotsDir+'mae/r/Q/', self.errPlotsDir+'mape/point/L/', self.errPlotsDir+'mape/point/Q/', self.errPlotsDir+'mape/r/L/', self.errPlotsDir+'mape/r/Q/', self.dataDir+'T1/L/', self.dataDir+'T3/L/', self.dataDir+'T1/Q/', self.dataDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/']
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
@@ -303,6 +304,7 @@ class prepross(object):
 		self.testSetsStats()
 		# create predictors
 		self.formulaV1(rw,pw)
+		self.rw,self.pw = rw, pw
 		# predicting
 		for x in xrange(0,len(self.fTestStatFileNameList)):
 			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1)
@@ -894,8 +896,8 @@ class prepross(object):
 					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 
 					# r_value = float(format(r, '.4f'))
-					slope, intercept = self.regressionPlot(xdata, ydata, r_value, 1, xaxis, yaxis, self.linear_plots_ori)
-					a,b,c = self.regressionPlot(xdata, ydata, r_value, 2, xaxis, yaxis, self.quadratic_plots_ori)
+					slope, intercept = self.regressionPlot(xdata, ydata, r_value, 1, xaxis, yaxis, self.linear_plots_ori, len(ydata))
+					a,b,c = self.regressionPlot(xdata, ydata, r_value, 2, xaxis, yaxis, self.quadratic_plots_ori, len(ydata))
 
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
@@ -1006,7 +1008,7 @@ class prepross(object):
 		fig.savefig(figName)
 		plt.close(fig)
 
-	def regressionPlot(self, xdata, ydata, r_value, power, xaxis, yaxis, plotDir):
+	def regressionPlot(self, xdata, ydata, r_value, power, xaxis, yaxis, plotDir, points):
 		fig = plt.figure()
 		xarray, yarray = np.array(xdata), np.array(ydata)
 		z = np.polyfit(xarray, yarray, power)
@@ -1110,7 +1112,7 @@ class prepross(object):
 		if not os.path.exists(folder):
 			os.makedirs(folder)
 
-		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + '.png'
+		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + str(points) + '.png'
 		fig.savefig(figName)
 		plt.close(fig)
 
@@ -2183,6 +2185,13 @@ class prepross(object):
 			suffix = 'Q'
 			tSuffix = 'Quadratic'		
 
+		# 3D plots
+		figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'.png'
+		# figName = self.errPlotsDir+'mae/point/'+suffix+'/'+prefix[3:]+'_pMAE_'+suffix+'.png'
+		title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
+		self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
+
+		"""
 		# points vs MAE
 		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
 		ytitle = 'MAE from '+prefix[3:]
@@ -2210,6 +2219,7 @@ class prepross(object):
 		title = 'coefficients vs MAPE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
 		figName = self.errPlotsDir+'mape/r/'+suffix+'/'+prefix[3:]+'_rMAPE_'+suffix+'.png'
 		self.errScatter(xtitle, ytitle, title, rList, mapeList, figName, 'r', 'mape')
+		"""
 
 	def gradePairs(self, testY, testXs, minList, maxList):
 		resultPairs, pairsList, xCrsNums = [], [], []
@@ -2308,6 +2318,38 @@ class prepross(object):
 		# ax.grid(which = 'minor')
 
 		plt.grid(True)
+		# plt.show()
+		fig.savefig(figName)
+		plt.close(fig)
+
+	def maerp3DPlots(self, point, r, MAE, figName, title):
+		# plot 3D graph
+		fig = plt.figure()
+		ax = Axes3D(fig)
+
+		ax.scatter(point, r, MAE, c='r', marker='o')
+		ax.set_xlabel('Sample Points', fontsize='medium')
+		ax.set_ylabel('Pearson r', fontsize='medium')
+		ax.set_zlabel('MAE', fontsize='medium', rotation=90)
+		plt.title(title)
+
+		ax.set_xlim3d(0, 120)
+		ax.set_ylim3d(-1.0, 1.0)
+		ax.set_zlim3d(0.0, max(MAE)+0.5)
+
+		ax.xaxis.set_minor_locator(MultipleLocator(2))
+		ax.xaxis.set_major_locator(MultipleLocator(10))
+		plt.xticks(rotation=90, fontsize='small')
+
+		ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+		ax.yaxis.set_major_locator(MultipleLocator(0.1))
+		plt.yticks(rotation=90, fontsize='small')
+
+		ax.zaxis.set_minor_locator(MultipleLocator(0.1))
+		ax.zaxis.set_major_locator(MultipleLocator(0.5))
+
+		ax.view_init(elev=27, azim=27)
+		# plt.grid(True)
 		# plt.show()
 		fig.savefig(figName)
 		plt.close(fig)
