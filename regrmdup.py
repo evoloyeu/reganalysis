@@ -151,6 +151,8 @@ class prepross(object):
 		rwList = [1.4,1.4,1.2,1.1]
 		pwList = [1,1,1,1]
 		self.coefficientList = ['Pearson']
+		# define the predictor course: ALL: use common predictors based on the picking criteria
+		self.predictorCourses = ['CSC 115', 'ALL']
 
 		# weights dictionary: 
 		# key: the threshold; value: a dictionary with keys of train data length and value of weights
@@ -178,7 +180,7 @@ class prepross(object):
 		self.matrixDir = path+'matrix/'
 		# self.currDir = path+time.strftime('%Y%m%d')+'_'+self.trainYrsText+'/'+self.coe+'/'+str(self.threshold)+'/'
 		# self.currDir = path+time.strftime('%Y%m%d')+'/'+self.trainYrsText+'/'+self.coe+'/'+str(self.threshold)+'/'
-		self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'
+		self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'
 		self.dataDir, self.errPlotsDir = self.currDir+'data/', self.currDir+'errPlotsT1/'
 
 		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits_'+time.strftime('%Y%m%d')+'/', self.currDir+'3d/']
@@ -221,10 +223,10 @@ class prepross(object):
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
-			self.linearPredictResultsListTop1.append(self.dataDir + 'T1/L/PGrades_' + filename +'_LT1.csv')
-			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'T1/L/PAveErr_' + filename +'_LT1.csv')
-			self.quadrPredictResultsListTop1.append(self.dataDir + 'T1/Q/PGrades_' + filename +'_QT1.csv')
-			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'T1/Q/PAveErr_' + filename +'_QT1.csv')
+			self.linearPredictResultsListTop1.append(self.dataDir + 'T1/L/PGrades_' + filename + '_' + self.proPredictor + '_LT1.csv')
+			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'T1/L/PAveErr_' + filename + '_' + self.proPredictor + '_LT1.csv')
+			self.quadrPredictResultsListTop1.append(self.dataDir + 'T1/Q/PGrades_' + filename + '_' + self.proPredictor + '_QT1.csv')
+			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'T1/Q/PAveErr_' + filename + '_' + self.proPredictor + '_QT1.csv')
 
 			self.linearPredictResultsListTop3.append(self.dataDir + 'T3/L/PGrades_' + filename +'_LT3.csv')
 			self.linearPredictResultsAveErrTop3.append(self.dataDir + 'T3/L/PAveErr_' + filename +'_LT3.csv')
@@ -258,6 +260,9 @@ class prepross(object):
 		self.linearTop1Top3Stats, self.quadraticTop1Top3Stats = self.dataDir+'LT1T3Stats_'+self.trainYrsText+'.csv', self.dataDir+'QT1T3Stats_'+self.trainYrsText+'.csv'
 		self.linearQuadraticTop1Stats, self.linearQuadraticTop3Stats = self.dataDir+'LQT1Stats_'+self.trainYrsText+'.csv', self.dataDir+'LQT3Stats_'+self.trainYrsText+'.csv'
 
+		if self.proPredictor != 'ALL':
+			self.top1FactorsFile = self.pearsoncorr
+
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
 		fileNameList = []
 		for x in xrange(0,19):
@@ -284,34 +289,39 @@ class prepross(object):
 		# self.matrixBuilder()
 		for coe in self.coefficientList:
 			self.coe = coe
-			for yrList in self.trainYrsList:
-				for threshold in self.thresholdList:
-					self.threshold = threshold
-					self.trainYrs = yrList
-					self.statsPath()
-					self.prepare()
-					self.testWeights()
-					self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
+			for proPredictor in self.predictorCourses:
+				self.proPredictor = proPredictor
+				for yrList in self.trainYrsList:
+					for threshold in self.thresholdList:
+						self.threshold = threshold
+						self.trainYrs = yrList
+						self.statsPath()
+						self.prepare()						
+						self.predicting(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 
-					# # todo: stats
-					if self.top1top3Stats:
-						self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
-						self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
-						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
-						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+						# # todo: stats
+						if self.top1top3Stats and (self.proPredictor == 'ALL'):
+							self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
+							self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
+							self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+							self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
 
 	def predicting(self, rw, pw):
 		self.testSetsStats()
-		# create predictors
-		self.formulaV1(rw,pw)
-		self.rw,self.pw = rw, pw
+
+		if self.proPredictor == 'ALL':
+			self.testWeights()
+			# create predictors
+			self.formulaV1(rw,pw)
+			self.rw,self.pw = rw, pw
 		# predicting
 		for x in xrange(0,len(self.fTestStatFileNameList)):
 			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1)
 			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2)
 
-			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop3[x], self.linearPredictResultsAveErrTop3[x], 1)
-			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop3[x], self.quadrPredictResultsAveErrTop3[x], 2)
+			if self.proPredictor == 'ALL':
+				self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop3[x], self.linearPredictResultsAveErrTop3[x], 1)
+				self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop3[x], self.quadrPredictResultsAveErrTop3[x], 2)
 
 	def prepare(self):
 		self.techCrs()
@@ -328,7 +338,10 @@ class prepross(object):
 		self.techCrsHists()
 
 		# compute correlation coefficients and draw correlation plots
-		self.corrPlot(self.CRS_STU, self.pearsoncorr)
+		if self.proPredictor == 'ALL':
+			self.corrPlot(self.CRS_STU, self.pearsoncorr)
+		else:
+			self.corrPlotOneProPredictor(self.CRS_STU, self.pearsoncorr)
 
 	def testSetsStats(self):
 		# compute the stats data for the test datasets
@@ -815,24 +828,11 @@ class prepross(object):
 
 	def corrPlot(self, source, corr):
 		reader = csv.reader(open(source), delimiter=',')
-		if source == self.crsMatrix:
-			reader.next()
-
 		header = reader.next()
 
 		matrix = []
 		for row in reader:
-			cnt, items = 0, []
-			if source == self.crsMatrix:
-				items = row[3:]
-			else:
-				items = row[2:]
-
-			for item in items:
-				if item.isdigit() and float(item) < 10:
-					cnt = cnt + 1
-			if cnt >= self.threshold:
-				matrix.append(row)
+			matrix.append(row)
 
 		w = csv.writer(open(corr, 'w'))
 		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', '#points', 'pValue', 'stderr', 'slope', 'intercept', 'a', 'b', 'c', 'R^2', 'xmin', 'xmax'])
@@ -951,6 +951,166 @@ class prepross(object):
 				for indx in xrange(2,len(nocommstuList)):
 					wnocommstulst.writerow(['', nocommstuList[indx][0]+nocommstuList[indx][1]])
 				wnocommstulst.writerow([])
+
+		self.coefficientPointsPlot(rlist, plist)
+
+		if len(nocorrDict) > 0:
+			nocorr = self.dataDir+'nocorr/no_corr_list_fre.csv'
+			wnocorr = csv.writer(open(nocorr, 'w'))
+			wnocorr.writerow(['Course', '#Course'])
+			wnocorr.writerows(nocorrDict.items())
+
+		if len(nocommstuDict) > 0:
+			nocommstu = self.dataDir+'nocomstu/nocomstu_list_fre.csv'
+			wnocom = csv.writer(open(nocommstu, 'w'))
+			wnocom.writerow(['Course', '#Course'])
+			wnocom.writerows(nocommstuDict.items())
+
+		if len(noCorrListTable) > 0:
+			wnocorrlst.writerows(noCorrListTable)
+
+		if len(nocommstuList) > 0:
+			wnocommstulst.writerow([])
+			nocomList.sort(key=itemgetter(0), reverse=True)
+			freq = Counter(item[0] for item in nocomList)
+			nocomList = sorted(nocomList, key=lambda i: freq[i[0]], reverse=True)
+
+			isHeader = True
+			for indx in xrange(0, len(nocomList)):
+				if isHeader:
+					wnocommstulst.writerow(nocomList[indx])
+					isHeader = False
+				else:
+					wnocommstulst.writerow(['', nocomList[indx][1]])
+
+				if (indx < len(nocomList)-1) and (nocomList[indx][0] != nocomList[indx+1][0]):
+					isHeader = True
+
+	def corrPlotOneProPredictor(self, source, corr):
+		reader = csv.reader(open(source), delimiter=',')
+		# skip header
+		header = reader.next()
+
+		matrix, proPredictorCourse = [], ''
+		proPredictorSubj, proPredictorNum = self.proPredictor.split(' ')
+		for row in reader:
+			matrix.append(row)
+			if (proPredictorSubj == row[0]) and (proPredictorNum == row[1]):
+				proPredictorCourse = row
+
+		w = csv.writer(open(corr, 'w'))
+		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', '#points', 'Pxy', 'pValue', 'stderr', 'slope', 'intercept', 'a', 'b', 'c', 'R^2', 'xmin', 'xmax'])
+		wnan = csv.writer(open(self.nancsv, 'w'))
+
+		cnt, nocorrDict, nocommstuDict = 0, {}, {}
+		nocorrlst = self.dataDir+'nocorr/no_corr_list.csv'
+		nocommstulst = self.dataDir+'nocomstu/nocomstu_list.csv'
+		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
+
+		rlist, plist = [],[]
+		for x in xrange(0,len(matrix)):
+			# course is a row with all marks
+			newCourse = matrix[x]
+			# the first character of the course number, which indicates which year the course is designed, e.g.:1,2,3,4
+			yr = newCourse[1][0]
+			proPredictorYr = proPredictorNum[0]
+			noCorrList, nocommstuList = [], []
+
+			if int(yr) > int(proPredictorYr):
+				cnt += 1
+				xaxis, yaxis =  proPredictorCourse[0]+' '+proPredictorCourse[1]+' Grades', newCourse[0]+' '+newCourse[1]+' Grades'
+
+				xdata, ydata = [], []
+				for index in xrange(2, len(newCourse)):
+					ix, iy = proPredictorCourse[index], newCourse[index]
+					if ix.isdigit() and iy.isdigit():
+						xdata.append(float(ix))
+						ydata.append(float(iy))
+
+				if len(xdata) == 0:
+					cnt += 1
+					nocommstuList.append(newCourse)
+					nocomList.append([proPredictorCourse[0]+' '+proPredictorCourse[1], newCourse[0]+' '+newCourse[1]])
+					print 'cnt:',cnt,'no common students course pair,', 'len:', len(ydata), proPredictorCourse[0],proPredictorCourse[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
+					continue
+
+				if len(xdata) < self.threshold:
+					cnt += 1
+					print 'cnt:',cnt,'less than threshold course pair,', 'len:', len(ydata), proPredictorCourse[0],proPredictorCourse[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
+					continue
+
+				(r, p) = pearsonr(xdata, ydata)
+				if str(r) == 'nan':
+					noCorrList.append(newCourse)
+					cnt += 1
+					print 'cnt:',cnt,'no Pearson r course pair,', 'len:', len(ydata), proPredictorCourse[0],proPredictorCourse[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
+					wnan.writerow([proPredictorCourse[0]+proPredictorCourse[1],newCourse[0]+newCourse[1],'len:',len(ydata)])
+					wnan.writerow([proPredictorCourse[0]+proPredictorCourse[1]]+xdata)
+					wnan.writerow([newCourse[0]+newCourse[1]]+ydata)
+					wnan.writerow([])
+					continue
+
+				# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+				# format the parameters precision
+				slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+				r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
+
+				# r_value = float(format(r, '.4f'))
+				slope, intercept = self.regressionPlot(xdata, ydata, r_value, 1, xaxis, yaxis, self.linear_plots_ori, len(ydata))
+				a,b,c = self.regressionPlot(xdata, ydata, r_value, 2, xaxis, yaxis, self.quadratic_plots_ori, len(ydata))
+
+				slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
+
+				w.writerow([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+				rlist.append(r_value)
+				plist.append(len(ydata))
+				print 'cnt:', cnt, proPredictorCourse[0], proPredictorCourse[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope, 'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
+
+		if len(noCorrList) > 0:
+			if not os.path.exists(self.dataDir+'nocorr/'):
+				os.makedirs(self.dataDir+'nocorr/')
+
+			nocorrDict[proPredictorCourse[0]+proPredictorCourse[1]] = len(noCorrList)
+			# count the grades of the two courses taken by the students
+			lst = []
+			for record in noCorrList:
+				cnt1 = 0
+				for indx in xrange(2,len(proPredictorCourse)):
+					if record[indx].isdigit() and proPredictorCourse[indx].isdigit():
+						cnt1 += 1
+				lst.append([proPredictorCourse[0], proPredictorCourse[1], record[0], record[1], cnt1])
+
+			noCorrList.insert(0, proPredictorCourse)
+			if wnocorrlst == '':
+				wnocorrlst = csv.writer(open(nocorrlst, 'w'))
+			wnocorrlst.writerows(noCorrList)
+			
+			wnocorrlst.writerow([])
+			lst.sort(key=itemgetter(4), reverse=True)
+			wnocorrlst.writerows(lst)
+			wnocorrlst.writerow([])
+
+			noCorrListTable.append(['Course_1', 'Course_2', '#Student'])
+			[noCorrListTable.append([item[0]+' '+item[1], item[2]+' '+item[3], item[4]]) for item in lst]
+			noCorrListTable.append([])
+
+		if len(nocommstuList) > 0:
+			if not os.path.exists(self.dataDir+'nocomstu/'):
+				os.makedirs(self.dataDir+'nocomstu/')
+
+			nocommstuDict[proPredictorCourse[0] + proPredictorCourse[1]] = len(nocommstuList)
+			nocommstuList.insert(0, proPredictorCourse)
+
+			if wnocommstulst == '':
+				wnocommstulst = csv.writer(open(nocommstulst, 'w'))
+			wnocommstulst.writerows(nocommstuList)
+			wnocommstulst.writerow([])
+
+			wnocommstulst.writerow(['COURSE_1', 'COURSE_2'])
+			wnocommstulst.writerow([proPredictorCourse[0]+proPredictorCourse[1], nocommstuList[1][0]+nocommstuList[1][1]])
+			for indx in xrange(2,len(nocommstuList)):
+				wnocommstulst.writerow(['', nocommstuList[indx][0]+nocommstuList[indx][1]])
+			wnocommstulst.writerow([])
 
 		self.coefficientPointsPlot(rlist, plist)
 
@@ -2188,7 +2348,12 @@ class prepross(object):
 		# 3D plots
 		figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'.png'
 		# figName = self.errPlotsDir+'mae/point/'+suffix+'/'+prefix[3:]+'_pMAE_'+suffix+'.png'
-		title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
+		title = ''
+		if self.proPredictor == 'ALL':
+			title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
+		else:
+			title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
+
 		self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
 
 		"""
@@ -2335,7 +2500,8 @@ class prepross(object):
 
 		ax.set_xlim3d(0, 120)
 		ax.set_ylim3d(-1.0, 1.0)
-		ax.set_zlim3d(0.0, max(MAE)+0.5)
+		# ax.set_zlim3d(0.0, max(MAE)+0.5)
+		ax.set_zlim3d(0.0, 8.0)
 
 		ax.xaxis.set_minor_locator(MultipleLocator(2))
 		ax.xaxis.set_major_locator(MultipleLocator(10))
@@ -2349,8 +2515,6 @@ class prepross(object):
 		ax.zaxis.set_major_locator(MultipleLocator(0.5))
 
 		ax.view_init(elev=27, azim=27)
-		# plt.grid(True)
-		# plt.show()
 		fig.savefig(figName)
 		plt.close(fig)
 

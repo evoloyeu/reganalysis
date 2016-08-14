@@ -27,7 +27,8 @@ plt.title('Sample Points vs Pearson Coefficient vs MAE')
 
 ax.set_xlim3d(0, 120)
 ax.set_ylim3d(-1.0, 1.0)
-ax.set_zlim3d(0.0, max(MAE)+0.5)
+# ax.set_zlim3d(0.0, max(MAE)+0.5)
+ax.set_zlim3d(0.0, 8.0)
 
 ax.zaxis.set_minor_locator(MultipleLocator(0.1))
 ax.zaxis.set_major_locator(MultipleLocator(0.5))
