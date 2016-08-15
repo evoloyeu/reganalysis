@@ -223,10 +223,10 @@ class prepross(object):
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
-			self.linearPredictResultsListTop1.append(self.dataDir + 'T1/L/PGrades_' + filename + '_' + self.proPredictor + '_LT1.csv')
-			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'T1/L/PAveErr_' + filename + '_' + self.proPredictor + '_LT1.csv')
-			self.quadrPredictResultsListTop1.append(self.dataDir + 'T1/Q/PGrades_' + filename + '_' + self.proPredictor + '_QT1.csv')
-			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'T1/Q/PAveErr_' + filename + '_' + self.proPredictor + '_QT1.csv')
+			self.linearPredictResultsListTop1.append(self.dataDir + 'T1/L/PGrades_' + filename + '_' + self.proPredictor + '_' + self.threshold + '_LT1.csv')
+			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'T1/L/PAveErr_' + filename + '_' + self.proPredictor + '_' + self.threshold + '_LT1.csv')
+			self.quadrPredictResultsListTop1.append(self.dataDir + 'T1/Q/PGrades_' + filename + '_' + self.proPredictor + '_' + self.threshold + '_QT1.csv')
+			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'T1/Q/PAveErr_' + filename + '_' + self.proPredictor + '_' + self.threshold + '_QT1.csv')
 
 			self.linearPredictResultsListTop3.append(self.dataDir + 'T3/L/PGrades_' + filename +'_LT3.csv')
 			self.linearPredictResultsAveErrTop3.append(self.dataDir + 'T3/L/PAveErr_' + filename +'_LT3.csv')
