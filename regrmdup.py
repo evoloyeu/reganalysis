@@ -163,7 +163,7 @@ class prepross(object):
 		15:{2:1.4, 3:1.2, 4:1.2, 5:1.2},
 		20:{2:1.4, 3:1.2, 4:1.2, 5:1.2}
 		}
-		self.top1top3Stats = True
+		self.top1top3Stats = False
 
 	def statsPath(self):
 		pathList = self.regFileList[0].split('/')
@@ -223,10 +223,10 @@ class prepross(object):
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
-			self.linearPredictResultsListTop1.append(self.dataDir + 'T1/L/PGrades_' + filename + '_' + self.proPredictor + '_' + self.threshold + '_LT1.csv')
-			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'T1/L/PAveErr_' + filename + '_' + self.proPredictor + '_' + self.threshold + '_LT1.csv')
-			self.quadrPredictResultsListTop1.append(self.dataDir + 'T1/Q/PGrades_' + filename + '_' + self.proPredictor + '_' + self.threshold + '_QT1.csv')
-			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'T1/Q/PAveErr_' + filename + '_' + self.proPredictor + '_' + self.threshold + '_QT1.csv')
+			self.linearPredictResultsListTop1.append(self.dataDir + 'T1/L/PGrades_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_LT1.csv')
+			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'T1/L/PAveErr_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_LT1.csv')
+			self.quadrPredictResultsListTop1.append(self.dataDir + 'T1/Q/PGrades_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_QT1.csv')
+			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'T1/Q/PAveErr_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_QT1.csv')
 
 			self.linearPredictResultsListTop3.append(self.dataDir + 'T3/L/PGrades_' + filename +'_LT3.csv')
 			self.linearPredictResultsAveErrTop3.append(self.dataDir + 'T3/L/PAveErr_' + filename +'_LT3.csv')
@@ -2245,7 +2245,7 @@ class prepross(object):
 		# [errorave, coefficient, pointFreq]
 		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList = [], [], [], [], [], []
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
-		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		errRangeStdErrList.append(header)
 
 		for pairsList in predictingList:
@@ -2308,7 +2308,13 @@ class prepross(object):
 						gradesArr = np.array(predictGrades[2:])
 						mean = format(np.average(gradesArr), '.2f')
 
-						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
+						# compute the real grades' mean and std
+						# print 'ygrades[2:]: ', ygrades[2:]
+						realGrades = np.array([float(grade) for grade in ygrades[2:]])
+						rMean = format(np.average(realGrades), '.2f')
+						rStd = format(np.std(realGrades), '.2f')
+
+						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
 						for error in errorList:
 							tempList.append(error)
 						
