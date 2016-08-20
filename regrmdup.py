@@ -151,6 +151,7 @@ class prepross(object):
 		self.coefficientList = ['Pearson']
 		# define the predictor course: ALL: use common predictors based on the picking criteria
 		self.predictorCourses = ['CSC 115', 'ALL']
+		# self.predictorCourses = ['CSC 115']
 
 		# weights dictionary: 
 		# key: the threshold; value: a dictionary with keys of train data length and value of weights
@@ -186,9 +187,9 @@ class prepross(object):
 
 		self.dataDir, self.errPlotsDir = self.currDir+'data/', self.currDir+'errPlotsT1/'
 
-		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits_'+time.strftime('%Y%m%d')+'/', self.currDir+'3d/']
+		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits_'+time.strftime('%Y%m%d')+'/', self.currDir+'3d/', self.currDir+'yrVSyr/']
 
-		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.errPlotsDir+'mae/point/L/', self.errPlotsDir+'mae/point/Q/', self.errPlotsDir+'mae/r/L/', self.errPlotsDir+'mae/r/Q/', self.errPlotsDir+'mape/point/L/', self.errPlotsDir+'mape/point/Q/', self.errPlotsDir+'mape/r/L/', self.errPlotsDir+'mape/r/Q/', self.dataDir+'T1/L/', self.dataDir+'T3/L/', self.dataDir+'T1/Q/', self.dataDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/']
+		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.errPlotsDir+'mae/point/L/', self.errPlotsDir+'mae/point/Q/', self.errPlotsDir+'mae/r/L/', self.errPlotsDir+'mae/r/Q/', self.errPlotsDir+'mape/point/L/', self.errPlotsDir+'mape/point/Q/', self.errPlotsDir+'mape/r/L/', self.errPlotsDir+'mape/r/Q/', self.dataDir+'T1/L/', self.dataDir+'T3/L/', self.dataDir+'T1/Q/', self.dataDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr]
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
@@ -321,6 +322,8 @@ class prepross(object):
 							self.statsPath()
 							self.prepare()						
 							self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
+							# plot yr vs yr scatter plots
+							self.gradePointsDistribution()
 
 							# # todo: stats
 							if self.errMerge:
@@ -334,6 +337,8 @@ class prepross(object):
 						self.statsPath()
 						self.prepare()						
 						self.predicting4Specific()
+						# plot yr vs yr scatter plots
+						self.gradePointsDistribution()
 
 						if self.errMerge:
 							self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
@@ -2638,6 +2643,7 @@ class prepross(object):
 				w.writerow(row)
 			w.writerow([])
 
+	# FOR MTIS ASSIGNMENTS ONLY
 	def matrixBuilder(self):
 		self.threshold, randomOrderRegList = 1, []
 		self.statsPath()		
@@ -2696,6 +2702,141 @@ class prepross(object):
 
 		writer.writerow(newHeader)
 		writer.writerows(toWriteList)
+
+	# COLLECT THE GRADES POINTS FOR EVERY PREDICTOR AND PREDICTING COURSE PAIRS, AND THEN PLOT THESE POINTS IN SCATTER SCHEME
+	# AND THESE GRAPHS ARE STORED IN self.yrvsyr
+	def gradePointsDistribution(self):
+		# BUILDING COURSE GRADES DICTIONARY KEY:SUBJECT_CODE+COURSE_NUMBER; VALUE: COURSE GRADES OF ALL STUDENTS
+		# DATASOURCE: self.CRS_STU
+		courseGradeDict = {}
+		r = csv.reader(open(self.CRS_STU), delimiter=',')
+		r.next()
+		for record in r:
+			key = record[0]+record[1]
+			courseGradeDict[key] = record
+
+		# DATASOURCE: self.top1FactorsFile
+		predictingPairs = []
+		r = csv.reader(open(self.top1FactorsFile), delimiter=',')
+		r.next()
+		for pair in r:
+			# SAVE THE PREDICTOR AND PREDICTING COURSE
+			predictingPairs.append(pair[:4])
+		
+		# if not (self.proPredictor == 'ALL'):
+		i1i2, i1i3, i1i4, i2i3, i2i4 = [[],[]],[[],[]],[[],[]],[[],[]],[[],[]]
+		for pair in predictingPairs:
+			predictorGrades = courseGradeDict[pair[0]+pair[1]][2:]
+			predictedCourseGrades = courseGradeDict[pair[2]+pair[3]][2:]
+			# THE FIRST DIGIT OF COURSE_NUMBER INDICATING THE YEAR WHEN THE COURSE ARE PROVIDED 
+			# AND THE VALUE OF THIS VARIABLE IS IN THE LIST OF [1, 2] WHICH INDICATES THE 1ST YEAR AND SECOND YEAR, RESPECTIVELY
+			predictorYr = pair[1][0]
+			predictedCourseYr = pair[3][0]
+
+			# THE PREDICTOR COURSE IS A 1ST YEAR COURSE, THEN PLOT 1ST VS 2ND/3RD/4TH, 1ST VS 2ND_3RD, 1ST VS 3RD_4TH AND 1ST VS 2ND_3RD_4TH SCATTER PLOTS
+			# GET THE PREDICTOR'S GRADE LIST
+			if int(predictorYr) == 1:
+				for x in xrange(0, len(predictorGrades)):
+					if predictorGrades[x].isdigit() and predictedCourseGrades[x].isdigit():
+						# SAVE 1ST VS 2ND POINT PAIRS
+						if int(predictedCourseYr) == 2:
+							i1i2[0].append(int(predictorGrades[x]))
+							i1i2[1].append(int(predictedCourseGrades[x]))
+						# SAVE 1ST VS 3RD POINT PAIRS
+						if int(predictedCourseYr) == 3:
+							i1i3[0].append(int(predictorGrades[x]))
+							i1i3[1].append(int(predictedCourseGrades[x]))
+						# SAVE 1ST VS 4TH POINT PAIRS
+						if int(predictedCourseYr) == 4:
+							i1i4[0].append(int(predictorGrades[x]))
+							i1i4[1].append(int(predictedCourseGrades[x]))
+			# THE PREDICTOR COURSE IS A 2ND YEAR COURSE, THEN PLOT 2ND VS 3RD/4TH AND 2ND VS 3RD_4TH PLOTS
+			elif int(predictorYr) == 2:
+				for x in xrange(0, len(predictorGrades)):
+					if predictorGrades[x].isdigit() and predictedCourseGrades[x].isdigit():
+						# SAVE 2ND VS 3RD POINT PAIRS
+						if int(predictedCourseYr) == 3:
+							i2i3[0].append(int(predictorGrades[x]))
+							i2i3[1].append(int(predictedCourseGrades[x]))
+						# SAVE 2ND VS 4TH POINT PAIRS
+						if int(predictedCourseYr) == 4:
+							i2i4[0].append(int(predictorGrades[x]))
+							i2i4[1].append(int(predictedCourseGrades[x]))
+
+		# self.yrvsyr: THE DIRECTORY TO SAVE THESE SCATTER PLOTS
+		# FOR THE CASE HAVING A PRO-PREDICTOR
+		if not (self.proPredictor == 'ALL'):
+			predictorYr = self.proPredictor.split(' ')[1][0]
+			if int(predictorYr) == 1:
+				# PLOT 1ST YEAR VS 2ND
+				self.yrVSyrScatter(i1i2[0],i1i2[1],r'%s vs 2nd year courses'%(self.proPredictor), r'%s grades'%(self.proPredictor), '2nd year courses grades',self.yrvsyr+self.proPredictor+'_i1i2.png')
+				# PLOT 1ST YEAR VS 3RD
+				self.yrVSyrScatter(i1i3[0],i1i3[1],r'%s vs 3rd year courses'%(self.proPredictor), r'%s grades'%(self.proPredictor), '3rd year courses grades',self.yrvsyr+self.proPredictor+'_i1i3.png')
+				# PLOT 1ST YEAR VS 4TH
+				self.yrVSyrScatter(i1i4[0],i1i4[1],r'%s vs 4th year courses'%(self.proPredictor), r'%s grades'%(self.proPredictor), '4th year courses grades',self.yrvsyr+self.proPredictor+'_i1i4.png')
+				# PLOT 1ST YEAR VS 2ND_3RD
+				self.yrVSyrScatter(i1i2[0]+i1i3[0],i1i2[1]+i1i3[1],r'%s vs 2nd & 3rd year courses'%(self.proPredictor), r'%s grades'%(self.proPredictor), '2nd & 3rd year courses grades',self.yrvsyr+self.proPredictor+'_i1i2_3.png')
+				# PLOT 1ST YEAR VS 3RD_4TH
+				self.yrVSyrScatter(i1i3[0]+i1i4[0],i1i3[1]+i1i4[1],r'%s vs 3rd & 4th year courses'%(self.proPredictor), r'%s grades'%(self.proPredictor), '3rd & 4th year courses grades',self.yrvsyr+self.proPredictor+'_i1i3_4.png')
+				# PLOT 1ST YEAR VS 2ND_3RD_4TH
+				self.yrVSyrScatter(i1i2[0]+i1i3[0]+i1i4[0],i1i2[1]+i1i3[1]+i1i4[1],r'%s vs 2nd, 3rd & 4th year courses'%(self.proPredictor), r'%s grades'%(self.proPredictor), '2nd, 3rd & 4th year courses grades',self.yrvsyr+self.proPredictor+'_i1i2_3_4.png')
+			elif int(predictorYr) == 2:
+				# PLOT 2ND YEAR VS 3RD
+				self.yrVSyrScatter(i2i3[0],i2i3[1],r'%s vs 3rd year courses'%(self.proPredictor), r'%s grades'%(self.proPredictor), '3rd year courses grades',self.yrvsyr+self.proPredictor+'_i2i3.png')
+				# PLOT 2ND YEAR VS 4TH
+				self.yrVSyrScatter(i2i4[0],i2i4[1],r'%s vs 4th year courses'%(self.proPredictor), r'%s grades'%(self.proPredictor), '4th year courses grades',self.yrvsyr+self.proPredictor+'_i2i4.png')
+				# PLOT 2ND YEAR VS 3rd_4TH
+				self.yrVSyrScatter(i2i3[0]+i2i4[0],i2i3[1]+i2i4[1],r'%s vs 3rd & 4th year courses'%(self.proPredictor), r'%s grades'%(self.proPredictor), '3rd & 4th year courses grades',self.yrvsyr+self.proPredictor+'_i2i3_4.png')
+
+		if (self.proPredictor == 'ALL'):
+			# THE CASE OF PICKING A PREDICTOR PREDICTION, THEN THE PREDICTORS ARE EITHER 1ST YEAR COURSE OR 2ND YEAR COURSE
+			# THE 1ST YEAR PREDICTORS ARE IN ONE GROUP AND 2ND YEAR PREDICTORS ARE IN ANOTHER GROUP
+			# ALSO, PLOT 1ST YEAR VS 2ND/3RD/4TH, 1ST VS 2ND_3RD, 1ST VS 3RD_4TH AND 1ST VS 2ND_3RD_4TH SCATTER PLOTS
+			# FOR THE 2ND YR PREDICTORS, PLOT 2ND VS 3RD/4TH AND 2ND VS 3RD_4TH PLOTS
+			# PLUS, COMBINE 1ST YEAR PREDICTORS AND 2ND YEAR PREDICTORS TOGETHER, THEN PLOT 1ST_2ND VS 3RD/4TH AND 1ST_2ND VS 3RD_4TH
+			# PLOT 1ST YEAR VS 2ND
+			self.yrVSyrScatter(i1i2[0],i1i2[1],'1st year courses vs 2nd year courses', '1st year courses grades', '2nd year courses grades',self.yrvsyr+'ALL_i1i2.png')
+			# PLOT 1ST YEAR VS 3RD
+			self.yrVSyrScatter(i1i3[0],i1i3[1],'1st year courses vs 3rd year courses', '1st year courses grades', '3rd year courses grades',self.yrvsyr+'ALL_i1i3.png')
+			# PLOT 1ST YEAR VS 4TH
+			self.yrVSyrScatter(i1i4[0],i1i4[1],'1st year courses vs 4th year courses', '1st year courses grades', '4th year courses grades',self.yrvsyr+'ALL_i1i4.png')
+			# PLOT 1ST YEAR VS 2ND_3RD
+			self.yrVSyrScatter(i1i2[0]+i1i3[0],i1i2[1]+i1i3[1],'1st year courses vs 2nd & 3rd year courses', '1st year courses grades', '2nd & 3rd year courses grades',self.yrvsyr+'ALL_i1i2_3.png')
+			# PLOT 1ST YEAR VS 3RD_4TH
+			self.yrVSyrScatter(i1i3[0]+i1i4[0],i1i3[1]+i1i4[1],'1st year courses vs 3rd & 4th year courses', '1st year courses grades', '3rd & 4th year courses grades',self.yrvsyr+'ALL_i1i3_4.png')
+			# PLOT 1ST YEAR VS 2ND_3RD_4TH
+			self.yrVSyrScatter(i1i2[0]+i1i3[0]+i1i4[0],i1i2[1]+i1i3[1]+i1i4[1],'1st year courses vs 2nd, 3rd & 4th year courses', '1st year courses grades', '2nd, 3rd & 4th year courses grades',self.yrvsyr+'ALL_i1i2_3_4.png')
+
+			# PLOT 2ND YEAR VS 3RD
+			self.yrVSyrScatter(i2i3[0],i2i3[1],'2nd year courses vs 3rd year courses', '2nd year courses grades', '3rd year courses grades',self.yrvsyr+'ALL_i2i3.png')
+			# PLOT 2ND YEAR VS 4TH
+			self.yrVSyrScatter(i2i4[0],i2i4[1],'2nd year courses vs 4th year courses', '2nd year courses grades', '4th year courses grades',self.yrvsyr+'ALL_i2i4.png')
+			# PLOT 2ND YEAR VS 3rd_4TH
+			self.yrVSyrScatter(i2i3[0]+i2i4[0],i2i3[1]+i2i4[1],'2nd year courses vs 3rd & 4th year courses', '2nd year courses grades', '3rd & 4th year courses grades',self.yrvsyr+'ALL_i2i3_4.png')
+
+			# PLOT 1ST_2ND YEAR VS 3rd
+			self.yrVSyrScatter(i1i3[0]+i2i3[0],i1i3[1]+i2i3[1],'1st & 2nd year courses vs 3rd year courses', '1st & 2nd year courses grades', '3rd year courses grades',self.yrvsyr+'ALL_i1_2i3.png')
+			# PLOT 1ST_2ND YEAR VS 4TH
+			self.yrVSyrScatter(i1i4[0]+i2i4[0],i1i4[1]+i2i4[1],'1st & 2nd year courses vs 4th year courses', '1st & 2nd year courses grades', '4th year courses grades',self.yrvsyr+'ALL_i1_2i4.png')
+			# PLOT 1ST_2ND YEAR VS 3rd_4TH
+			self.yrVSyrScatter(i1i3[0]+i1i4[0]+i2i3[0]+i2i4[0],i1i3[1]+i1i4[1]+i2i3[1]+i2i4[1],'1st & 2nd year courses vs 3rd & 4th year courses', '1st & 2nd year courses grades', '3rd & 4th year courses grades',self.yrvsyr+'ALL_i1_2i3_4.png')
+
+	def yrVSyrScatter(self,xdata,ydata,title,xlabel,ylabel,fname):
+		fig = plt.figure()
+		x = np.array(xdata)
+		y = np.array(ydata)
+
+		plt.plot(x, y, 'o', c='blue')
+
+		plt.xlabel(xlabel)
+		plt.ylabel(ylabel)
+		plt.title(title)
+
+		plt.grid(True)
+		# plt.show()
+		fig.savefig(fname)
+		plt.close(fig)
+
 
 prepare = splitRawData(sys.argv)
 prepare.doBatch()
