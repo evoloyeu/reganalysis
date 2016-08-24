@@ -162,7 +162,7 @@ class prepross(object):
 		15:{2:1.4, 3:1.2, 4:1.2, 5:1.2},
 		20:{2:1.4, 3:1.2, 4:1.2, 5:1.2}
 		}
-		self.errMerge = True
+		self.errMerge = False
 
 	def statsPath(self):
 		pathList = self.regFileList[0].split('/')
@@ -320,7 +320,7 @@ class prepross(object):
 							self.threshold = threshold
 							self.trainYrs = yrList
 							self.statsPath()
-							self.prepare()						
+							self.prepare()
 							self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 							# plot yr vs yr scatter plots
 							self.gradePointsDistribution()
@@ -335,7 +335,7 @@ class prepross(object):
 					for threshold in self.thresholdList:
 						self.threshold = threshold
 						self.statsPath()
-						self.prepare()						
+						self.prepare()
 						self.predicting4Specific()
 						# plot yr vs yr scatter plots
 						self.gradePointsDistribution()
@@ -1188,7 +1188,7 @@ class prepross(object):
 	def coefficientPointsPlot(self, rlist, plist):
 		fig = plt.figure()
 		xarray, yarray = np.array(plist), np.array(rlist)
-		plt.plot(xarray, yarray, '.')
+		plt.plot(xarray, yarray, '.', c='r')
 
 		plt.ylim(-1.0, 1.0)
 		ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
@@ -1299,7 +1299,7 @@ class prepross(object):
 						plt.title(r'$r=%s,y=%sx^2$'%(r_value, a))
 
 		xp = np.linspace(0, 9, 100)
-		plt.plot(xarray, yarray, '.', xp, p(xp), '-')
+		plt.plot(xarray, yarray, 'bo', xp, p(xp), '-')
 
 		plt.xlabel(xaxis)
 		plt.ylabel(yaxis)
@@ -2302,7 +2302,7 @@ class prepross(object):
 		# errw = csv.writer(open(aveErrResults, 'w'))
 		# errw.writerow(['aveErr', 'r', '#point'])
 		# [errorave, coefficient, pointFreq]
-		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList = [], [], [], [], [], []
+		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList = [], [], [], [], [], [], []
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
 		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		errRangeStdErrList.append(header)
@@ -2313,8 +2313,7 @@ class prepross(object):
 				# locate predicting equation; key: predicting course
 				key = ygrades[0] + ygrades[1]
 				predictors = predictorDict[key]
-				# linear: y = slope * x + intercept
-				# quadratic: y = ax^2+bx+c
+				# linear: y = slope * x + intercept;	quadratic: y = ax^2+bx+c
 				slope = intercept = coefficient = pointFreq = xSubj = xNum = ySubj = yNum = 0
 				for predictor in predictors:
 					xcourse, predictorCourse = xgrades[0] + xgrades[1], predictor[0] + predictor[1]
@@ -2374,10 +2373,13 @@ class prepross(object):
 						rStd = format(np.std(realGrades), '.2f')
 
 						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
-						for error in errorList:
-							tempList.append(error)
+						# for error in errorList:
+						# 	tempList.append(error)
 						
-						errRangeStdErrList.append(tempList)
+						errRangeStdErrList.append(tempList+errorList)
+						realEstPairList.append(ygrades)
+						realEstPairList.append(predictGrades)
+						realEstPairList.append([])
 
 						xgrades.insert(0, 'predictor')
 						ygrades.insert(0, 'real')
@@ -2401,6 +2403,8 @@ class prepross(object):
 						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
 
 		writer.writerows(errRangeStdErrList)
+		writer.writerow([])
+		writer.writerows(realEstPairList)
 
 		prefix, suffix = testReg.split('/')[-1].split('_')[0], ''
 		if power == 1:
@@ -2420,36 +2424,6 @@ class prepross(object):
 			title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+': using predictor of '+self.proPredictor+'; Threshold:'+str(self.threshold)
 
 		self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
-
-		"""
-		# points vs MAE
-		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-		ytitle = 'MAE from '+prefix[3:]
-		title = 'Sample points vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
-		figName = self.errPlotsDir+'mae/point/'+suffix+'/'+prefix[3:]+'_pMAE_'+suffix+'.png'
-		self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p', 'mae')
-
-		# r vs MAE
-		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-		ytitle = 'MAE from '+prefix[3:]
-		title = 'coefficients vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
-		figName = self.errPlotsDir+'/mae/r/'+suffix+'/'+prefix[3:]+'_rMAE_'+suffix+'.png'
-		self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r', 'mae')
-
-		# r vs MAPE
-		xtitle = 'sample points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-		ytitle = 'MAPE from '+prefix[3:]
-		title = 'Sample points vs MAPE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
-		figName = self.errPlotsDir+'mape/point/'+suffix+'/'+prefix[3:]+'_pMAPE_'+suffix+'.png'
-		self.errScatter(xtitle, ytitle, title, pointsList, mapeList, figName, 'p', 'mape')
-
-		# points vs MAPE
-		xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-		ytitle = 'MAPE from '+prefix[3:]
-		title = 'coefficients vs MAPE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrs[0]+'-'+self.trainYrs[-1]+'; Threshold:'+str(self.threshold)
-		figName = self.errPlotsDir+'mape/r/'+suffix+'/'+prefix[3:]+'_rMAPE_'+suffix+'.png'
-		self.errScatter(xtitle, ytitle, title, rList, mapeList, figName, 'r', 'mape')
-		"""
 
 	def gradePairs(self, testY, testXs, minList, maxList):
 		resultPairs, pairsList, xCrsNums = [], [], []
