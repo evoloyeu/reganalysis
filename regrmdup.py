@@ -2302,7 +2302,7 @@ class prepross(object):
 		# errw = csv.writer(open(aveErrResults, 'w'))
 		# errw.writerow(['aveErr', 'r', '#point'])
 		# [errorave, coefficient, pointFreq]
-		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList = [], [], [], [], [], [], []
+		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList, pairRangeList = [], [], [], [], [], [], [], []
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
 		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		errRangeStdErrList.append(header)
@@ -2379,7 +2379,12 @@ class prepross(object):
 						errRangeStdErrList.append(tempList+errorList)
 						realEstPairList.append(ygrades)
 						realEstPairList.append(predictGrades)
-						realEstPairList.append([])
+						actualGradesSorted = np.sort(ygrades[2:])
+						predictedGradesSorted = np.sort(predictGrades[2:])
+						pairRangeList.append([ygrades[0], ygrades[1], actualGradesSorted[0], actualGradesSorted[-1], predictedGradesSorted[0], predictedGradesSorted[-1]])
+						# realEstPairList.append()
+						# realEstPairList.append()
+						# realEstPairList.append([])
 
 						xgrades.insert(0, 'predictor')
 						ygrades.insert(0, 'real')
@@ -2403,6 +2408,11 @@ class prepross(object):
 						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
 
 		writer.writerows(errRangeStdErrList)
+		writer.writerow([])
+
+		writer.writerow(['ySubj', 'yNum', 'rMin', 'rMax', 'pMin', 'pMax'])
+		writer.writerows(pairRangeList)
+
 		writer.writerow([])
 		writer.writerows(realEstPairList)
 
