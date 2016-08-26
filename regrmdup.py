@@ -1223,15 +1223,15 @@ class prepross(object):
 			if r_value != 0.0:
 				if intercept > 0:
 					# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(slope) + r'$x+$'+ str(intercept))
-					plt.title(r'$r=%s,y=%sx+%s$'%(r_value, slope, intercept))
+					plt.title(r'$r=%s,y=%sx+%s$'%(r_value, slope, intercept)+r'$;Points:%s$'%(points))
 				elif intercept < 0:
 					# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(slope) + r'$x$' + str(intercept))
-					plt.title(r'$r=%s,y=%sx%s$'%(r_value, slope, intercept))
+					plt.title(r'$r=%s,y=%sx%s$'%(r_value, slope, intercept)+r'$;Points:%s$'%(points))
 				else:
-					plt.title(r'$r=%s,y=%sx$'%(r_value, slope))
+					plt.title(r'$r=%s,y=%sx$'%(r_value, slope)+r'$;Points:%s$'%(points))
 			else:
 				# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(intercept))
-				plt.title(r'$r=%s,y=%s$'%(r_value, intercept))
+				plt.title(r'$r=%s,y=%s$'%(r_value, intercept)+r'$;Points:%s$'%(points))
 		elif power == 2:
 			a, b, c = z
 			a, b, c = [float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
@@ -1239,30 +1239,30 @@ class prepross(object):
 				if b > 0:
 					if c > 0:
 						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
-						plt.title(r'$r=%s,y=%sx+%s$'%(r_value, b, c))
+						plt.title(r'$r=%s,y=%sx+%s$'%(r_value, b, c)+r'$;Points:%s$'%(points))
 					elif c < 0:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
-						plt.title(r'$r=%s,y=%sx%s$'%(r_value, b, c))
+						plt.title(r'$r=%s,y=%sx%s$'%(r_value, b, c)+r'$;Points:%s$'%(points))
 					else:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
-						plt.title(r'$r=%s,y=%sx$'%(r_value, b))
+						plt.title(r'$r=%s,y=%sx$'%(r_value, b)+r'$;Points:%s$'%(points))
 				elif b < 0:
 					if c > 0:
 						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
-						plt.title(r'$r=%s,y=%sx+%s$'%(r_value, b, c))
+						plt.title(r'$r=%s,y=%sx+%s$'%(r_value, b, c)+r'$;Points:%s$'%(points))
 					elif c < 0:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
-						plt.title(r'$r=%s,y=%sx%s$'%(r_value, b, c))
+						plt.title(r'$r=%s,y=%sx%s$'%(r_value, b, c)+r'$;Points:%s$'%(points))
 					else:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
-						plt.title(r'$r=%s,y=%sx$'%(r_value, b))
+						plt.title(r'$r=%s,y=%sx$'%(r_value, b)+r'$;Points:%s$'%(points))
 				else:
 					if c > 0:
 						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
-						plt.title(r'$r=%s,y=%s$'%(r_value, c))
+						plt.title(r'$r=%s,y=%s$'%(r_value, c)+r'$;Points:%s$'%(points))
 					elif c < 0:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
-						plt.title(r'$r=%s,y=%s$'%(r_value, c))
+						plt.title(r'$r=%s,y=%s$'%(r_value, c)+r'$;Points:%s$'%(points))
 					# else:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
 						# plt.title(r'$r=%s,x=%s$'%(r_value))
@@ -1270,33 +1270,33 @@ class prepross(object):
 				if b > 0:
 					if c > 0:
 						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
-						plt.title(r'$r=%s,y=%sx^2+%sx+%s$'%(r_value, a, b, c))
+						plt.title(r'$r=%s,y=%sx^2+%sx+%s$'%(r_value, a, b, c)+r'$;Points:%s$'%(points))
 					elif c < 0:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
-						plt.title(r'$r=%s,y=%sx^2+%sx%s$'%(r_value, a, b, c))
+						plt.title(r'$r=%s,y=%sx^2+%sx%s$'%(r_value, a, b, c)+r'$;Points:%s$'%(points))
 					else:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
-						plt.title(r'$r=%s,y=%sx^2+%sx$'%(r_value, a, b))
+						plt.title(r'$r=%s,y=%sx^2+%sx$'%(r_value, a, b)+r'$;Points:%s$'%(points))
 				elif b < 0:
 					if c > 0:
 						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
-						plt.title(r'$r=%s,y=%sx^2%sx+%s$'%(r_value, a, b, c))
+						plt.title(r'$r=%s,y=%sx^2%sx+%s$'%(r_value, a, b, c)+r'$;Points:%s$'%(points))
 					elif c < 0:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
-						plt.title(r'$r=%s,y=%sx^2%sx%s$'%(r_value, a, b, c))
+						plt.title(r'$r=%s,y=%sx^2%sx%s$'%(r_value, a, b, c)+r'$;Points:%s$'%(points))
 					else:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
-						plt.title(r'$r=%s,y=%sx^2%sx$'%(r_value, a, b))
+						plt.title(r'$r=%s,y=%sx^2%sx$'%(r_value, a, b)+r'$;Points:%s$'%(points))
 				else:
 					if c > 0:
 						# plt.title(r'$r=$' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + r'$+$' + str(c))
-						plt.title(r'$r=%s,y=%sx^2+%s$'%(r_value, a, c))
+						plt.title(r'$r=%s,y=%sx^2+%s$'%(r_value, a, c)+r'$;Points:%s$'%(points))
 					elif c < 0:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b) + r'$x$' + str(c))
-						plt.title(r'$r=%s,y=%sx^2%s$'%(r_value, a, c))
+						plt.title(r'$r=%s,y=%sx^2%s$'%(r_value, a, c)+r'$;Points:%s$'%(points))
 					else:
 						# plt.title(r'$r = $' + str(r_value) + r'$, y = $' + str(a) + r'$x^2$' + r'$+$' + str(b))
-						plt.title(r'$r=%s,y=%sx^2$'%(r_value, a))
+						plt.title(r'$r=%s,y=%sx^2$'%(r_value, a)+r'$;Points:%s$'%(points))
 
 		xp = np.linspace(0, 9, 100)
 		plt.plot(xarray, yarray, 'bo', xp, p(xp), '-')
@@ -2319,8 +2319,10 @@ class prepross(object):
 					xcourse, predictorCourse = xgrades[0] + xgrades[1], predictor[0] + predictor[1]
 					if xcourse == predictorCourse:
 						# !!!caution: for the index
-						xSubj,xNum,ySubj,yNum, coefficient,pointFreq = predictor[0], predictor[1], predictor[2], predictor[3], predictor[4], predictor[5]
-						slope,intercept,a,b,c = predictor[9], predictor[10], predictor[11], predictor[12], predictor[13]
+						# xSubj,xNum,ySubj,yNum, coefficient,pointFreq = predictor[0], predictor[1], predictor[2], predictor[3], predictor[4], predictor[5]
+						# slope,intercept,a,b,c = predictor[9], predictor[10], predictor[11], predictor[12], predictor[13]
+						xSubj,xNum,ySubj,yNum, coefficient,pointFreq, slope,intercept,a,b,c = predictor[:6]+predictor[9:14]
+						# slope,intercept,a,b,c = predictor[9:14]
 						pointsList.append(float(pointFreq))
 						rList.append(float(coefficient))
 						# compute errors: aesum: absolute err sum; aepsum: absolute err percent sum
@@ -2443,7 +2445,7 @@ class prepross(object):
 			xindex = testXs.index(x)
 			xmin, xmax = minList[xindex],maxList[xindex]
 			for index in xrange(2,len(testY)):
-				if (x[index].isdigit() and testY[index].isdigit()) and (x[index]>=xmin) and (x[index]<=xmax):
+				if (x[index].isdigit() and testY[index].isdigit()) and (float(x[index])>=float(xmin)) and (float(x[index])<=float(xmax)):
 					xgrades.append(x[index])
 					ygrades.append(testY[index])
 
