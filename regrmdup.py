@@ -2304,7 +2304,7 @@ class prepross(object):
 		# [errorave, coefficient, pointFreq]
 		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList, pairRangeList = [], [], [], [], [], [], [], []
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
-		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		errRangeStdErrList.append(header)
 
 		for pairsList in predictingList:
@@ -2363,10 +2363,11 @@ class prepross(object):
 
 						errArr = np.array(errorList)
 						errorave = format(np.average(errArr), '.2f')
-						std = format(np.std(errArr), '.2f')
+						errStd = format(np.std(errArr), '.2f')
 
 						gradesArr = np.array(predictGrades[2:])
 						mean = format(np.average(gradesArr), '.2f')
+						std = format(np.std(gradesArr), '.2f')
 
 						# compute the real grades' mean and std
 						# print 'ygrades[2:]: ', ygrades[2:]
@@ -2374,7 +2375,7 @@ class prepross(object):
 						rMean = format(np.average(realGrades), '.2f')
 						rStd = format(np.std(realGrades), '.2f')
 
-						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
+						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
 						# for error in errorList:
 						# 	tempList.append(error)
 						
