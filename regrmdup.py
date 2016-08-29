@@ -2377,18 +2377,14 @@ class prepross(object):
 						rStd = format(np.std(realGrades), '.2f')
 
 						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
-						# for error in errorList:
-						# 	tempList.append(error)
-						
 						errRangeStdErrList.append(tempList+errorList)
+
 						realEstPairList.append(ygrades)
 						realEstPairList.append(predictGrades)
+
 						actualGradesSorted = np.sort(ygrades[2:])
 						predictedGradesSorted = np.sort(predictGrades[2:])
-						pairRangeList.append([ygrades[0], ygrades[1], actualGradesSorted[0], actualGradesSorted[-1], predictedGradesSorted[0], predictedGradesSorted[-1]])
-						# realEstPairList.append()
-						# realEstPairList.append()
-						# realEstPairList.append([])
+						pairRangeList.append([xgrades[0], xgrades[1], ygrades[0], ygrades[1], actualGradesSorted[0], actualGradesSorted[-1], predictedGradesSorted[0], predictedGradesSorted[-1]])
 
 						xgrades.insert(0, 'predictor')
 						ygrades.insert(0, 'real')
@@ -2418,26 +2414,33 @@ class prepross(object):
 		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'rMean', 'std', 'rStd', 'mean diff', 'std diff', 'MAE']
 		writer.writerow(header)
 		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]] for item in errRangeStdErrList[1:] ]
-		tmp.sort(key=itemgetter(1,3), reverse=False)
-		writer.writerows(tmp)
+
+		# pick the 1st year predictors and 2nd year predictors
+		flist = [x for x in tmp if x[1][0] == '1']
+		slist = [x for x in tmp if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		writer.writerows(flist+[header]+slist)
 		writer.writerow([])
 
-		writer.writerow(['ySubj', 'yNum', 'rMin', 'rMax', 'pMin', 'pMax', 'rInterval', 'pInterval', 'abs diff'])
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'rMin', 'rMax', 'pMin', 'pMax', 'rInterval', 'pInterval', 'abs diff']
+		writer.writerow(header)
+		tmp = [pairRangeList[x]+[float(pairRangeList[x][5])-float(pairRangeList[x][4]), float(pairRangeList[x][7])-float(pairRangeList[x][6]), abs((float(pairRangeList[x][5])-float(pairRangeList[x][4]))-(float(pairRangeList[x][7])-float(pairRangeList[x][6])))] for x in xrange(0, len(pairRangeList))]
 		# sort by predictor, then predicted course
-		pairRangeList.sort(key=itemgetter(1,3), reverse=False)
-		writer.writerows([pairRangeList[x]+[float(pairRangeList[x][3])-float(pairRangeList[x][2]), float(pairRangeList[x][5])-float(pairRangeList[x][4]), abs((float(pairRangeList[x][3])-float(pairRangeList[x][2]))-(float(pairRangeList[x][5])-float(pairRangeList[x][4])))] for x in xrange(0, len(pairRangeList))])
-
+		flist = [x for x in tmp if x[1][0] == '1']
+		slist = [x for x in tmp if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		writer.writerows(flist+[header]+slist)
 
 		writer.writerow([])
 		writer.writerows(realEstPairList)
 
 		prefix, suffix = testReg.split('/')[-1].split('_')[0], ''
 		if power == 1:
-			suffix = 'L'
-			tSuffix = 'Linear'
+			suffix, tSuffix = 'L', 'Linear'
 		elif power == 2:
-			suffix = 'Q'
-			tSuffix = 'Quadratic'		
+			suffix, tSuffix = 'Q', 'Quadratic'
 
 		# 3D plots
 		figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'.png'

@@ -15,10 +15,10 @@ testList = [
 ['CSC','115','MATH','200'],
 ['CSC','115','ELEC','200'],
 ['CSC','115','MATH','201'],
-['CSC','115','ELEC','216'],
-['CSC','115','ELEC','220'],
-['CSC','115','ELEC','300'],
-['CSC','115','CSC','349A'],
+['CSC','125','ELEC','216'],
+['CSC','135','ELEC','220'],
+['CSC','145','ELEC','300'],
+['CSC','155','CSC','349A'],
 ['CSC','115','ELEC','370'],
 ['CSC','115','ELEC','380'],
 ['CSC','115','ELEC','426'],
@@ -40,9 +40,20 @@ testList = [
 ['CSC','215','SENG','440']
 ]
 
-testList.sort(key=itemgetter(1,3), reverse=False)
-for x in testList:
+# testList.sort(key=itemgetter(3,1), reverse=False)
+flist = [x for x in testList if x[1][0] == '1']
+slist = [x for x in testList if x[1][0] == '2']
+
+flist.sort(key=itemgetter(3), reverse=False)
+slist.sort(key=itemgetter(3), reverse=False)
+for x in flist:
 	print x
+
+print '\n'
+
+for x in slist:
+	print x
+
 
 
 # plot 3D graph
