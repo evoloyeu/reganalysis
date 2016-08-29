@@ -188,9 +188,9 @@ class prepross(object):
 
 		self.dataDir, self.errPlotsDir = self.currDir+'data/', self.currDir+'errPlotsT1/'
 
-		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/']
+		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
 
-		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.errPlotsDir+'mae/point/L/', self.errPlotsDir+'mae/point/Q/', self.errPlotsDir+'mae/r/L/', self.errPlotsDir+'mae/r/Q/', self.errPlotsDir+'mape/point/L/', self.errPlotsDir+'mape/point/Q/', self.errPlotsDir+'mape/r/L/', self.errPlotsDir+'mape/r/Q/', self.dataDir+'T1/L/', self.dataDir+'T3/L/', self.dataDir+'T1/Q/', self.dataDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr]
+		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.errPlotsDir+'mae/point/L/', self.errPlotsDir+'mae/point/Q/', self.errPlotsDir+'mae/r/L/', self.errPlotsDir+'mae/r/Q/', self.errPlotsDir+'mape/point/L/', self.errPlotsDir+'mape/point/Q/', self.errPlotsDir+'mape/r/L/', self.errPlotsDir+'mape/r/Q/', self.dataDir+'T1/L/', self.dataDir+'T3/L/', self.dataDir+'T1/Q/', self.dataDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/']
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
@@ -1319,6 +1319,35 @@ class prepross(object):
 		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + ' ' + str(points) + '.png'
 		fig.savefig(figName)
 		plt.close(fig)
+
+		fname = subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + ' ' + str(points) + '.png'
+		if num[0] == '1':
+			if numNew[0] == '2':
+				if power ==1:
+					shutil.copy2(figName, self.yr1l + '2/' + fname)
+				elif power == 2:
+					shutil.copy2(figName, self.yr1q + '2/' + fname)
+			if numNew[0] == '3':
+				if power ==1:
+					shutil.copy2(figName, self.yr1l + '3/' + fname)
+				elif power == 2:
+					shutil.copy2(figName, self.yr1q + '3/' + fname)
+			if numNew[0] == '4':
+				if power ==1:
+					shutil.copy2(figName, self.yr1l + '4/' + fname)
+				elif power == 2:
+					shutil.copy2(figName, self.yr1q + '4/' + fname)
+		elif num[0] == '2':
+			if numNew[0] == '3':
+				if power ==1:
+					shutil.copy2(figName, self.yr2l + '3/' + fname)
+				elif power == 2:
+					shutil.copy2(figName, self.yr2q + '3/' + fname)
+			if numNew[0] == '4':
+				if power ==1:
+					shutil.copy2(figName, self.yr2l + '4/' + fname)
+				elif power == 2:
+					shutil.copy2(figName, self.yr2q + '4/' + fname)
 
 		return z
 
