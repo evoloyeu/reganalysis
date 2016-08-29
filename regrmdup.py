@@ -24,7 +24,8 @@ class splitRawData(object):
 		for x in xrange(0,len(pathList[1:-2])):
 			path = path + pathList[1:-1][x] + '/'
 
-		self.currDir = path+'users/splits_'+time.strftime('%Y%m%d')+'/'
+		# self.currDir = path+'users/splits_'+time.strftime('%Y%m%d')+'/'
+		self.currDir = path+'users/splits/'
 		if not os.path.exists(self.currDir):
 			os.makedirs(self.currDir)
 
@@ -2304,7 +2305,7 @@ class prepross(object):
 		# [errorave, coefficient, pointFreq]
 		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList, pairRangeList = [], [], [], [], [], [], [], []
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
-		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		errRangeStdErrList.append(header)
 
 		for pairsList in predictingList:
@@ -2363,10 +2364,11 @@ class prepross(object):
 
 						errArr = np.array(errorList)
 						errorave = format(np.average(errArr), '.2f')
-						std = format(np.std(errArr), '.2f')
+						errStd = format(np.std(errArr), '.2f')
 
 						gradesArr = np.array(predictGrades[2:])
 						mean = format(np.average(gradesArr), '.2f')
+						std = format(np.std(gradesArr), '.2f')
 
 						# compute the real grades' mean and std
 						# print 'ygrades[2:]: ', ygrades[2:]
@@ -2374,7 +2376,7 @@ class prepross(object):
 						rMean = format(np.average(realGrades), '.2f')
 						rStd = format(np.std(realGrades), '.2f')
 
-						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
+						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
 						# for error in errorList:
 						# 	tempList.append(error)
 						
@@ -2411,9 +2413,20 @@ class prepross(object):
 
 		writer.writerows(errRangeStdErrList)
 		writer.writerow([])
+		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
+		# build the header-format table and sort by predictor, then predicted course
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'rMean', 'std', 'rStd', 'mean diff', 'std diff', 'MAE']
+		writer.writerow(header)
+		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]] for item in errRangeStdErrList[1:] ]
+		tmp.sort(key=itemgetter(1,3), reverse=False)
+		writer.writerows(tmp)
+		writer.writerow([])
 
-		writer.writerow(['ySubj', 'yNum', 'rMin', 'rMax', 'pMin', 'pMax'])
-		writer.writerows(pairRangeList)
+		writer.writerow(['ySubj', 'yNum', 'rMin', 'rMax', 'pMin', 'pMax', 'rInterval', 'pInterval', 'abs diff'])
+		# sort by predictor, then predicted course
+		pairRangeList.sort(key=itemgetter(1,3), reverse=False)
+		writer.writerows([pairRangeList[x]+[float(pairRangeList[x][3])-float(pairRangeList[x][2]), float(pairRangeList[x][5])-float(pairRangeList[x][4]), abs((float(pairRangeList[x][3])-float(pairRangeList[x][2]))-(float(pairRangeList[x][5])-float(pairRangeList[x][4])))] for x in xrange(0, len(pairRangeList))])
+
 
 		writer.writerow([])
 		writer.writerows(realEstPairList)
@@ -2822,7 +2835,6 @@ class prepross(object):
 		# plt.show()
 		fig.savefig(fname)
 		plt.close(fig)
-
 
 prepare = splitRawData(sys.argv)
 prepare.doBatch()
