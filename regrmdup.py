@@ -152,7 +152,8 @@ class prepross(object):
 		self.coefficientList = ['Pearson']
 		# define the predictor course: ALL: use common predictors based on the picking criteria
 		self.predictorCourses = ['CSC 115', 'ALL']
-		# self.predictorCourses = ['CSC 115']
+		# self.predictorCourses = ['ALL']
+		self.factors = ['PR', 'P', 'R']
 
 		# weights dictionary: 
 		# key: the threshold; value: a dictionary with keys of train data length and value of weights
@@ -166,45 +167,51 @@ class prepross(object):
 		self.errMerge = False
 
 	def statsPath(self):
-		pathList = self.regFileList[0].split('/')
-		# degFilename, regFileName = pathList[-1], self.regDataPath.split('/')[-1]
-		path = '/'
+		pathList, path = self.regFileList[0].split('/'), '/'
 		for x in xrange(0,len(pathList[1:-2])):
 			path = path+pathList[1:-1][x] + '/'
 
+		# For MTIS
+		self.matrixDir = path+'matrix/'
+
+		# No specific predictor
 		if self.proPredictor == 'ALL':
 			if len(self.trainYrs) > 1:
 				self.trainYrsText = str(self.trainYrs[0])+'-'+str(self.trainYrs[-1])
 			else:
 				self.trainYrsText = str(self.trainYrs[0])
 
-		self.matrixDir = path+'matrix/'
-		# self.currDir = path+time.strftime('%Y%m%d')+'_'+self.trainYrsText+'/'+self.coe+'/'+str(self.threshold)+'/'
-		# self.currDir = path+time.strftime('%Y%m%d')+'/'+self.trainYrsText+'/'+self.coe+'/'+str(self.threshold)+'/'
-		if self.proPredictor == 'ALL':
-			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'
+			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
+			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
 		else:
+			# designated specific predictor
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+str(self.threshold)+'/'
+			self.dataDir = self.currDir+'data/'
 
-		self.dataDir, self.errPlotsDir = self.currDir+'data/', self.currDir+'errPlotsT1/'
+		# data directory
+		# self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
 
-		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.currDir+'LPlots_ori/', self.currDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
+		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
 
-		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.errPlotsDir+'mae/point/L/', self.errPlotsDir+'mae/point/Q/', self.errPlotsDir+'mae/r/L/', self.errPlotsDir+'mae/r/Q/', self.errPlotsDir+'mape/point/L/', self.errPlotsDir+'mape/point/Q/', self.errPlotsDir+'mape/r/L/', self.errPlotsDir+'mape/r/Q/', self.dataDir+'T1/L/', self.dataDir+'T3/L/', self.dataDir+'T1/Q/', self.dataDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/']
+		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/']
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
 
-		# creat training data
-		# self.rheader, self.dheader = '', ''
+		self.pairsFrequency, self.pearsoncorr = self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv'
 		if self.proPredictor == 'ALL':
 			self.degDataPath, self.regDataPath = self.splitsDir+'degtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'regtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
+			self.top1pFactors, self.top3pFactors = self.dataDir + 'T1F_P_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_P_' + self.trainYrsText +'.csv'
+			self.top1rFactors, self.top3rFactors = self.dataDir + 'T1F_R_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_R_' + self.trainYrsText +'.csv'
+			self.top1FactorsFile, self.top3FactorsFile = '', ''
+
+			self.linearTop1Top3Stats, self.quadraticTop1Top3Stats = self.currDir+'LT1T3Stats_'+self.trainYrsText+'.csv', self.currDir+'QT1T3Stats_'+self.trainYrsText+'.csv'
+			self.linearQuadraticTop1Stats, self.linearQuadraticTop3Stats = self.currDir+'LQT1Stats_'+self.trainYrsText+'.csv', self.currDir+'LQT3Stats_'+self.trainYrsText+'.csv'
 		else:
 			self.degDataPath, self.regDataPath = self.rawDeg, self.rawReg
+			self.top1FactorsFile = self.pearsoncorr
+			self.linearQuadraticTop1Stats = self.currDir+'LQT1Stats_'+self.proPredictor+'.csv'
 
-		# regFileName, degFilename = self.regDataPath.split('/')[-1], self.degDataPath.split('/')[-1]
-
-		# self.techCrsFile = path+'techcourses/'+'TechCrs'+str(self.threshold)+'.csv'
 		self.allTechCrs = path+'techcourses/'+'technicalCourse.csv'
 		self.availableTechCrsList = []
 
@@ -239,16 +246,16 @@ class prepross(object):
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
-			self.linearPredictResultsListTop1.append(self.dataDir + 'T1/L/PGrades_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_LT1.csv')
-			self.linearPredictResultsAveErrTop1.append(self.dataDir + 'T1/L/PAveErr_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_LT1.csv')
-			self.quadrPredictResultsListTop1.append(self.dataDir + 'T1/Q/PGrades_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_QT1.csv')
-			self.quadrPredictResultsAveErrTop1.append(self.dataDir + 'T1/Q/PAveErr_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_QT1.csv')
+			self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/PGrades_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_LT1.csv')
+			self.linearPredictResultsAveErrTop1.append(self.currDir + 'T1/L/PAveErr_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_LT1.csv')
+			self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/PGrades_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_QT1.csv')
+			self.quadrPredictResultsAveErrTop1.append(self.currDir + 'T1/Q/PAveErr_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_QT1.csv')
 
 			if self.proPredictor == 'ALL':
-				self.linearPredictResultsListTop3.append(self.dataDir + 'T3/L/PGrades_' + filename +'_LT3.csv')
-				self.linearPredictResultsAveErrTop3.append(self.dataDir + 'T3/L/PAveErr_' + filename +'_LT3.csv')
-				self.quadrPredictResultsListTop3.append(self.dataDir + 'T3/Q/PGrades_' + filename +'_QT3.csv')
-				self.quadrPredictResultsAveErrTop3.append(self.dataDir + 'T3/Q/PAveErr_' + filename +'_QT3.csv')
+				self.linearPredictResultsListTop3.append(self.currDir + 'T3/L/PGrades_' + filename +'_LT3.csv')
+				self.linearPredictResultsAveErrTop3.append(self.currDir + 'T3/L/PAveErr_' + filename +'_LT3.csv')
+				self.quadrPredictResultsListTop3.append(self.currDir + 'T3/Q/PGrades_' + filename +'_QT3.csv')
+				self.quadrPredictResultsAveErrTop3.append(self.currDir + 'T3/Q/PAveErr_' + filename +'_QT3.csv')
 
 			tmpList, prefix, testPath, yr = [], '', '',''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
@@ -276,92 +283,42 @@ class prepross(object):
 			self.fTestStatFileNameList.append(tmpList)
 			# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
 
-		self.top1FactorsFile, self.top3FactorsFile, self.pairsFrequency, self.pearsoncorr = '', '', self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv'
-		if self.proPredictor == 'ALL':
-			self.linearTop1Top3Stats, self.quadraticTop1Top3Stats = self.dataDir+'LT1T3Stats_'+self.trainYrsText+'.csv', self.dataDir+'QT1T3Stats_'+self.trainYrsText+'.csv'
-			self.linearQuadraticTop1Stats, self.linearQuadraticTop3Stats = self.dataDir+'LQT1Stats_'+self.trainYrsText+'.csv', self.dataDir+'LQT3Stats_'+self.trainYrsText+'.csv'
-		else:
-			self.linearQuadraticTop1Stats = self.dataDir+'LQT1Stats_'+self.proPredictor+'.csv'
-
-		if self.proPredictor != 'ALL':
-			self.top1FactorsFile = self.pearsoncorr
-
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
-		# fileNameList = []
-		# for x in xrange(0,19):
-		# 	fileNameList.append(self.dataDir+'Train/')
-
 		fileNameList = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv']
-
-		# for x in xrange(0, len(regFileName.split('_'))-1):
-		# 	for indx in xrange(0,len(fileNameList)):
-		# 		fileNameList[indx] += regFileName.split('_')[x]+'_'
-
 		for x in xrange(0,len(fileNameList)):
 			fileNameList[x] = self.dataDir+'Train/'+fileNameList[x]
 
 		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV, self.nancsv] = fileNameList
 
-		# self.degREPL = self.IDMAPPER = self.dataDir
-		# for x in xrange(0, len(degFilename.split('_'))-1):
-			# self.degREPL, self.IDMAPPER = self.degREPL+degFilename.split('_')[x]+'_', self.IDMAPPER+degFilename.split('_')[x]+'_'
-
 		self.degREPL, self.IDMAPPER = self.dataDir+'REPL_SAS.csv', self.dataDir+'IDMAPPER_SAS.csv'
 
 	def doBatch(self):
+		# build MTIS data
 		# self.matrixBuilder()
+
 		for coe in self.coefficientList:
 			self.coe = coe
 			for proPredictor in self.predictorCourses:
 				self.proPredictor = proPredictor
-
 				if proPredictor == 'ALL':
-					for yrList in self.trainYrsList:
-						for threshold in self.thresholdList:
-							self.threshold = threshold
-							self.trainYrs = yrList
-							self.statsPath()
-							self.prepare()
-							self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
-							# plot yr vs yr scatter plots
-							self.gradePointsDistribution()
-
-							# # todo: stats
-							if self.errMerge:
-								self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
-								self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
-								self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
-								self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+					self.computeALL()
 				else:
-					for threshold in self.thresholdList:
-						self.threshold = threshold
-						self.statsPath()
-						self.prepare()
-						self.predicting4Specific()
-						# plot yr vs yr scatter plots
-						self.gradePointsDistribution()
+					self.computeSpecific()
 
-						if self.errMerge:
-							self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
-
-	def predicting4ALL(self, rw, pw):
-		self.testSetsStats()
-		self.testWeights()
-		# create predictors
-		self.formulaV1(rw,pw)
-		self.rw,self.pw = rw, pw
+	def predicting4ALL(self):
 		# predicting
+		predictors = self.predictorsDict[self.factor]
 		for x in xrange(0,len(self.fTestStatFileNameList)):
-			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1)
-			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2)
-			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop3[x], self.linearPredictResultsAveErrTop3[x], 1)
-			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop3[x], self.quadrPredictResultsAveErrTop3[x], 2)
+			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1, predictors[0])
+			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2, predictors[0])
+			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop3[x], self.linearPredictResultsAveErrTop3[x], 1, predictors[1])
+			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop3[x], self.quadrPredictResultsAveErrTop3[x], 2, predictors[1])
 
 	def predicting4Specific(self):
 		self.testSetsStats()
 		for x in xrange(0,len(self.fTestStatFileNameList)):
-			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1)
-			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2)
+			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1, self.top1FactorsFile)
+			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2, self.top1FactorsFile)
 
 	def prepare(self):
 		self.techCrs()
@@ -398,6 +355,55 @@ class prepross(object):
 		w1 = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5]
 		w2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 		self.formulaV1Integrate(w1,w2)
+
+	def computeALL(self):
+		for yrList in self.trainYrsList:
+			for threshold in self.thresholdList:
+				self.isPrepared = False
+				for factor in self.factors:
+					self.threshold, self.trainYrs, self.factor = threshold, yrList, factor
+					self.statsPath()
+
+					if not self.isPrepared:
+						self.prepare()
+						self.isPrepared = True
+
+						self.testSetsStats()
+						# create predictors
+						self.testWeights()
+						self.rw, self.pw = self.wdict[self.threshold][len(self.trainYrs)], 1.0
+						# use factor Pxy
+						self.formulaV1(self.rw,self.pw)
+						# self.rw,self.pw = rw, pw
+						# use factors of Points, coefficients
+						self.createPRFactors()
+						self.predictorsDict = {'PR': [self.top1FactorsFile, self.top3FactorsFile],'P': [self.top1pFactors, self.top3pFactors],'R': [self.top1rFactors, self.top3rFactors]}
+
+					self.predictorsScatterPlots()
+					# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
+					self.predicting4ALL()
+					# plot yr vs yr scatter plots
+					self.gradePointsDistribution(self.predictorsDict[self.factor][0])
+
+					# # todo: stats
+					if self.errMerge:
+						self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
+						self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
+						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+
+	def computeSpecific(self):
+		for threshold in self.thresholdList:
+			self.threshold = threshold
+			self.statsPath()
+			self.prepare()
+			self.predictorsScatterPlots()
+			self.predicting4Specific()
+			# plot yr vs yr scatter plots
+			self.gradePointsDistribution(self.top1FactorsFile)
+
+			if self.errMerge:
+				self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
 
 	def misc(self):
 		self.coefficientHists(self.hist_ori, self.pearsoncorr)
@@ -1320,36 +1326,42 @@ class prepross(object):
 		fig.savefig(figName)
 		plt.close(fig)
 
-		fname = subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + ' ' + str(points) + '.png'
-		if num[0] == '1':
-			if numNew[0] == '2':
-				if power ==1:
-					shutil.copy2(figName, self.yr1l + '2/' + fname)
-				elif power == 2:
-					shutil.copy2(figName, self.yr1q + '2/' + fname)
-			if numNew[0] == '3':
-				if power ==1:
-					shutil.copy2(figName, self.yr1l + '3/' + fname)
-				elif power == 2:
-					shutil.copy2(figName, self.yr1q + '3/' + fname)
-			if numNew[0] == '4':
-				if power ==1:
-					shutil.copy2(figName, self.yr1l + '4/' + fname)
-				elif power == 2:
-					shutil.copy2(figName, self.yr1q + '4/' + fname)
-		elif num[0] == '2':
-			if numNew[0] == '3':
-				if power ==1:
-					shutil.copy2(figName, self.yr2l + '3/' + fname)
-				elif power == 2:
-					shutil.copy2(figName, self.yr2q + '3/' + fname)
-			if numNew[0] == '4':
-				if power ==1:
-					shutil.copy2(figName, self.yr2l + '4/' + fname)
-				elif power == 2:
-					shutil.copy2(figName, self.yr2q + '4/' + fname)
-
 		return z
+
+	def predictorsScatterPlots(self):
+		self.quadratic_plots_ori
+		self.linear_plots_ori
+
+		top1Predictors = ''
+		if self.proPredictor == 'ALL':
+			top1Predictors = self.predictorsDict[self.factor][0]
+		else:
+			top1Predictors = self.top1FactorsFile
+
+		r = csv.reader(open(top1Predictors), delimiter=',')
+		r.next()
+		for item in r:
+			subj, num, subjNew, numNew, r, p = item[:6]
+			fname = subj + num + ' ' + subjNew + numNew + ' ' + r + ' ' + p + '.png'
+			figNameL = self.linear_plots_ori + subjNew + numNew + '/' + fname
+			figNameQ = self.quadratic_plots_ori + subjNew + numNew + '/' + fname
+			if num[0] == '1':
+				if numNew[0] == '2':
+					shutil.copy2(figNameL, self.yr1l + '2/' + fname)
+					shutil.copy2(figNameQ, self.yr1q + '2/' + fname)
+				if numNew[0] == '3':
+					shutil.copy2(figNameL, self.yr1l + '3/' + fname)
+					shutil.copy2(figNameQ, self.yr1q + '3/' + fname)
+				if numNew[0] == '4':
+					shutil.copy2(figNameL, self.yr1l + '4/' + fname)
+					shutil.copy2(figNameQ, self.yr1q + '4/' + fname)
+			elif num[0] == '2':
+				if numNew[0] == '3':
+					shutil.copy2(figNameL, self.yr2l + '3/' + fname)
+					shutil.copy2(figNameQ, self.yr2q + '3/' + fname)
+				if numNew[0] == '4':
+					shutil.copy2(figNameL, self.yr2l + '4/' + fname)
+					shutil.copy2(figNameQ, self.yr2q + '4/' + fname)
 
 	def coefficientHist(self, interval, histDir, corr):
 		if not os.path.exists(histDir):
@@ -1814,6 +1826,7 @@ class prepross(object):
 		return {'A':8, 'A-':7, 'A+':9, 'B':5, 'B-':4, 'B+':6, 'C':2, 'C+':3, 'D':1, 'E':0, 'F':0, 'N':0, 'SB':1, 'SB-':1, 'SD':1, 'SF':0}
 
 	def formulaV1(self, w1, w2):
+		# build top1/top3 predictors using Pxy
 		reader = csv.reader(open(self.pearsoncorr), delimiter=',')
 		header = reader.next()
 		rows = []
@@ -1888,7 +1901,6 @@ class prepross(object):
 		top3Pxy = []
 		for index in pxyIndexList[-3:]:
 			top3Pxy.append(ylist[index][6])
-
 
 		# build the top3Ylist which have the top3 pxy, from ylist
 		top3Ylist = []
@@ -2025,9 +2037,9 @@ class prepross(object):
 
 		return ylist
 
-	def predictProcessTop3Factors(self, testReg, predictResults, aveErrResults, power):
+	def predictProcessTop3Factors(self, testReg, predictResults, aveErrResults, power, predictorsFile):
 		# build equation/predictor dict; predictorDict = [key1:[rRec1, rRec2, rRec3, ...], key2:[], key3:[],...]
-		r1 = csv.reader(open(self.top3FactorsFile), delimiter=',')
+		r1 = csv.reader(open(predictorsFile), delimiter=',')
 		header1, predictorDict, predictingList = r1.next(), {}, []
 		rows = []
 		for row in r1:
@@ -2289,9 +2301,9 @@ class prepross(object):
 		else:
 			return []
 
-	def predictProcessTop1Factors(self, testReg, predictResults, aveErrResults, power):
+	def predictProcessTop1Factors(self, testReg, predictResults, aveErrResults, power, predictorsFile):
 		# build equation/predictor dict
-		r1 = csv.reader(open(self.top1FactorsFile), delimiter=',')
+		r1 = csv.reader(open(predictorsFile), delimiter=',')
 		header1, predictorDict = r1.next(), {}
 		for row in r1:
 			# key: the predicting course, value of key: row of predictor & predicting course
@@ -2473,7 +2485,6 @@ class prepross(object):
 
 		# 3D plots
 		figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'.png'
-		# figName = self.errPlotsDir+'mae/point/'+suffix+'/'+prefix[3:]+'_pMAE_'+suffix+'.png'
 		title = ''
 		if self.proPredictor == 'ALL':
 			title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrsText+'; Threshold:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
@@ -2736,7 +2747,7 @@ class prepross(object):
 
 	# COLLECT THE GRADES POINTS FOR EVERY PREDICTOR AND PREDICTING COURSE PAIRS, AND THEN PLOT THESE POINTS IN SCATTER SCHEME
 	# AND THESE GRAPHS ARE STORED IN self.yrvsyr
-	def gradePointsDistribution(self):
+	def gradePointsDistribution(self, top1FactorsFile):
 		# BUILDING COURSE GRADES DICTIONARY KEY:SUBJECT_CODE+COURSE_NUMBER; VALUE: COURSE GRADES OF ALL STUDENTS
 		# DATASOURCE: self.CRS_STU
 		courseGradeDict = {}
@@ -2748,7 +2759,7 @@ class prepross(object):
 
 		# DATASOURCE: self.top1FactorsFile
 		predictingPairs = []
-		r = csv.reader(open(self.top1FactorsFile), delimiter=',')
+		r = csv.reader(open(top1FactorsFile), delimiter=',')
 		r.next()
 		for pair in r:
 			# SAVE THE PREDICTOR AND PREDICTING COURSE
@@ -2867,6 +2878,116 @@ class prepross(object):
 		# plt.show()
 		fig.savefig(fname)
 		plt.close(fig)
+
+	def createPRFactors(self):
+		reader = csv.reader(open(self.pearsoncorr), delimiter=',')
+		header = reader.next()
+		predictedDict, keys = {}, []
+		for row in reader:
+			key = row[2]+row[3]
+			row[4], row[5] = float(row[4]), int(row[5])
+			if key not in predictedDict:
+				predictedDict[key] = [row]
+			else:
+				predictedDict[key].append(row)
+
+			if key not in keys:
+				keys.append(key)
+
+		wTop1pF = csv.writer(open(self.top1pFactors, 'w'))
+		wTop3pF = csv.writer(open(self.top3pFactors, 'w'))
+		wTop1rF = csv.writer(open(self.top1rFactors, 'w'))
+		wTop3rF = csv.writer(open(self.top3rFactors, 'w'))
+		header.insert(6, 'Pxy')
+		for w in [wTop1pF, wTop3pF, wTop1rF, wTop3rF]:
+			w.writerow(header)
+
+		for key in keys:
+			# get all possible predictors for the predicted course (key=subj+num)
+			predictors, pList, rList = predictedDict[key], [], []
+			for predictor in predictors:
+				pList.append(predictor[5])
+				rList.append(abs(predictor[4]))
+			for predictor in predictors:
+				pxy = abs(predictor[4])*predictor[5]/(max(rList)*max(pList))
+				predictor.insert(6, float(format(pxy, '.6')))
+			# build top1 pFactors: self.top1pFactors
+			top1pFactor = self.topFactors(predictors, 1, 5)
+			wTop1pF.writerows(top1pFactor)
+			# build top3 pFactors: self.top3pFactors
+			top3pFactors = self.topFactors(predictors, 3, 5)
+			wTop3pF.writerows(top3pFactors)
+			# build top1 rFactors: self.top1rFactors
+			top1rFactor = self.topFactors(predictors, 1, 4)
+			wTop1rF.writerows(top1rFactor)
+			# build top3 rFactors: self.top3rFactors
+			top3rFactors = self.topFactors(predictors, 3, 4)
+			wTop3rF.writerows(top3rFactors)
+
+	def topFactors(self, predictors, topx, rpIndex):
+		# find the top factors based on topx (topx=1, 3)
+		# predictors: all possible predictors; rpIndex: rIndex=4, pIndex=5
+		results = []
+		predictors.sort(key=itemgetter(rpIndex), reverse=True)
+		# topValues = [top1, top2, top3] or [top1]
+		topValues, maxList, xnums = [], [], []
+		for x in xrange(0,topx):
+			topValues.append(predictors[x][rpIndex])
+
+		for predictor in predictors:
+			if predictor[rpIndex] in topValues:
+				maxList.append(predictor)
+				xnums.append(int(predictor[1][:3]))
+
+		if topx == 1:
+			if len(maxList) > 1:
+				# there are more than one preditor with the maximum of points or coefficient, then select the one with smallest course number
+				minNum = min(xnums)
+				for item in maxList:
+					if int(item[1][:3]) == minNum:
+						results = [item]
+			else:
+				# there is only one preditor with the maximum of points or coefficient
+				results = [predictors[0]]
+
+		if topx == 3:
+			# there are only 3 or less predictors, then use all of them as final predictors
+			if len(predictors) <= topx:
+				results = predictors
+			else:
+				# there are more than 3 predictos which have one of the topValues, then find the top3 as predictors
+				freq = Counter(item for item in topValues)
+				# top1==top2==top3, find the 3 courses with the top3 smallest course numbers
+				if len(freq) == 1:
+					# sort xnums ascendingly
+					xnums.sort()
+					for item in maxList:
+						if int(item[1][:3]) in xnums[:3]:
+							results.append(item)
+				# there are two top values with the same values
+				if len(freq) == 2:
+					# top1 == top2, use top1 and top2 courses as predictors, then use the course with the smallest course number as predictor if there are more than one courses with top3rd
+					if topValues[0] == topValues[1]:
+						results = [maxList[0],maxList[1]]
+						top3rdNums = xnums[2:]
+						top3rdNums.sort()
+						for item in maxList[2:]:
+							if int(item[1][:3]) == top3rdNums[0]:
+								results.append(item)
+								break
+					# top2 == top3, use top1 as predictor, use the two with the smallest course numbers as predictors
+					else:
+						results.append(maxList[0])
+						top2nd3rdNums = xnums[1:]
+						top2nd3rdNums.sort()
+						for item in maxList[1:]:
+							if int(item[1][:3]) in top2nd3rdNums[:2]:
+								results.append(item)
+				# top1 != top2 != top3
+				if len(freq) == 3:
+					results = [maxList[0],maxList[1],maxList[2]]
+
+		return results
 
 prepare = splitRawData(sys.argv)
 prepare.doBatch()

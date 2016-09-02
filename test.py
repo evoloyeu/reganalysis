@@ -40,21 +40,32 @@ testList = [
 ['CSC','215','SENG','440']
 ]
 
-# testList.sort(key=itemgetter(3,1), reverse=False)
 flist = [x for x in testList if x[1][0] == '1']
 slist = [x for x in testList if x[1][0] == '2']
 
-flist.sort(key=itemgetter(3), reverse=False)
-slist.sort(key=itemgetter(3), reverse=False)
+testList = [
+['MATH','100','CENG','241','0.1735',22],
+['MATH','133','CENG','241','0.3015',28],
+['MECH','141','CENG','241','0.439',41],
+['PHYS','122','CENG','241','0.5273',31],
+['CSC','160','CENG','241','0.3186',36],
+['CHEM','150','CENG','241','0.5659',28],
+['ELEC','199','CENG','241','0.3819',42],
+['MATH','101','CENG','241','0.0275',29],
+['PHYS','125','CENG','241','0.4991',35],
+['CSC','115','CENG','241','0.6163',6],
+['CSC','110','CENG','241','0.3354',31]
+]
+
+# testList.sort(key=itemgetter(3,1), reverse=False)
+flist = [x for x in testList if x[1][0] == '1']
+flist.sort(key=itemgetter(5), reverse=True)
+freq = Counter(item[5] for item in flist)
+
 for x in flist:
 	print x
 
-print '\n'
-
-for x in slist:
-	print x
-
-
+print '\n', freq, '\n', freq[flist[0][5]]
 
 # plot 3D graph
 # point = [9,12,2,8,7,40,17,42,42,28,42,33,42,39,7,41,5,23,15,26,15,4,11,2,2,28,41,43,17,30,41,42,20,31,43,12,14,20,12,40,36,28,6,40,11,10,43,40]
