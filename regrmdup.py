@@ -2491,7 +2491,23 @@ class prepross(object):
 		else:
 			title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+': using predictor of '+self.proPredictor+'; Threshold:'+str(self.threshold)
 
-		self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
+		if self.proPredictor == 'ALL':
+			if self.factor == 'PR':
+				self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
+			elif self.factor == 'P':
+				xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
+				ytitle = 'mean absolute error from '+prefix[3:]
+				title = 'coefficients vs mean absolute error (MAE) ('+suffix+')'
+				figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_p_MAE_'+suffix+'.png'
+				self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p', 'ma')
+			elif self.factor == 'R':
+				xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
+				ytitle = 'mean of absolute error from '+prefix[3:]
+				title = 'coefficients vs mean absolute error (MAE) ('+suffix+')'
+				figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_r_MAE_'+suffix+'.png'
+				self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r', 'ma')
+		else:
+			self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
 
 	def gradePairs(self, testY, testXs, minList, maxList):
 		resultPairs, pairsList, xCrsNums = [], [], []
