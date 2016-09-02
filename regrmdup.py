@@ -2931,8 +2931,13 @@ class prepross(object):
 		predictors.sort(key=itemgetter(rpIndex), reverse=True)
 		# topValues = [top1, top2, top3] or [top1]
 		topValues, maxList, xnums = [], [], []
-		for x in xrange(0,topx):
-			topValues.append(predictors[x][rpIndex])
+		# more predictors record than topx
+		if len(predictors) >= topx:
+			for x in xrange(0,topx):
+				topValues.append(predictors[x][rpIndex])
+		else:
+			for predictor in predictors:
+				topValues.append(predictor[rpIndex])
 
 		for predictor in predictors:
 			if predictor[rpIndex] in topValues:
