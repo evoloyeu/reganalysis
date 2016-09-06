@@ -42,6 +42,9 @@ class prepross(object):
 		# For MTIS
 		self.matrixDir = path+'matrix/'
 
+		self.allTechCrs = path+'techcourses/'+'technicalCourse.csv'
+		self.availableTechCrsList = []
+
 		# No specific predictor
 		if self.proPredictor == 'ALL':
 			if len(self.trainYrs) > 1:
@@ -79,9 +82,6 @@ class prepross(object):
 			self.degDataPath, self.regDataPath = self.rawDeg, self.rawReg
 			self.top1FactorsFile = self.pearsoncorr
 			self.linearQuadraticTop1Stats = self.currDir+'LQT1Stats_'+self.proPredictor+'.csv'
-
-		self.allTechCrs = path+'techcourses/'+'technicalCourse.csv'
-		self.availableTechCrsList = []
 
 		# for test reg data
 		# store test data's noDup filenames
@@ -2568,66 +2568,6 @@ class prepross(object):
 				row = row2List[index][:12]+['']+row1List[index][:12]
 				w.writerow(row)
 			w.writerow([])
-
-	# FOR MTIS ASSIGNMENTS ONLY
-	def matrixBuilder(self):
-		self.threshold, randomOrderRegList = 1, []
-		self.statsPath()		
-		
-		reader = csv.reader(open(self.allTechCrs), delimiter=',')
-		crsDict = {}
-		for row in reader:
-			key, value = row[0]+row[1], row[2]
-			crsDict[key] = value
-
-		for regFile in self.regFileList:
-			yr = regFile.split('/')[-1].split('.')[0][3:]
-			path = self.matrixDir+yr+'/'
-			if not os.path.exists(path):
-				os.makedirs(path)
-
-			fileNameList = []
-			fileNameSuffix = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv']
-			for suffix in fileNameSuffix:
-				fileNameList.append(path+yr+'_'+suffix)
-			[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV] = fileNameList
-
-			self.regDataPath = regFile
-			self.techCrs()
-			self.formatRegSAS(self.regDataPath, self.regNODUP)
-			self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
-			self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS, self.STU_CRS_GRADE)
-
-			randomOrderReg = path+'randomOrderReg'+yr+'.csv'
-			randomOrderRegList.append(randomOrderReg)
-			self.randomize(self.STU_CRS_GRADE, randomOrderReg, crsDict)
-
-	def randomize(self, src, dest, crsDict):
-		reader = csv.reader(open(src), delimiter=',')
-		header = reader.next()
-		header = header[1:]
-
-		newHeader = []
-		for crs in header:
-			newHeader.append(crsDict[crs])
-
-		rowList = []
-		for row in reader:
-			rowList.append(row)
-
-		indexList, toWriteList, writer = [],[],csv.writer(open(dest, 'w'))
-		random.seed(datetime.now())		
-		while True:
-			rnum = random.randint(0,len(rowList)-1)
-			if rnum not in indexList:
-				indexList.append(rnum)				
-				row = rowList[rnum]
-				toWriteList.append(row[1:])
-			if len(indexList) == len(rowList):
-				break
-
-		writer.writerow(newHeader)
-		writer.writerows(toWriteList)
 
 	# COLLECT THE GRADES POINTS FOR EVERY PREDICTOR AND PREDICTING COURSE PAIRS, AND THEN PLOT THESE POINTS IN SCATTER SCHEME
 	# AND THESE GRAPHS ARE STORED IN self.yrvsyr
