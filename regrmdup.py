@@ -2848,9 +2848,10 @@ class prepross(object):
 			RangesW.writerows([[filename]]+RangesList)
 
 	def mergeMAEsRangesManager(self):
-		destMAEs = self.currDir + 'T1/L_MAEs_' + self.trainYrsText + '_' + self.factor + '_' + str(self.threshold) + '.csv'
-		destRanges = self.currDir + 'T1/L_Ranges_' + self.trainYrsText + '_' + self.factor + '_' + str(self.threshold) + '.csv'
+		# T1: Top 1; L: Linear; Q: Quadratic; M: MAEs; R: Grade Ranges; str(len(self.trainYrs)): 2,3,4,5; self.factor: PR,P,R; str(self.threshold): 1,5,10
+		destMAEs = self.currDir + 'T1/T1LM' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
+		destRanges = self.currDir + 'T1/T1LR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		self.mergeMAEsRanges(self.linearPredictResultsListTop1, destMAEs, destRanges)
-		destMAEs = self.currDir + 'T1/Q_MAEs_' + self.trainYrsText + '_' + self.factor + '_' + str(self.threshold) + '.csv'
-		destRanges = self.currDir + 'T1/Q_Ranges_' + self.trainYrsText + '_' + self.factor + '_' + str(self.threshold) + '.csv'
+		destMAEs = self.currDir + 'T1/T1QM' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
+		destRanges = self.currDir + 'T1/T1QR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destMAEs, destRanges)
