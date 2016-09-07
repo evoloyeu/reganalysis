@@ -161,9 +161,6 @@ class prepross(object):
 		self.degREPL, self.IDMAPPER = self.dataDir+'REPL_SAS.csv', self.dataDir+'IDMAPPER_SAS.csv'
 
 	def doBatch(self):
-		# build MTIS data
-		# self.matrixBuilder()
-
 		for coe in self.coefficientList:
 			self.coe = coe
 			for proPredictor in self.predictorCourses:
@@ -250,6 +247,9 @@ class prepross(object):
 					self.predictorsScatterPlots()
 					# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 					self.predicting4ALL()
+					# merge MAEs, Ranges
+					self.mergeMAEsRangesManager()
+
 					# plot yr vs yr scatter plots
 					self.gradePointsDistribution(self.predictorsDict[self.factor][0])
 
@@ -2310,12 +2310,13 @@ class prepross(object):
 						appendix = [ 'mean Err:', errorave, 'mea:', mae, 'mape:', mape]
 
 						if not self.errMerge:
-							writer.writerows([xgrades, ygrades, predictGrades, errorList, absErrPerList, appendix, []])
+							writer.writerows([xgrades, ygrades, predictGrades, errorList, absErrPerList, appendix])
 						# errw.writerow([errorave, coefficient, pointFreq])
 						AERPList.append([errorave, coefficient, pointFreq])
 
 						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
 
+		writer.writerow([])
 		writer.writerows(errRangeStdErrList)
 		writer.writerow([])
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
@@ -2342,6 +2343,7 @@ class prepross(object):
 		slist.sort(key=itemgetter(3), reverse=False)
 		writer.writerows(flist+[header]+slist)
 
+		# add real vs estimated grade pairs
 		writer.writerow([])
 		writer.writerows(realEstPairList)
 
@@ -2569,9 +2571,9 @@ class prepross(object):
 				w.writerow(row)
 			w.writerow([])
 
-	# COLLECT THE GRADES POINTS FOR EVERY PREDICTOR AND PREDICTING COURSE PAIRS, AND THEN PLOT THESE POINTS IN SCATTER SCHEME
-	# AND THESE GRAPHS ARE STORED IN self.yrvsyr
 	def gradePointsDistribution(self, top1FactorsFile):
+		# COLLECT THE GRADES POINTS FOR EVERY PREDICTOR AND PREDICTING COURSE PAIRS, AND THEN PLOT THESE POINTS IN SCATTER SCHEME
+		# AND THESE GRAPHS ARE STORED IN self.yrvsyr
 		# BUILDING COURSE GRADES DICTIONARY KEY:SUBJECT_CODE+COURSE_NUMBER; VALUE: COURSE GRADES OF ALL STUDENTS
 		# DATASOURCE: self.CRS_STU
 		courseGradeDict = {}
@@ -2817,3 +2819,38 @@ class prepross(object):
 					results = [maxList[0],maxList[1],maxList[2]]
 
 		return results
+
+	def mergeMAEsRanges(self, srcList, destMAEs, destRanges):
+		# srcList: self.linearPredictResultsListTop1 or self.quadrPredictResultsListTop1
+		# destMAEs: merged MAEs for all test sets for the training set and the threshold
+		# destRanges: merged Ranges for all test sets for the training set and the threshold
+		MAEsW = csv.writer(open(destMAEs, 'w'))
+		RangesW = csv.writer(open(destRanges, 'w'))
+		for src in srcList:
+			filename = src.split('_')[1]
+			r = csv.reader(open(src), delimiter=',')
+			MAEsList, RangesList, spaceIndex = [], [], 0
+			for row in r:
+				if spaceIndex > 3:
+					# r.close()
+					break
+				# reach MAEs
+				if spaceIndex == 2:
+					MAEsList.append(row)
+				# reach Ranges
+				if spaceIndex == 3:
+					RangesList.append(row)
+
+				if len(row) == 0:
+					spaceIndex += 1
+
+			MAEsW.writerows([[filename]]+MAEsList)
+			RangesW.writerows([[filename]]+RangesList)
+
+	def mergeMAEsRangesManager(self):
+		destMAEs = self.currDir + 'T1/L_MAEs_' + self.trainYrsText + '_' + self.factor + '_' + str(self.threshold) + '.csv'
+		destRanges = self.currDir + 'T1/L_Ranges_' + self.trainYrsText + '_' + self.factor + '_' + str(self.threshold) + '.csv'
+		self.mergeMAEsRanges(self.linearPredictResultsListTop1, destMAEs, destRanges)
+		destMAEs = self.currDir + 'T1/Q_MAEs_' + self.trainYrsText + '_' + self.factor + '_' + str(self.threshold) + '.csv'
+		destRanges = self.currDir + 'T1/Q_Ranges_' + self.trainYrsText + '_' + self.factor + '_' + str(self.threshold) + '.csv'
+		self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destMAEs, destRanges)
