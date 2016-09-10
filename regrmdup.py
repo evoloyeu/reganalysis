@@ -1,4 +1,4 @@
-import csv, os, time, hashlib, shutil, random
+import csv, os, time, hashlib, shutil
 from pylab import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -7,7 +7,6 @@ from scipy.stats import pearsonr, linregress
 import numpy as np
 from operator import itemgetter
 from collections import Counter
-from datetime import datetime
 
 class prepross(object):
 	def __init__(self, degRegFiles):
