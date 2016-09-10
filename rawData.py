@@ -26,55 +26,90 @@ class splitRawData(object):
 			self.regFileList.append(self.currDir+'reg'+yr+'.csv')
 			self.degFileList.append(self.currDir+'deg'+yr+'.csv')
 
-		self.IDDict = self.degIDListByYr()
+		# split VNumber and create the Degree data by year
+		self.IDListGroup = self.degIDListByYrDegreeDataBuilder()
+		# fetch combination data filename
 		self.cDataNameList = self.combinedDataNameList()
 
 	def doBatch(self):
 		if not os.path.exists(self.cDataNameList[0]):
-			for index in xrange(0, len(self.yearList)):
-				self.groupRawData(self.rawDeg, self.degFileList[index], self.yearList[index])
-				self.groupRawData(self.rawReg, self.regFileList[index], self.yearList[index])
-
+			self.createRegFiles()
 			self.dataMerger()
 
-	def groupRawData(self, src, dest, yr):
-		reader = csv.reader(open(src), delimiter=',')
-		rheader = reader.next()
+	def createRegFiles(self):
+		r = csv.reader(open(self.rawReg), delimiter=',')
+		header = r.next()
 
-		writer = csv.writer(open(dest, 'w'))
-		writer.writerow(rheader)
-		for row in reader:
-			rowID, IDList = row[1], self.IDDict[yr]
-			if rowID in IDList:
-				writer.writerow(row)
+		DegIDList10, DegIDList11, DegIDList12, DegIDList13, DegIDList14, DegIDList15 = self.IDListGroup
+		regList10, regList11, regList12, regList13, regList14, regList15 = [], [], [], [], [], []
+		for row in r:
+			if (row[1] in DegIDList10):
+				regList10.append(row)
+			elif (row[1] in DegIDList11):
+				regList11.append(row)
+			elif (row[1] in DegIDList12):
+				regList12.append(row)
+			elif (row[1] in DegIDList13):
+				regList13.append(row)
+			elif (row[1] in DegIDList14):
+				regList14.append(row)
+			elif (row[1] in DegIDList15):
+				regList15.append(row)
 
-	def degIDListByYr(self):
+		# write degree data by year from 2010 to 2015
+		index = 0
+		for crsList in [regList10, regList11, regList12, regList13, regList14, regList15]:
+			filename = self.regFileList[index]
+			w = csv.writer(open(filename, 'w'))
+			w.writerow(header)
+			w.writerows(crsList)
+			index += 1
+
+	def degIDListByYrDegreeDataBuilder(self):
 		degReader = csv.reader(open(self.rawDeg), delimiter=',')
+		header = degReader.next()
 		# degree data includes graduates from 2010 to 2015
 		DegIDList10, DegIDList11, DegIDList12, DegIDList13, DegIDList14, DegIDList15 = [], [], [], [], [], []
+		DegList10, DegList11, DegList12, DegList13, DegList14, DegList15 = [], [], [], [], [], []
 
 		for deg in degReader:
 			graduateYr = deg[9]
 			if (graduateYr == '2010') and (not graduateYr in DegIDList10):
+				DegList10.append(deg)
 				if deg[1] not in DegIDList10:
 					DegIDList10.append(deg[1])
 			elif (graduateYr == '2011') and (not graduateYr in DegIDList11):
+				DegList11.append(deg)
 				if deg[1] not in DegIDList11:
 					DegIDList11.append(deg[1])
 			elif (graduateYr == '2012') and (not graduateYr in DegIDList12):
+				DegList12.append(deg)
 				if deg[1] not in DegIDList12:
 					DegIDList12.append(deg[1])
 			elif (graduateYr == '2013') and (not graduateYr in DegIDList13):
+				DegList13.append(deg)
 				if deg[1] not in DegIDList13:
 					DegIDList13.append(deg[1])
 			elif (graduateYr == '2014') and (not graduateYr in DegIDList14):
+				DegList14.append(deg)
 				if deg[1] not in DegIDList14:
 					DegIDList14.append(deg[1])
 			elif (graduateYr == '2015') and (not graduateYr in DegIDList15):
+				DegList15.append(deg)
 				if deg[1] not in DegIDList15:
 					DegIDList15.append(deg[1])
 
-		return {'2010':DegIDList10, '2011':DegIDList11, '2012':DegIDList12, '2013':DegIDList13, '2014':DegIDList14, '2015':DegIDList15}
+		# write degree data by year from 2010 to 2015
+		index = 0
+		for degList in [DegList10, DegList11, DegList12, DegList13, DegList14, DegList15]:
+			filename = self.degFileList[index]
+			w = csv.writer(open(filename, 'w'))
+			w.writerow(header)
+			w.writerows(degList)
+			index += 1
+
+		# return {'2010':DegIDList10, '2011':DegIDList11, '2012':DegIDList12, '2013':DegIDList13, '2014':DegIDList14, '2015':DegIDList15}
+		return [DegIDList10, DegIDList11, DegIDList12, DegIDList13, DegIDList14, DegIDList15]
 
 	def splitedRawData(self):
 		return [self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg]

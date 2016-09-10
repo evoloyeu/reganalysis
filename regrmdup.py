@@ -419,88 +419,52 @@ class prepross(object):
 			row[1]=hashlib.sha1(row[1]).hexdigest()
 			fOutWrter.writerow(row)
 
-	def removeDup(self, courseListPerPerson):
-		dupList, dupCnt = [], 0
-		for record in courseListPerPerson:
-			index = courseListPerPerson.index(record)+1
-			for crs in xrange(index,len(courseListPerPerson)):
-				crsRecd = courseListPerPerson[crs]
-				rec1, rec2 = record[3].replace(' ','') + record[4], crsRecd[3].replace(' ','') + crsRecd[4]
-				if rec1 == rec2:
-					if record[6] == crsRecd[6]:
-						if record not in dupList:
-							dupList.append(record)
-					elif record[6] != '' and record[6] != 'DR':
-						if crsRecd[6] == 'DR':
-							if crsRecd not in dupList:
-								dupList.append(crsRecd)
-						elif len(crsRecd[6]) == 0:																	
-							if record not in dupList:
-								dupList.append(record)
-						else:
-							if record[8] > crsRecd[8]:
-								if record not in dupList:
-									dupList.append(record)
-							else:
-								if crsRecd not in dupList:
-									dupList.append(crsRecd)
-					elif len(record[6]) == 0:
-						if record not in dupList:
-							dupList.append(record)
-					elif record[6] != 'DR':
-						if crsRecd not in dupList:
-							dupList.append(crsRecd)
+	def removeDup(self, crses):
+		result = ''
+		for crs in crses:
+			# the grade_point_value is not empty
+			if len(crs[8]) > 0:
+				# the variable result has already been assigned a course record
+				if len(result) > 0:
+					# the duplicate record has a smaller grade point value
+					if int(result[8]) > int(crs[8]):
+						result = crs
+				else:
+					result = crs
 
-		dupCnt = dupCnt + len(dupList)
-		for record in dupList:
-			if record in courseListPerPerson:
-				courseListPerPerson.remove(record)
-
-		return courseListPerPerson
+		return result
 
 	def formatRegSAS(self, regfile, noDupRegFile):
-		fRegCSVRder = csv.reader(open(regfile), delimiter=',')
-		fRegNodupWrter = csv.writer(open(noDupRegFile, 'w'))
+		r, w = csv.reader(open(regfile), delimiter=','), csv.writer(open(noDupRegFile, 'w'))
+		header = r.next()
+		w.writerow(header)
 
-		hearders = fRegCSVRder.next()
-		# hearders.insert(2,'COURSE_CODE')
-		fRegNodupWrter.writerow(hearders)
+		# user-courseList dictionary: VNUM as key, course as value; group the course data by their VNUM
+		VCDict = {}
+		for row in r:
+			row[3], key=row[3].replace(' ',''), row[1].replace(' ','')
+			if key not in VCDict:
+				VCDict[key]=[row]
+			else:
+				VCDict[key].append(row)
 
-		newFlag, courseListPerPerson, vnum = False, [], ''
-		cnt = userCnt = dupCnt = 0
-		for row in fRegCSVRder:
-			cnt = cnt + 1
-			# to see if this course is the available technical course in the availabletechCrsList
-			crs = row[3].replace(' ','')+row[4]
-			if crs not in self.availableTechCrsList:
-				continue
-			# V_number: row[1]; Subject_code: row[3]; Course Number: row[4]; Grade_code: row[6]
-			if len(courseListPerPerson) == 0:
-				newFlag, vnum = False, row[1]
-				userCnt = userCnt + 1
-			elif row[1] != vnum:
-				newFlag, vnum = True, row[1]
-				userCnt = userCnt + 1
+		# iterate each student
+		for vkey in VCDict:
+			# VCDict[vkey]: one student's all possible courses including the records with same subj+num but different grades
+			# vkey: student's vnumber
+			# crs-same-crs-duplicate-record-List dictionary: subject_code+course_number as key, duplicate records as value; group one student's courses by course code(subj+num)
+			CRSDict = {}
+			for crs in VCDict[vkey]:
+				ckey = crs[3]+crs[4]
+				if ckey not in CRSDict:
+					CRSDict[ckey] = [crs]
+				else:
+					CRSDict[ckey].append(crs)
 
-			if newFlag:
-				newFlag = False
-				# start to check the duplicate course records for this specific person
-				if len(courseListPerPerson) > 0:
-					for record in self.removeDup(courseListPerPerson):
-						# record.insert(3,str(record[3])+str(record[4])); record[4] = str(record[4])
-						# if len(record[8]) > 0:
-						fRegNodupWrter.writerow(record)
-				# after coping with duplicate records, clear the course list for new person's course records
-				courseListPerPerson = []
-
-			# collect course records for another person
-			courseListPerPerson.append(row)
-
-		if len(courseListPerPerson) > 0:
-			for record in self.removeDup(courseListPerPerson):
-				# record.insert(3,str(record[3])+str(record[4])); record[4] = str(record[4])
-				# if len(record[8]) > 0:
-				fRegNodupWrter.writerow(record)
+			for ckey in CRSDict:
+				result = self.removeDup(CRSDict[ckey])
+				if len(result) > 0:
+					w.writerow(result)
 
 	def simpleStats(self, noDupRegFile, CRSPERSTU, STUREGISTERED, EMPTY, CRS_STU, CRS_STU_GRADE, STU_CRS, STU_CRS_GRADE):
 		fRegNodupRder = csv.reader(open(noDupRegFile), delimiter=',')
