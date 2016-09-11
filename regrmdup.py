@@ -2807,8 +2807,16 @@ class prepross(object):
 				if len(row) == 0:
 					spaceIndex += 1
 
-			MAEsW.writerows([[filename]]+MAEsList)
-			RangesW.writerows([[filename]]+RangesList)
+			acronym = ''
+			if len(filename) == 7:
+				acronym = 'T'+filename[-2:]
+			elif len(filename) == 16:
+				acronym = 'T'+filename[9:11]+filename[-2:]
+			elif len(filename) == 17:
+				acronym = 'Tr'+filename[10:12]+filename[-2:]
+
+			MAEsW.writerows([[acronym]]+MAEsList)
+			RangesW.writerows([[acronym]]+RangesList)
 
 	def mergeMAEsRangesManager(self):
 		# T1: Top 1; L: Linear; Q: Quadratic; M: MAEs; R: Grade Ranges; str(len(self.trainYrs)): 2,3,4,5; self.factor: PR,P,R; str(self.threshold): 1,5,10
