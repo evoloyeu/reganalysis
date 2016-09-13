@@ -2285,9 +2285,9 @@ class prepross(object):
 		writer.writerow([])
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		# build the header-format table and sort by predictor, then predicted course
-		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'rMean', 'std', 'rStd', 'mean diff', 'std diff', 'MAE', 'minErr', 'maxErr', 'interval']
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'rMean', 'std', 'rStd', 'mean diff', 'std diff', 'MAE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		writer.writerow(header)
-		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]]+item[15:18] for item in errRangeStdErrList[1:] ]
+		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]]+item[14:18] for item in errRangeStdErrList[1:] ]
 
 		# pick the 1st year predictors and 2nd year predictors
 		flist = [x for x in tmp if x[1][0] == '1']
