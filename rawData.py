@@ -82,8 +82,7 @@ class splitRawData(object):
 				DegList11.append(deg)
 				if deg[1] not in DegIDList11:
 					DegIDList11.append(deg[1])
-			# elif (graduateYr == '2012') and (not graduateYr in DegIDList12) and (deg[1]!='V00232128'):
-			elif (graduateYr == '2012') and (not graduateYr in DegIDList12):
+			elif (graduateYr == '2012') and (not graduateYr in DegIDList12) and (deg[1]!='V00232128'):
 				DegList12.append(deg)
 				if deg[1] not in DegIDList12:
 					DegIDList12.append(deg[1])
