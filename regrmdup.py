@@ -445,6 +445,14 @@ class prepross(object):
 		# user-courseList dictionary: VNUM as key, course as value; group the course data by their VNUM
 		VCDict = {}
 		for row in r:
+			course = row[3].replace(' ','')+row[4].replace(' ','')
+			# change MATH 100 ===> MATH 133; ENGR 110 ===> ENGR 111
+			if course == 'MATH110':
+				row[4] = '133'
+
+			if course == 'ENGR110':
+				row[4] = '111'
+
 			row[3], key=row[3].replace(' ',''), row[1].replace(' ','')
 			if key not in VCDict:
 				VCDict[key]=[row]
