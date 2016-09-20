@@ -18,7 +18,8 @@ class prepross(object):
 		rwList, pwList = [1.4,1.4,1.2,1.1], [1,1,1,1]
 		self.coefficientList = ['Pearson']
 		# define the predictor course: ALL: use common predictors based on the picking criteria
-		self.predictorCourses = ['CSC 115', 'ALL']
+		self.predictorCourses = ['CSC 110', 'CSC 111','CSC 115', 'CSC 160', 'MATH 100', 'MATH 101', 'MATH 133', 'MECH 141', 'CHEM 150', 'ELEC 199', 'PHYS 122', 'PHYS 125', 'ENGR 141', 'ALL']
+
 		# self.predictorCourses = ['ALL']
 		self.factors = ['PR', 'P', 'R']
 
@@ -51,11 +52,14 @@ class prepross(object):
 			else:
 				self.trainYrsText = str(self.trainYrs[0])
 
-			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
-			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
+			# self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
+			# self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
+			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
+			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
 		else:
 			# designated specific predictor
-			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+str(self.threshold)+'/'
+			# self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+str(self.threshold)+'/'
+			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+str(self.threshold)+'/'
 			self.dataDir = self.currDir+'data/'
 
 		# data directory

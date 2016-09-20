@@ -73,28 +73,28 @@ class splitRawData(object):
 		DegList10, DegList11, DegList12, DegList13, DegList14, DegList15 = [], [], [], [], [], []
 
 		for deg in degReader:
-			graduateYr = deg[9]
-			if (graduateYr == '2010') and (not graduateYr in DegIDList10):
+			# graduateYr,OFFICIAL_SNAPSHOT_IND = deg[9],deg[12]
+			if (deg[9] == '2010') and (not deg[9] in DegIDList10) and (deg[12]=='Y'):
 				DegList10.append(deg)
 				if deg[1] not in DegIDList10:
 					DegIDList10.append(deg[1])
-			elif (graduateYr == '2011') and (not graduateYr in DegIDList11):
+			elif (deg[9] == '2011') and (not deg[9] in DegIDList11) and (deg[12]=='Y'):
 				DegList11.append(deg)
 				if deg[1] not in DegIDList11:
 					DegIDList11.append(deg[1])
-			elif (graduateYr == '2012') and (not graduateYr in DegIDList12) and (deg[1]!='V00232128'):
+			elif (deg[9] == '2012') and (not deg[9] in DegIDList12) and (deg[12]=='Y'):
 				DegList12.append(deg)
 				if deg[1] not in DegIDList12:
 					DegIDList12.append(deg[1])
-			elif (graduateYr == '2013') and (not graduateYr in DegIDList13):
+			elif (deg[9] == '2013') and (not deg[9] in DegIDList13) and (deg[12]=='Y'):
 				DegList13.append(deg)
 				if deg[1] not in DegIDList13:
 					DegIDList13.append(deg[1])
-			elif (graduateYr == '2014') and (not graduateYr in DegIDList14):
+			elif (deg[9] == '2014') and (not deg[9] in DegIDList14) and (deg[12]=='Y'):
 				DegList14.append(deg)
 				if deg[1] not in DegIDList14:
 					DegIDList14.append(deg[1])
-			elif (graduateYr == '2015') and (not graduateYr in DegIDList15):
+			elif (deg[9] == '2015') and (not deg[9] in DegIDList15) and (deg[12]=='Y'):
 				DegList15.append(deg)
 				if deg[1] not in DegIDList15:
 					DegIDList15.append(deg[1])

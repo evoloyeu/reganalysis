@@ -1,7 +1,12 @@
-import regrmdup, rawData, sys, MTIS
+import regrmdup, rawData, sys, MTIS, Validate
 
-skip = True
-if not skip:
+mtis = False
+validate = True
+
+if validate:
+	Validate.myValidate(sys.argv).doBatch()
+
+elif mtis:
 	# build MTIS data
 	MTIS.myMTIS(sys.argv).matrixBuilder()
 else:
