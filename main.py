@@ -1,7 +1,6 @@
 import regrmdup, rawData, sys, MTIS, Validate
 
-mtis = False
-validate = True
+validate, mtis = False, False
 
 if validate:
 	Validate.myValidate(sys.argv).doBatch()

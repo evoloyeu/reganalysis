@@ -13,25 +13,19 @@ class prepross(object):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
 		self.thresholdList = [1,5,10,15,20]
-
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
-		rwList, pwList = [1.4,1.4,1.2,1.1], [1,1,1,1]
-		self.coefficientList = ['Pearson']
+
 		# define the predictor course: ALL: use common predictors based on the picking criteria
 		self.predictorCourses = ['CSC 110', 'CSC 111','CSC 115', 'CSC 160', 'MATH 100', 'MATH 101', 'MATH 133', 'MECH 141', 'CHEM 150', 'ELEC 199', 'PHYS 122', 'PHYS 125', 'ENGR 141', 'ALL']
-
-		# self.predictorCourses = ['ALL']
 		self.factors = ['PR', 'P', 'R']
 
-		# weights dictionary: 
-		# key: the threshold; value: a dictionary with keys of train data length and value of weights
-		self.wdict = {
-		1:{2:1.4, 3:1.4, 4:1.2, 5:1.1},
-		5:{2:1.4, 3:1.0, 4:1.2, 5:1.2},
-		10:{2:1.3, 3:1.2, 4:1.2, 5:1.2},
-		15:{2:1.4, 3:1.2, 4:1.2, 5:1.2},
-		20:{2:1.4, 3:1.2, 4:1.2, 5:1.2}
-		}
+		# weights dictionary: key: the threshold; value: a dictionary with keys of train data length and value of weights
+		self.wdict = {	1:{2:1.4, 3:1.4, 4:1.2, 5:1.1},
+						5:{2:1.4, 3:1.0, 4:1.2, 5:1.2},
+						10:{2:1.3, 3:1.2, 4:1.2, 5:1.2},
+						15:{2:1.4, 3:1.2, 4:1.2, 5:1.2},
+						20:{2:1.4, 3:1.2, 4:1.2, 5:1.2} }
+
 		self.errMerge = False
 
 	def statsPath(self):
@@ -43,7 +37,7 @@ class prepross(object):
 		self.matrixDir = path+'matrix/'
 
 		self.allTechCrs = path+'techcourses/'+'technicalCourse.csv'
-		self.availableTechCrsList = []
+		self.availableTechCrsList, self.techList = [],[]
 
 		# No specific predictor
 		if self.proPredictor == 'ALL':
@@ -52,18 +46,11 @@ class prepross(object):
 			else:
 				self.trainYrsText = str(self.trainYrs[0])
 
-			# self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
-			# self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
 			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
 		else:
-			# designated specific predictor
-			# self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+str(self.threshold)+'/'
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+str(self.threshold)+'/'
 			self.dataDir = self.currDir+'data/'
-
-		# data directory
-		# self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
 
 		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
 
@@ -139,11 +126,11 @@ class prepross(object):
 					testPath = self.dataDir +'Test/' + filename[7:16] + '/'
 
 				prefix = testPath + filename
-				self.fTestRegFileNameList.append(prefix + '_Test.csv')
+				self.fTestRegFileNameList.append([prefix + '_TTech.csv', prefix + '_Test.csv'])
 			else:
 				testPath = self.dataDir +'Test/' + filename[3:] + '/'
 				prefix = testPath + filename[0:3] + 'test' + filename[3:]
-				self.fTestRegFileNameList.append(prefix + '_Test.csv')
+				self.fTestRegFileNameList.append([prefix + '_TTech.csv', prefix + '_Test.csv'])
 
 			if not os.path.exists(testPath):
 				os.makedirs(testPath)
@@ -164,14 +151,12 @@ class prepross(object):
 		self.degREPL, self.IDMAPPER = self.dataDir+'REPL_SAS.csv', self.dataDir+'IDMAPPER_SAS.csv'
 
 	def doBatch(self):
-		for coe in self.coefficientList:
-			self.coe = coe
-			for proPredictor in self.predictorCourses:
-				self.proPredictor = proPredictor
-				if proPredictor == 'ALL':
-					self.computeALL()
-				else:
-					self.computeSpecific()
+		for proPredictor in self.predictorCourses:
+			self.proPredictor = proPredictor
+			if proPredictor == 'ALL':
+				self.computeALL()
+			else:
+				self.computeSpecific()
 
 	def predicting4ALL(self):
 		# predicting
@@ -212,8 +197,10 @@ class prepross(object):
 		# compute the stats data for the test datasets
 		for testFile in self.testFileList:
 			index = self.testFileList.index(testFile)
-			noDupFile = self.fTestRegFileNameList[index]
-			self.formatRegSAS(testFile, noDupFile)
+			# TTech: all tech records; noDupFile stores noDupTechCourses
+			TTech, noDupFile = self.fTestRegFileNameList[index]
+			self.techCoursePicker(testFile, TTech)
+			self.formatRegSAS(TTech, noDupFile)
 
 			statList = self.fTestStatFileNameList[index]
 			self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5], statList[6])
@@ -446,7 +433,7 @@ class prepross(object):
 		VCDict = {}
 		for row in r:
 			course = row[3].replace(' ','')+row[4].replace(' ','')
-			# change MATH 100 ===> MATH 133; ENGR 110 ===> ENGR 111
+			# change MATH 110 ===> MATH 133; ENGR 110 ===> ENGR 111
 			if course == 'MATH110':
 				row[4] = '133'
 
@@ -646,6 +633,24 @@ class prepross(object):
 					row[index+1] = reg[4]
 
 			w1.writerow(row)
+
+	def techCoursePicker(self, regfile, techcourses):
+		r, w = csv.reader(open(regfile), delimiter = ','), csv.writer(open(techcourses, 'w'))
+		header = r.next()
+		w.writerow(header)
+
+		for row in r:
+			course = row[3].replace(' ','')+row[4].replace(' ','')
+			# change MATH 110 ===> MATH 133; ENGR 110 ===> ENGR 111
+			if course == 'MATH110':
+				row[4] = '133'
+
+			if course == 'ENGR110':
+				row[4] = '111'
+
+			crs = row[3].replace(' ','')+row[4].replace(' ','')
+			if crs in self.techList:
+				w.writerow(row)
 
 	def crsStuMatrix(self):
 		# create course matrix and fill the blank grades
@@ -1359,9 +1364,7 @@ class prepross(object):
 				freq[crs] = 1
 			else:
 				freq[crs] = freq[crs] + 1
-		
-		# print freq, '\n', len(freq)
-		
+
 		reader = csv.reader(open(self.regNODUP), delimiter = ',')
 		reader.next()
 		crsLst = []
@@ -1375,19 +1378,12 @@ class prepross(object):
 				writer.writerow([row[3].replace(' ', ''), row[4], freq[crs], row[4][0]])
 
 	def uniqueTechCrsList(self):
-		creader = csv.reader(open(self.courselist), delimiter = ',')
+		creader, writer = csv.reader(open(self.courselist), delimiter = ','), csv.writer(open(self.uniTechCrsList, 'w'))
 		header = creader.next()
-
-		treader = csv.reader(open(self.allTechCrs), delimiter = ',')
-		techCrsList = []
-		for row in treader:
-			techCrsList.append(row[0]+row[1])
-
-		writer = csv.writer(open(self.uniTechCrsList, 'w'))
 		writer.writerow(header)
 		for row in creader:
 			crs = row[0].replace(' ','')+row[1]
-			if crs in techCrsList:
+			if crs in self.techList:
 				writer.writerow(row)
 		
 	def sortCourse(self, courses, values):
@@ -1437,22 +1433,27 @@ class prepross(object):
 					w.writerows(lst)
 
 	def techCrs(self):
-		# reader = csv.reader(open(self.techCrsFile), delimiter = ',')
+		# the technical course file does not have a header
 		reader = csv.reader(open(self.allTechCrs), delimiter = ',')
-		# reader.next()
-		techCrsList = []
 		for row in reader:
-			techCrsList.append(row[0]+row[1])
+			self.techList.append(row[0]+row[1])
 
 		r = csv.reader(open(self.regDataPath), delimiter=',')
 		techWrter = csv.writer(open(self.techCrsCSV, 'w'))
 
 		hearders = r.next()
-		# hearders.insert(2,'COURSE_CODE')
 		techWrter.writerow(hearders)
 		for row in r:
-			crs = row[3].replace(' ','')+row[4]
-			if crs in techCrsList:
+			course = row[3].replace(' ','')+row[4].replace(' ','')
+			# change MATH 110 ===> MATH 133; ENGR 110 ===> ENGR 111
+			if course == 'MATH110':
+				row[4] = '133'
+
+			if course == 'ENGR110':
+				row[4] = '111'
+
+			crs = row[3].replace(' ','')+row[4].replace(' ','')
+			if crs in self.techList:
 				techWrter.writerow(row)
 				# save the available technical course list for future use
 				if crs not in self.availableTechCrsList:
