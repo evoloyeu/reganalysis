@@ -177,7 +177,7 @@ class prepross(object):
 		self.techCrs()
 		self.formatRegSAS(self.regDataPath, self.regNODUP)
 		self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
-		self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS, self.STU_CRS_GRADE)
+		self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS, self.STU_CRS_GRADE)
 		self.pairs()
 		self.pairsHists()
 
@@ -203,7 +203,7 @@ class prepross(object):
 			self.formatRegSAS(TTech, noDupFile)
 
 			statList = self.fTestStatFileNameList[index]
-			self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5], statList[6])
+			self.simpleStats(noDupFile, statList[0], statList[1], statList[3], statList[4], statList[5], statList[6])
 
 	def testWeights(self):
 		# trying to find the good weights
@@ -440,6 +440,7 @@ class prepross(object):
 			if course == 'ENGR110':
 				row[4] = '111'
 
+			# key: the v_number
 			row[3], key=row[3].replace(' ',''), row[1].replace(' ','')
 			if key not in VCDict:
 				VCDict[key]=[row]
@@ -448,8 +449,7 @@ class prepross(object):
 
 		# iterate each student
 		for vkey in VCDict:
-			# VCDict[vkey]: one student's all possible courses including the records with same subj+num but different grades
-			# vkey: student's vnumber
+			# VCDict[vkey]: one student's all possible courses including the records with same subj+num but different grades; vkey: student's vnumber
 			# crs-same-crs-duplicate-record-List dictionary: subject_code+course_number as key, duplicate records as value; group one student's courses by course code(subj+num)
 			CRSDict = {}
 			for crs in VCDict[vkey]:
@@ -464,175 +464,78 @@ class prepross(object):
 				if len(result) > 0:
 					w.writerow(result)
 
-	def simpleStats(self, noDupRegFile, CRSPERSTU, STUREGISTERED, EMPTY, CRS_STU, CRS_STU_GRADE, STU_CRS, STU_CRS_GRADE):
-		fRegNodupRder = csv.reader(open(noDupRegFile), delimiter=',')
-		# skip header
-		header = fRegNodupRder.next()
-		# count course frequency
-		crsPerStu, crsFre, noGradeRecs, distinctCRSLst, distinctSTULst = {}, {}, [], [], []
-		for record in fRegNodupRder:
-			if record[1] not in distinctSTULst:
-				distinctSTULst.append(record[1])
-			course_code = record[3].replace(' ','')+record[4].replace(' ','')
-			if course_code not in distinctCRSLst:
-				distinctCRSLst.append(course_code)
+	def simpleStats(self, noDupRegFile, CRSPERSTU, STUREGISTERED, CRS_STU, CRS_STU_GRADE, STU_CRS, STU_CRS_GRADE):
+		# CRSPERSTU: courses' frequency for each student
+		# STUREGISTERED: students' frequency for each course
+		# CRS_STU: course grade point matrix with row of course and column of student
+		# CRS_STU_GRADE: course grade matrix with row of course and column of student
+		# STU_CRS: course grade point matrix with row of student and column of course
+		# STU_CRS_GRADE: course grade matrix with row of student and column of course
+		r = csv.reader(open(noDupRegFile), delimiter=',')
+		r.next()
 
-			# record[1]:v_number; how many courses each students registered
-			if record[1] in crsPerStu:
-				crsPerStu[record[1]] = crsPerStu[record[1]] + 1
+		vnumDict, courseDict = {}, {}
+		for row in r:
+			# [vnum, subj, num, grade, point]
+			course = [row[1], row[3], row[4], row[6], row[8]]
+			# form vnumDict; key: vnum
+			if row[1] not in vnumDict:
+				vnumDict[row[1]]=[course]
 			else:
-				crsPerStu[record[1]] = 1
-
-			# course frequency; how many students each course was been registered
-			if course_code in crsFre:
-				crsFre[course_code] = crsFre[course_code] + 1
+				vnumDict[row[1]].append(course)
+			# form courseDict; key: subj+' '+cnum
+			key = row[3]+' '+row[4]
+			if key not in courseDict:
+				courseDict[key] = [course]
 			else:
-				crsFre[course_code] = 1
+				courseDict[key].append(course)
 
-			if record[6] == '':
-				noGradeRecs.append(record)
-		
-		# count how many courses registered for each student
+		# create CRSPERSTU
 		w = csv.writer(open(CRSPERSTU, 'w'))
-		w.writerow(['V_NUMBER', '#Courses_registered'])
-		w.writerows(crsPerStu.items())
-		# count how many students for each course
+		w.writerow(['VNUM', '#courses'])
+		w.writerows([ [key, len(vnumDict[key])] for key in vnumDict ])
+
+		# create STUREGISTERED
 		w = csv.writer(open(STUREGISTERED, 'w'))
 		w.writerow(['Course', '#Students'])
-		w.writerows(crsFre.items())
-		# pickup the courses without grades
-		w = csv.writer(open(EMPTY, 'w'))
-		noGradeRecs.insert(0, header)
-		w.writerows(noGradeRecs)
-		"""
-		# r = csv.reader(open(self.EMPTY), delimiter=',')
-		# r.next()
-		# uniStu, uniCrs = {}, {}
-		# for record in r:
-		# 	if record[1] not in uniStu:
-		# 		uniStu[record[1]] = 1
-		# 	else:
-		# 		uniStu[record[1]] = uniStu[record[1]] + 1
+		w.writerows([ [key, len(courseDict[key])] for key in courseDict ])
 
-		# 	course_code = record[3].replace(' ','') + record[4].replace(' ','')	
-		# 	if course_code not in uniCrs:
-		# 		uniCrs[course_code] = 1
-		# 	else:
-		# 		uniCrs[course_code] = uniCrs[course_code] + 1
-		
-		# # count the students who have courses without grades and how many no grade courses they have
-		# w = csv.writer(open(self.EMPTY_STU, 'w'))
-		# w.writerow(['V_NUMBER', '#_of_Courses_No_Grades'])
-		# w.writerows(uniStu.items())
-		# # count the #_of_students for the courses which were not assigned any grades
-		# w = csv.writer(open(self.EMPTY_CRS, 'w'))
-		# w.writerow(['Course', '#_of_Students_Reg_No_Grade'])
-		# w.writerows(uniCrs.items())
-		"""
-		# create course list
-		r = csv.reader(open(noDupRegFile), delimiter=',')
-		# skip the header
-		r.next()
-		crsLst, crscodeLst, regLst, vnumLst = [], [], [], []
+		# create CRS_STU, CRS_STU_GRADE
+		w1, w2 = csv.writer(open(CRS_STU, 'w')), csv.writer(open(CRS_STU_GRADE, 'w'))
+		vnumList = vnumDict.keys()
+		w1.writerow(['subj', 'cnum']+vnumList)
+		w2.writerow(['subj', 'cnum']+vnumList)
+		for course in courseDict:
+			CRS_STU_row, CRS_STU_GRADE_row, courses = course.split(' '), course.split(' '), courseDict[course]
+			# insert blank value for every vnum
+			[CRS_STU_row.append('') for vnum in vnumList]
+			[CRS_STU_GRADE_row.append('') for vnum in vnumList]
+			# row: [vnum, subj, num, grade, point]
+			for row in courses:
+				vnum, grade, point = row[0], row[3], row[4]
+				index = vnumList.index(vnum)
+				CRS_STU_row[index+2], CRS_STU_GRADE_row[index+2] = point, grade
 
-		# header: [subj_code, course_code, v_num1, v_num2, ......]
-		header = ['SUBJECT_CODE', 'COURSE_NUMBER']
-		for record in r:
-			subj_code, course_code = record[3].replace(' ',''), record[4].replace(' ','')
-			# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
-			regLst.append([record[1], subj_code, course_code, record[8], record[6]])
-			crsCode = subj_code + course_code
-			if crsCode not in crscodeLst:
-				crscodeLst.append(crsCode)
-				# cell: [subj_code, course_code, 'NA', ......]
-				cell = [subj_code, course_code]
-				for x in xrange(0,len(distinctSTULst)):
-					# cell.append('NA')
-					cell.append('')
-				crsLst.append(cell)
+			w1.writerow(CRS_STU_row)
+			w2.writerow(CRS_STU_GRADE_row)
 
-			# header: [subj_code, course_code, v_num1, v_num2, ......]
-			# vnumLst: [v_num1, v_num2, ......]
-			if record[1] not in vnumLst:
-				vnumLst.append(record[1])
-				header.append(record[1])
+		# create STU_CRS, STU_CRS_GRADE
+		w1, w2 = csv.writer(open(STU_CRS, 'w')), csv.writer(open(STU_CRS_GRADE, 'w'))
+		crsList = [crs.replace(' ', '') for crs in courseDict.keys()]
+		w1.writerow(['vnum']+crsList)
+		w2.writerow(['vnum']+crsList)
+		for vnum in vnumDict:
+			STU_CRS_row, STU_CRS_GRADE_row, courses = [vnum], [vnum], vnumDict[vnum]
+			[STU_CRS_row.append('') for crs in crsList]
+			[STU_CRS_GRADE_row.append('') for crs in crsList]
+			for course in courses:
+				# course: [vnum, subj, num, grade, point]
+				grade, point, crs = course[3], course[4], course[1]+course[2]
+				index = crsList.index(crs)
+				STU_CRS_row[index+1], STU_CRS_GRADE_row[index+1] = point, grade
 
-		# create course matrix		
-		w = csv.writer(open(CRS_STU, 'w'))
-		w.writerow(header)
-		wgrade = csv.writer(open(CRS_STU_GRADE, 'w'))
-		wgrade.writerow(header)
-
-		# matrix = [['' for x in range(len(distinctCRSLst))] for x in range(len(distinctSTULst))]
-		for x in xrange(0,len(crscodeLst)):
-			cell, crs_stu, crs_stu_grade = crsLst[x], [], []
-			# copy cell into crs_stu, crs_stu_grade
-			for item in crsLst[x]:
-				crs_stu.append(item)
-				crs_stu_grade.append(item)
-
-			for y in xrange(0,len(regLst)):
-				reg = regLst[y]
-				# get the index of vnum in the vnumLst
-				# vnumLst: [v_num1, v_num2, ......]
-				indx = vnumLst.index(reg[0])
-				# cell: [subj_code, course_code, 'NA', ......]
-				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
-				if (cell[0] == reg[1]) and (cell[1] == reg[2]):
-					if reg[3] == '':
-						# crs_stu[indx+2] = 'NG'
-						# crs_stu_grade[indx+2] = 'NG'
-						crs_stu[indx+2] = ''
-						crs_stu_grade[indx+2] = ''
-					else:
-						crs_stu[indx+2] = reg[3]
-						crs_stu_grade[indx+2] = reg[4]
-			w.writerow(crs_stu)
-			wgrade.writerow(crs_stu_grade)
-
-		# create course matrix
-		w = csv.writer(open(STU_CRS, 'w'))
-		w1 = csv.writer(open(STU_CRS_GRADE, 'w'))
-		# header: [v_num, crs1, crs2, ......]
-		header = ['V_NUMBER']
-		for crs in distinctCRSLst:
-			header.append(crs)
-		w.writerow(header)
-		w1.writerow(header)
-
-		# init rows
-		rowLst, rowLst1 = [],[]
-		for stu in distinctSTULst:
-			# row: [v_num, 'NA', 'NA', ......]
-			row = [stu]
-			for y in xrange(0,len(distinctCRSLst)):
-				# row.append('NA')
-				row.append('')
-
-			rowLst.append(row)
-			rowLst1.append(row)
-
-		# fill course grade point for each course		
-		for row in rowLst:
-			for reg in regLst:
-				# row: [v_num, 'NA', 'NA', ......]
-				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
-				if row[0] == reg[0]:
-					index = distinctCRSLst.index(reg[1]+reg[2])
-					row[index+1] = reg[3]
-
-			w.writerow(row)
-
-		# fill course grade point for each course		
-		for row in rowLst1:
-			for reg in regLst:
-				# row: [v_num, 'NA', 'NA', ......]
-				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
-				if row[0] == reg[0]:
-					index = distinctCRSLst.index(reg[1]+reg[2])
-					row[index+1] = reg[4]
-
-			w1.writerow(row)
+			w1.writerow(STU_CRS_row)
+			w2.writerow(STU_CRS_GRADE_row)
 
 	def techCoursePicker(self, regfile, techcourses):
 		r, w = csv.reader(open(regfile), delimiter = ','), csv.writer(open(techcourses, 'w'))
