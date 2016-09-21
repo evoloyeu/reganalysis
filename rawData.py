@@ -15,12 +15,11 @@ class splitRawData(object):
 		for x in xrange(0,len(pathList[1:-2])):
 			path = path + pathList[1:-1][x] + '/'
 
-		# self.currDir = path+'users/splits_'+time.strftime('%Y%m%d')+'/'
 		self.currDir = path+'users/splits/'
 		if not os.path.exists(self.currDir):
 			os.makedirs(self.currDir)
 
-		self.regFileList, self.degFileList = [],[]
+		self.regFileList, self.degFileList, self.degcsv, self.regcsv = [],[],self.currDir+'deg.csv',self.currDir+'reg.csv'
 		self.yearList = ['2010', '2011', '2012', '2013', '2014', '2015']
 		for yr in self.yearList:
 			self.regFileList.append(self.currDir+'reg'+yr+'.csv')
@@ -56,6 +55,10 @@ class splitRawData(object):
 			elif (row[1] in DegIDList15):
 				regList15.append(row)
 
+		# write reg data
+		w = csv.writer(open(self.regcsv, 'w'))
+		w.writerow(header)
+		w.writerows(regList10+regList11+regList12+regList13+regList14+regList15)
 		# write degree data by year from 2010 to 2015
 		index = 0
 		for crsList in [regList10, regList11, regList12, regList13, regList14, regList15]:
@@ -99,6 +102,10 @@ class splitRawData(object):
 				if deg[1] not in DegIDList15:
 					DegIDList15.append(deg[1])
 
+		# write degree data
+		w = csv.writer(open(self.degcsv, 'w'))
+		w.writerow(header)
+		w.writerows(DegList10+DegList11+DegList12+DegList13+DegList14+DegList15)
 		# write degree data by year from 2010 to 2015
 		index = 0
 		for degList in [DegList10, DegList11, DegList12, DegList13, DegList14, DegList15]:
@@ -112,7 +119,7 @@ class splitRawData(object):
 		return [DegIDList10, DegIDList11, DegIDList12, DegIDList13, DegIDList14, DegIDList15]
 
 	def splitedRawData(self):
-		return [self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg]
+		return [self.regFileList, self.degFileList, self.yearList, self.regcsv, self.degcsv]
 
 	def combinedDataNameList(self):
 		nameList = []
