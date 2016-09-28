@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import csv, os
 
 class splitRawData(object):

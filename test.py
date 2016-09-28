@@ -1,7 +1,9 @@
+#!/usr/bin/env python
+
 import csv, sys, os, time, hashlib, shutil, numpy as np
 from pylab import *
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+# from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import MultipleLocator
 from scipy.stats import pearsonr, linregress
 from operator import itemgetter
@@ -9,6 +11,15 @@ from collections import Counter
 from datetime import datetime
 import random
 import warnings
+
+# test import error
+import matplotlib
+print matplotlib.__file__
+
+import mpl_toolkits.mplot3d
+mpl_toolkits.mplot3d.__file__
+
+# test import error
 
 # sort course pairs
 testList = [
@@ -62,10 +73,10 @@ flist = [x for x in testList if x[1][0] == '1']
 flist.sort(key=itemgetter(5), reverse=True)
 freq = Counter(item[5] for item in flist)
 
-for x in flist:
-	print x
+# for x in flist:
+# 	print x
 
-print '\n', freq, '\n', freq[flist[0][5]]
+# print '\n', freq, '\n', freq[flist[0][5]]
 
 # plot 3D graph
 # point = [9,12,2,8,7,40,17,42,42,28,42,33,42,39,7,41,5,23,15,26,15,4,11,2,2,28,41,43,17,30,41,42,20,31,43,12,14,20,12,40,36,28,6,40,11,10,43,40]

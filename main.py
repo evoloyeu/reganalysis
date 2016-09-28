@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import regrmdup, rawData, sys, MTIS, Validate
 
 validate, mtis = False, False

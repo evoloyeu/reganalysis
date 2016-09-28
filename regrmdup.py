@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import csv, os, time, hashlib, shutil
 from pylab import *
 import matplotlib.pyplot as plt
