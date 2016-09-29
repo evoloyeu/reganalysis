@@ -22,11 +22,11 @@ class prepross(object):
 		self.factors = ['PR', 'P', 'R']
 
 		# weights dictionary: key: the threshold; value: a dictionary with keys of train data length and value of weights
-		self.wdict = {	1:{2:1.4, 3:1.4, 4:1.2, 5:1.1},
-						5:{2:1.4, 3:1.0, 4:1.2, 5:1.2},
-						10:{2:1.3, 3:1.2, 4:1.2, 5:1.2},
-						15:{2:1.4, 3:1.2, 4:1.2, 5:1.2},
-						20:{2:1.4, 3:1.2, 4:1.2, 5:1.2} }
+		self.wdict = {	1:{2:1.3, 3:1.1, 4:1.1, 5:1.1},
+						5:{2:1.3, 3:1.1, 4:1.1, 5:1.2},
+						10:{2:1.3, 3:1.1, 4:1.1, 5:1.2},
+						15:{2:1.3, 3:1.1, 4:1.1, 5:1.2},
+						20:{2:1.3, 3:1.1, 4:1.1, 5:1.2} }
 
 		self.errMerge = False
 
