@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import csv, os
+import csv, os, random
+from datetime import datetime
 
 class splitRawData(object):
 	"""docstring for splitRawData"""
@@ -12,6 +13,7 @@ class splitRawData(object):
 
 		pathList = self.rawDeg.split('/')
 		degFilename, regFileName = self.rawDeg.split('/')[-1], self.rawReg.split('/')[-1]
+		self.vnumDict = {}
 
 		path = '/'
 		for x in xrange(0,len(pathList[1:-2])):
@@ -57,6 +59,9 @@ class splitRawData(object):
 			elif (row[1] in DegIDList15):
 				regList15.append(row)
 
+		for row in (regList10+regList11+regList12+regList13+regList14+regList15):
+			row[1]=self.vnumDict[row[1]]
+
 		# write reg data
 		w = csv.writer(open(self.regcsv, 'w'))
 		w.writerow(header)
@@ -69,6 +74,19 @@ class splitRawData(object):
 			w.writerow(header)
 			w.writerows(crsList)
 			index += 1
+
+	def encryptVNUM(self, vnumList):
+		vnumDict, nums = {}, []
+		random.seed(datetime.now())
+		for vnum in vnumList:
+			while True:
+				num = random.randint(100,len(vnumList)+100)
+				if num not in nums:
+					nums.append(num)
+					vnumDict[vnum] = 'ID_'+str(num)
+					break
+
+		return vnumDict
 
 	def degIDListByYrDegreeDataBuilder(self):
 		degReader = csv.reader(open(self.rawDeg), delimiter=',')
@@ -103,6 +121,11 @@ class splitRawData(object):
 				DegList15.append(deg)
 				if deg[1] not in DegIDList15:
 					DegIDList15.append(deg[1])
+
+		# map vnum to a random integer
+		self.vnumDict = self.encryptVNUM(DegIDList10+DegIDList11+DegIDList12+DegIDList13+DegIDList14+DegIDList15)
+		for row in (DegList10+DegList11+DegList12+DegList13+DegList14+DegList15):
+			row[1]=self.vnumDict[row[1]]
 
 		# write degree data
 		w = csv.writer(open(self.degcsv, 'w'))
