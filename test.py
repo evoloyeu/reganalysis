@@ -102,31 +102,15 @@ for index in xrange(0,len(point)):
 
 
 labels = ['>=4.0', '>=3.0', '>=2.0', '>=1.0', '>=0.0']
+labels = ['[4.0,inf)', '[3.0,4.0)', '[2.0,3.0)', '[1.0,2.0)', '[0.0,1.0)']
 markerColors = [['v', 'blue'], ['o','red'], ['^', 'yellow'], ['+', 'green'], ['x', 'purple']]
 points = [ax.scatter([], [], [], marker=s[0], c=s[1]) for s in markerColors]
 plt.legend(points, labels, scatterpoints=1, loc=0)
 
-# random.seed(datetime.now())
-# X,Y,Z = [],[],[]
-# for x in xrange(1,10):
-	# X.append(random.randint(1,120))
-	# Y.append(random.uniform(-1.0,1.0))
-	# Z.append(random.uniform(0,5.0))
-# ax.scatter(X,Y,Z, c='g', marker='*')
-
-# X = np.arange(0,120)
-# Y = np.arange(-1.0,2.0)
-
-# X, Y = np.meshgrid(X, Y)
-# Z = 2.0
-# surf = ax.plot_surface(X, Y, Z, color='0.9')
-# Z = 1.0
-# surf = ax.plot_surface(X, Y, Z, color='1.0')
-
 ax.set_xlabel('Sample Points', fontsize='medium')
 ax.set_ylabel('Pearson r', fontsize='medium')
 ax.set_zlabel('MAE', fontsize='medium', rotation=90)
-plt.title('Sample Points vs Pearson Coefficient vs MAE')
+plt.title('Points vs r vs MAE')
 
 ax.set_xlim3d(0, 120)
 ax.set_ylim3d(-1.0, 1.0)

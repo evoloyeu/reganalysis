@@ -2582,7 +2582,8 @@ class prepross(object):
 				ax.scatter(point[index], r[index], MAE[index], c='purple', marker='x')
 
 		# add legend
-		labels = ['>=4.0', '>=3.0', '>=2.0', '>=1.0', '>=0.0']
+		# labels = ['>=4.0', '>=3.0', '>=2.0', '>=1.0', '>=0.0']
+		labels = ['[4.0,inf)', '[3.0,4.0)', '[2.0,3.0)', '[1.0,2.0)', '[0.0,1.0)']
 		markerColors = [['v', 'blue'], ['o','red'], ['^', 'yellow'], ['+', 'green'], ['x', 'purple']]
 		points = [ax.scatter([], [], [], marker=s[0], c=s[1]) for s in markerColors]
 		plt.legend(points, labels, scatterpoints=1, loc=0)
