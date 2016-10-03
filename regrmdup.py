@@ -19,6 +19,7 @@ class prepross(object):
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
 		self.predictorCourses = ['CSC 110', 'CSC 111','CSC 115', 'CSC 160', 'MATH 100', 'MATH 101', 'MATH 133', 'MECH 141', 'CHEM 150', 'ELEC 199', 'PHYS 122', 'PHYS 125', 'ENGR 141', 'ALL']
+		# self.predictorCourses = ['ALL']
 		self.factors = ['PR', 'P', 'R']
 
 		# weights dictionary: key: the threshold; value: a dictionary with keys of train data length and value of weights
@@ -2439,9 +2440,9 @@ class prepross(object):
 		figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'.png'
 		title = ''
 		if self.proPredictor == 'ALL':
-			title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrsText+'; Threshold:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
+			title = 'Points vs r vs MAE: '+tSuffix+':'+prefix[3:]+' vs '+self.trainYrsText+'\nH:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
 		else:
-			title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+': using predictor of '+self.proPredictor+'; Threshold:'+str(self.threshold)
+			title = 'Points vs r vs MAE \n'+tSuffix+': predictor:'+self.proPredictor+'; H:'+str(self.threshold)
 
 		if self.proPredictor == 'ALL':
 			if self.factor == 'PR':
@@ -2567,7 +2568,26 @@ class prepross(object):
 		fig = plt.figure()
 		ax = Axes3D(fig)
 
-		ax.scatter(point, r, MAE, c='r', marker='o')
+		# ax.scatter(point, r, MAE, c='r', marker='o')
+		for index in xrange(0,len(point)):
+			if MAE[index] >= 4.0:
+				ax.scatter(point[index], r[index], MAE[index], c='blue', marker='v')
+			elif MAE[index] >= 3.0:
+				ax.scatter(point[index], r[index], MAE[index], c='red', marker='o')
+			elif MAE[index] >= 2.0:
+				ax.scatter(point[index], r[index], MAE[index], c='yellow', marker='^')
+			elif MAE[index] >= 1.0:
+				ax.scatter(point[index], r[index], MAE[index], c='green', marker='+')
+			else:
+				ax.scatter(point[index], r[index], MAE[index], c='purple', marker='x')
+
+		# add legend
+		labels = ['>=4.0', '>=3.0', '>=2.0', '>=1.0', '>=0.0']
+		markerColors = [['v', 'blue'], ['o','red'], ['^', 'yellow'], ['+', 'green'], ['x', 'purple']]
+		points = [ax.scatter([], [], [], marker=s[0], c=s[1]) for s in markerColors]
+		plt.legend(points, labels, scatterpoints=1, loc=0)
+
+		# set lables
 		ax.set_xlabel('Sample Points', fontsize='medium')
 		ax.set_ylabel('Pearson r', fontsize='medium')
 		ax.set_zlabel('MAE', fontsize='medium', rotation=90)
@@ -2580,16 +2600,18 @@ class prepross(object):
 
 		ax.xaxis.set_minor_locator(MultipleLocator(2))
 		ax.xaxis.set_major_locator(MultipleLocator(10))
-		plt.xticks(rotation=90, fontsize='small')
+		plt.xticks(rotation=90, fontsize='9')
 
 		ax.yaxis.set_minor_locator(MultipleLocator(0.1))
 		ax.yaxis.set_major_locator(MultipleLocator(0.1))
-		plt.yticks(rotation=90, fontsize='small')
+		plt.yticks(rotation=90, fontsize='9')
 
 		ax.zaxis.set_minor_locator(MultipleLocator(0.1))
 		ax.zaxis.set_major_locator(MultipleLocator(0.5))
+		for t in ax.zaxis.get_major_ticks():
+			t.label.set_fontsize(9)
 
-		ax.view_init(elev=27, azim=27)
+		ax.view_init(elev=26, azim=57)
 		fig.savefig(figName)
 		plt.close(fig)
 
