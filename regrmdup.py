@@ -18,8 +18,10 @@ class prepross(object):
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
-		self.predictorCourses = ['CSC 110', 'CSC 111','CSC 115', 'CSC 160', 'MATH 100', 'MATH 101', 'MATH 133', 'MECH 141', 'CHEM 150', 'ELEC 199', 'PHYS 122', 'PHYS 125', 'ENGR 141', 'ALL']
+		self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141', 'MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230', 'ALL']
 		# self.predictorCourses = ['ALL']
+		# self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
+		# self.predictorCourses = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
 		self.factors = ['PR', 'P', 'R']
 
 		# weights dictionary: key: the threshold; value: a dictionary with keys of train data length and value of weights
@@ -55,7 +57,7 @@ class prepross(object):
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/'+str(self.threshold)+'/'
 			self.dataDir = self.currDir+'data/'
 
-			self.meanPearson, self.meanPairs, self.f1CrsVnums, self.vnumMeans = self.dataDir+'meanPearsonCorr.csv', self.dataDir+'Train/MEANPAIRS_SAS.csv', self.dataDir+'Train/F1CRSVNUMS_SAS.csv', self.dataDir+'Train/VNUMSMEANS_SAS.csv'
+			self.meanPearson, self.meanPairs, self.f1s2CrsVnums, self.vnumMeans = self.dataDir+'meanPearsonCorr.csv', self.dataDir+'Train/MEANPAIRS_SAS.csv', self.dataDir+'Train/F1S2CRSVNUMS_SAS.csv', self.dataDir+'Train/VNUMSMEANS_SAS.csv'
 			self.meanPlot, self.meanTest = self.currDir+'meanPlots/', self.currDir+'meanTest/'
 			self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV = self.meanTest+'PMean_L.csv', self.meanTest+'PMean_Q.csv', self.meanTest+'PMean_EL.csv', self.meanTest+'PMean_EQ.csv'
 			for item in [self.meanPlot, self.meanTest]:
@@ -179,7 +181,7 @@ class prepross(object):
 
 	def predicting4Specific(self):
 		# predition for meanPrediction
-		self.f1YrTechYrCrsMeanPrediction(self.meanPairs, self.meanPearson)
+		self.f1s2YrTechYrCrsMeanPrediction(self.meanPairs, self.meanPearson)
 
 		# predition for all test sets
 		self.testSetsStats()
@@ -269,7 +271,7 @@ class prepross(object):
 			self.threshold = threshold
 			self.statsPath()
 			self.prepare()
-			self.f1YrTechYrCoursesMean(self.CRS_STU, self.STU_CRS)
+			self.f1s2YrTechYrCoursesMean(self.CRS_STU, self.STU_CRS)
 			self.predictorsScatterPlots()
 			self.predicting4Specific()
 			# plot yr vs yr scatter plots
@@ -570,17 +572,20 @@ class prepross(object):
 			if crs in self.techList:
 				w.writerow(row)
 
-	def f1YrTechYrCoursesMean(self, CRS_STU, STU_CRS):
+	def f1s2YrTechYrCoursesMean(self, CRS_STU, STU_CRS):
 		# compute the 1st year tech courses vs 2nd/3rd/4th yr tech courses' average
 		# plot the 1st yr vs mean graphs
 		r1, r2 = csv.reader(open(CRS_STU), delimiter = ','), csv.reader(open(STU_CRS), delimiter = ',')
 		vnumList, crsList = r1.next()[2:], r2.next()[1:]
 
 		f1CrsList, s2CrsList, t3CrsList, f4CrsList = [], [], [], []
-		# f1CrsVnumDict: key:1st year course name (subj+cnum); value:vnums who took this 1st year tech course
-		f1CrsVnumDict = {}
+		# crsVnumDict: key:1st year course name (subj+cnum); value:vnums who took this 1st year tech course
+		crsVnumDict = {}
 		# form crsDict: key:subj+cnum; value:course record for all student graduated from 2010 to 2015
-		w = csv.writer(open(self.f1CrsVnums, 'w'))
+		w = csv.writer(open(self.f1s2CrsVnums, 'w'))
+		# predictorYr: 1 or 2 (first/second year technical course)
+		predictorYr = self.proPredictor.split(' ')[1][0]
+
 		crsDict = {}
 		for row in r1:
 			yr, key = row[1][0], row[0]+row[1]
@@ -588,18 +593,26 @@ class prepross(object):
 
 			if yr == '1':
 				f1CrsList.append(key)
-
 				# for each 1st year technical course, to find all students who took this 1st year course
-				vnums = []
-				for x in xrange(2,len(row)):
-					if len(row[x]) > 0:
-						vnums.append(vnumList[x-2])
-				# crs: the key, subj+cnum; vnums:all vnums who took course crs
-				f1CrsVnumDict[key] = vnums
-				w.writerow([key]+vnums)
-
+				if predictorYr == '1':
+					vnums = []
+					for x in xrange(2,len(row)):
+						if len(row[x]) > 0:
+							vnums.append(vnumList[x-2])
+					# crs: the key, subj+cnum; vnums:all vnums who took course crs
+					crsVnumDict[key] = vnums
+					w.writerow([key]+vnums)
 			if yr == '2':
 				s2CrsList.append(key)
+				# for each 2nd year technical course, to find all students who took this 1st year course
+				if predictorYr == '2':
+					vnums = []
+					for x in xrange(2,len(row)):
+						if len(row[x]) > 0:
+							vnums.append(vnumList[x-2])
+					# crs: the key, subj+cnum; vnums:all vnums who took course crs
+					crsVnumDict[key] = vnums
+					w.writerow([key]+vnums)
 			if yr == '3':
 				t3CrsList.append(key)
 			if yr == '4':
@@ -624,14 +637,14 @@ class prepross(object):
 				if (crs in f4CrsList) and (len(row[x]) > 0):
 					f4Points.append(int(row[x]))
 
-			vnumMeanDict[row[0]] = [format(np.mean(f1Points), '.1f'), format(np.mean(s2Points), '.1f'), format(np.mean(t3Points), '.1f'), format(np.mean(f4Points), '.1f')]
-			w.writerow([row[0], format(np.mean(f1Points), '.1f'), format(np.mean(s2Points), '.1f'), format(np.mean(t3Points), '.1f'), format(np.mean(f4Points), '.1f')])
+			vnumMeanDict[row[0]] = [format(np.mean(f1Points), '.2f'), format(np.mean(s2Points), '.2f'), format(np.mean(t3Points), '.2f'), format(np.mean(f4Points), '.2f')]
+			w.writerow([row[0], format(np.mean(f1Points), '.2f'), format(np.mean(s2Points), '.2f'), format(np.mean(t3Points), '.2f'), format(np.mean(f4Points), '.2f')])
 
 		# create Pearson coefficient csv; meanPairs csv
 		w1, w2 = csv.writer(open(self.meanPairs, 'w')), csv.writer(open(self.meanPearson, 'w'))
-		w2.writerow(['F1CRS', 'YR', 'R', '#points', 'slope', 'intercept', 'a', 'b', 'c'])
-		for crs in f1CrsVnumDict:
-			vnums, course = f1CrsVnumDict[crs], crsDict[crs]
+		w2.writerow(['F1S2CRS', 'YR', 'R', '#points', 'slope', 'intercept', 'a', 'b', 'c'])
+		for crs in crsVnumDict:
+			vnums, course = crsVnumDict[crs], crsDict[crs]
 			crsPoints, vnums2Means, vnumt3Means, vnumf4Means = [], [], [], []
 			for vnum in vnums:
 				index = vnumList.index(vnum)
@@ -640,14 +653,17 @@ class prepross(object):
 				vnumt3Means.append(float(vnumMeanDict[vnum][2]))
 				vnumf4Means.append(float(vnumMeanDict[vnum][3]))
 
-			self.f1PointLaterMeanScatter(crs+' Grade Points', '2nd Year Courses Mean', crs+' vs Mean of 2nd Year Courses Grade Points', crsPoints, vnums2Means, self.meanPlot+crs+' 2nd.png')
+			if predictorYr == '1':
+				self.f1PointLaterMeanScatter(crs+' Grade Points', '2nd Year Courses Mean', crs+' vs Mean of 2nd Year Courses Grade Points', crsPoints, vnums2Means, self.meanPlot+crs+' 2nd.png')
+
 			self.f1PointLaterMeanScatter(crs+' Grade Points', '3rd Year Courses Mean', crs+' vs Mean of 3rd Year Courses Grade Points', crsPoints, vnumt3Means, self.meanPlot+crs+' 3rd.png')
 			self.f1PointLaterMeanScatter(crs+' Grade Points', '4th Year Courses Mean', crs+' vs Mean of 4th Year Courses Grade Points', crsPoints, vnumf4Means, self.meanPlot+crs+' 4th.png')
 
 			# compute Pearson correlation coefficients
-			slope, intercept, r_value, p_value, std_err = linregress(crsPoints, vnums2Means)
-			a,b,c = np.polyfit(crsPoints, vnums2Means, 2)
-			w2.writerow([crs, '2', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
+			if predictorYr == '1':
+				slope, intercept, r_value, p_value, std_err = linregress(crsPoints, vnums2Means)
+				a,b,c = np.polyfit(crsPoints, vnums2Means, 2)
+				w2.writerow([crs, '2', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
 
 			slope, intercept, r_value, p_value, std_err = linregress(crsPoints, vnumt3Means)
 			a,b,c = np.polyfit(crsPoints, vnumt3Means, 2)
@@ -658,12 +674,15 @@ class prepross(object):
 			w2.writerow([crs, '4', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
 
 			# write a Mean Pairs
-			w1.writerows([[crs]+crsPoints, ['2']+vnums2Means, ['3']+vnumt3Means, ['4']+vnumf4Means])
+			if predictorYr == '1':
+				w1.writerows([[crs]+crsPoints, ['2']+vnums2Means, ['3']+vnumt3Means, ['4']+vnumf4Means])
+			else:
+				w1.writerows([[crs]+crsPoints, ['3']+vnumt3Means, ['4']+vnumf4Means])
 			w1.writerow([])
 
 			print '\nGrade Points:', crs, '\n', crsPoints, '\nvnums2Means:\n', vnums2Means, '\nvnumt3Means:\n', vnumt3Means, '\nvnumf4Means:\n', vnumf4Means
 
-	def f1YrTechYrCrsMeanPrediction(self, meanPairs, predictorsFile):
+	def f1s2YrTechYrCrsMeanPrediction(self, meanPairs, predictorsFile):
 		r1, r2 = csv.reader(open(meanPairs), delimiter = ','), csv.reader(open(predictorsFile), delimiter = ',')
 		r2.next()
 		# self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV
@@ -694,18 +713,29 @@ class prepross(object):
 
 		print '\npredictorsDict:\n', predictorsDict, '\n'
 
+		# predictorYr: 1 or 2 (first/second year technical course)
+		predictorYr = self.proPredictor.split(' ')[1][0]
 		# todo: prediction process
 		w1, w2 = csv.writer(open(self.meanPredictedLCSV, 'w')), csv.writer(open(self.meanPredictedQCSV, 'w'))
 		for crs in pointMeansDict:
-			crsPoints, mean2, mean3, mean4 = pointMeansDict[crs]
-			predictor2, predictor3, predictor4 = predictorsDict[crs]
-			if (len(crsPoints) - 1) > self.threshold:
-				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean2, predictor2)
-				w1.writerows([points, means, ['2']+lMeanList, lErrList])
-				w2.writerows([points, means, ['2']+qMeanList, qErrList])
+			crsPoints = mean2 = mean3 = mean4 = predictor2 = predictor3 = predictor4 = []
+			if predictorYr == '1':
+				crsPoints, mean2, mean3, mean4 = pointMeansDict[crs]
+				predictor2, predictor3, predictor4 = predictorsDict[crs]
+			else:
+				crsPoints, mean3, mean4 = pointMeansDict[crs]
+				predictor3, predictor4 = predictorsDict[crs]
+
+			if (len(crsPoints) - 1) >= self.threshold:
+				if predictorYr == '1':
+					[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean2, predictor2)
+					w1.writerows([points, means, ['2']+lMeanList, lErrList])
+					w2.writerows([points, means, ['2']+qMeanList, qErrList])
+
 				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean3, predictor3)
 				w1.writerows([points, means, ['3']+lMeanList, lErrList])
 				w2.writerows([points, means, ['3']+qMeanList, qErrList])
+
 				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean4, predictor4)
 				w1.writerows([points, means, ['4']+lMeanList, lErrList])
 				w2.writerows([points, means, ['4']+qMeanList, qErrList])
@@ -718,11 +748,11 @@ class prepross(object):
 			mean = float(means[x])
 			# Linear
 			lpmean = slope*float(crsPoints[x])+intercept
-			lMeanList.append(format(lpmean, '.1f'))
+			lMeanList.append(format(lpmean, '.2f'))
 			lErrList.append(format(mean-lpmean, '.2f'))
 			# Quadratic
 			qpmean = a*pow(float(crsPoints[x]), 2)+b*float(crsPoints[x])+c
-			qMeanList.append(format(qpmean, '.1f'))
+			qMeanList.append(format(qpmean, '.2f'))
 			qErrList.append(format(mean-qpmean, '.2f'))
 
 		return [crsPoints, means, lMeanList, qMeanList, lErrList, qErrList]

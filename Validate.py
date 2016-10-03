@@ -19,7 +19,7 @@ class myValidate(object):
 	def doBatch(self):
 		self.techCourseList()
 		self.validateID()
-		self.list1stYrCourses()
+		self.list1st2ndYrCourses()
 
 	def techCourseList(self):
 		r = csv.reader(open(self.allTechCrs), delimiter=',')
@@ -28,21 +28,26 @@ class myValidate(object):
 			course = row[0].replace(' ','')+row[1].replace(' ','')
 			self.techList.append(course)
 
-	def list1stYrCourses(self):
+	def list1st2ndYrCourses(self):
 		r = csv.reader(open(self.rawReg), delimiter=',')
 		r.next()
 
-		courseList = []
+		f1courseList,s2courseList = [], []
 		for row in r:
 			course = row[3].replace(' ','')+row[4].replace(' ','')
-			if course not in courseList and row[4][0]=='1' and (course in self.techList):
-				courseList.append(course)
-				print course
+			if course not in f1courseList and row[4][0]=='1' and (course in self.techList):
+				f1courseList.append(course)
+				# print '1st Yr Tech Course:', course
+			elif course not in s2courseList and row[4][0]=='2' and (course in self.techList):
+				s2courseList.append(course)
+				# print '2nd Yr Tech Course:', course
 
 			# if course == 'MATH133' or course == 'MATH110':
 			# 	print course
 
-		print '\nlen(courseList):', len(courseList), '\n'
+		print '\nlen(f1courseList):', len(f1courseList), '\n', f1courseList
+
+		print '\nlen(s2courseList):', len(s2courseList), '\n', s2courseList
 
 	def validateID(self):
 		r = csv.reader(open(self.rawDeg), delimiter=',')
