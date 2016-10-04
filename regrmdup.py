@@ -23,6 +23,7 @@ class prepross(object):
 		# self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
 		# self.predictorCourses = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
 		self.factors = ['PR', 'P', 'R']
+		# self.factors = ['R', 'P', 'PR']
 
 		# weights dictionary: key: the threshold; value: a dictionary with keys of train data length and value of weights
 		self.wdict = {	1:{2:1.3, 3:1.1, 4:1.1, 5:1.1},
@@ -718,7 +719,7 @@ class prepross(object):
 		# todo: prediction process
 		w1, w2 = csv.writer(open(self.meanPredictedLCSV, 'w')), csv.writer(open(self.meanPredictedQCSV, 'w'))
 		for crs in pointMeansDict:
-			crsPoints = mean2 = mean3 = mean4 = predictor2 = predictor3 = predictor4 = []
+			crsPoints, mean2, mean3, mean4, predictor2, predictor3, predictor4 = [], [], [], [], [], [], []
 			if predictorYr == '1':
 				crsPoints, mean2, mean3, mean4 = pointMeansDict[crs]
 				predictor2, predictor3, predictor4 = predictorsDict[crs]
@@ -2460,37 +2461,207 @@ class prepross(object):
 		writer.writerow([])
 		writer.writerows(realEstPairList)
 
+		# format maeList to plot the graphs
+		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'MAE']
+		maeList = [ item[:6]+[item[12]] for item in errRangeStdErrList[1:] ]
+		self.plotPredictionMAEFigures(testReg, power, maeList)
+
+	def plotPredictionMAEFigures(self, testReg, power, maeList):
+		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'MAE']
 		prefix, suffix = testReg.split('/')[-1].split('_')[0], ''
 		if power == 1:
 			suffix, tSuffix = 'L', 'Linear'
 		elif power == 2:
 			suffix, tSuffix = 'Q', 'Quadratic'
 
-		# 3D plots
-		figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'.png'
-		title = ''
-		if self.proPredictor == 'ALL':
-			title = 'Points vs r vs MAE: '+tSuffix+':'+prefix[3:]+' vs '+self.trainYrsText+'\nH:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
-		else:
-			title = 'Points vs r vs MAE \n'+tSuffix+': predictor:'+self.proPredictor+'; H:'+str(self.threshold)
+		# sort by predictor, then predicted course
+		# 1st yr predictors vs 2nd/3rd/4th predicted courses
+		flist = [x for x in maeList if x[1][0] == '1']
+		# 2nd yr predictors vs 3rd/4th predicted courses
+		slist = [x for x in maeList if x[1][0] == '2']
 
-		if self.proPredictor == 'ALL':
+		# f2List: 1vs2; f3List: 1vs3; f4List: 1vs4; s3List: 2vs3; s4List: 2vs4
+		f2List,f3List,f4List, s3List,s4List = [],[],[],[],[]
+		for rec in flist:
+			yr = rec[3][0]
+			if yr == '2':
+				f2List.append(rec)
+			elif yr == '3':
+				f3List.append(rec)
+			elif yr == '4':
+				f4List.append(rec)
+
+		for rec in slist:
+			yr = rec[3][0]
+			if yr == '3':
+				s3List.append(rec)
+			elif yr == '4':
+				s4List.append(rec)
+
+		# for the predictors in 1st/2nd year technical courses
+		# combinations: 1st vs 2nd/3rd/4th/2nd&3rd/2nd&3rd&4th; 2nd vs 3rd/4th/3rd&4th; 1st&2nd vs 3rd/4th/3rd&4th
+		# 3D: 1st vs 2nd
+		if len(f2List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f2List, prefix, suffix, '1 vs 2')
+				else:
+					self.plotPredictionMAEFigures4P_R(f2List, prefix, suffix, '1 vs 2', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f2List, prefix, suffix, '1 vs 2')
+		# 3D: 1st vs 3rd
+		if len(f3List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f3List, prefix, suffix, '1 vs 3')
+				else:
+					self.plotPredictionMAEFigures4P_R(f3List, prefix, suffix, '1 vs 3', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f3List, prefix, suffix, '1 vs 3')
+		# 3D: 1st vs 4th
+		if len(f4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f4List, prefix, suffix, '1 vs 4')
+				else:
+					self.plotPredictionMAEFigures4P_R(f4List, prefix, suffix, '1 vs 4', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f4List, prefix, suffix, '1 vs 4')
+		# 3D: 1st vs 2nd&3rd
+		if len(f2List) > 0 and len(f3List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f2List+f3List, prefix, suffix, '1 vs 2,3')
+				else:
+					self.plotPredictionMAEFigures4P_R(f2List+f3List, prefix, suffix, '1 vs 2,3', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f2List+f3List, prefix, suffix, '1 vs 2,3')
+		# 3D: 1st vs 2nd&4th
+		if len(f2List) > 0 and len(f4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f2List+f4List, prefix, suffix, '1 vs 2,4')
+				else:
+					self.plotPredictionMAEFigures4P_R(f2List+f4List, prefix, suffix, '1 vs 2,4', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f2List+f4List, prefix, suffix, '1 vs 2,4')
+		# 3D: 1st vs 3rd&4th
+		if len(f3List) > 0 and len(f4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f3List+f4List, prefix, suffix, '1 vs 3,4')
+				else:
+					self.plotPredictionMAEFigures4P_R(f3List+f4List, prefix, suffix, '1 vs 3,4', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f3List+f4List, prefix, suffix, '1 vs 3,4')
+		# 3D: 1st vs 2nd&3rd&4th
+		if len(f2List) > 0 and len(f3List) > 0 and len(f4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f2List+f3List+f4List, prefix, suffix, '1 vs 2,3,4')
+				else:
+					self.plotPredictionMAEFigures4P_R(f2List+f3List+f4List, prefix, suffix, '1 vs 2,3,4', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f2List+f3List+f4List, prefix, suffix, '1 vs 2,3,4')
+
+		# 3D: 2nd vs 3nd
+		if len(s3List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(s3List, prefix, suffix, '2 vs 3')
+				else:
+					self.plotPredictionMAEFigures4P_R(s3List, prefix, suffix, '2 vs 3', self.factor)
+			else:
+				# for 2nd year technical predictor
+				self.plotPrediction3D(s3List, prefix, suffix, '2 vs 3')
+		# 3D: 2nd vs 4th
+		if len(s4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(s4List, prefix, suffix, '2 vs 4')
+				else:
+					self.plotPredictionMAEFigures4P_R(s4List, prefix, suffix, '2 vs 4', self.factor)
+			else:
+				# for 2nd year technical predictor
+				self.plotPrediction3D(s4List, prefix, suffix, '2 vs 4')
+		# 3D: 2nd vs 3nd&4th
+		if len(s3List) > 0 and len(s4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(s3List+s4List, prefix, suffix, '2 vs 3,4')
+				else:
+					self.plotPredictionMAEFigures4P_R(s3List+s4List, prefix, suffix, '2 vs 3,4', self.factor)
+			else:
+				# for 2nd year technical predictor
+				self.plotPrediction3D(s3List+s4List, prefix, suffix, '2 vs 3,4')
+
+		# 3D: 1st&2nd vs 3rd
+		if len(f3List) > 0 and len(s3List) > 0:
 			if self.factor == 'PR':
-				self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
-			elif self.factor == 'P':
-				xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-				ytitle = 'mean absolute error from '+prefix[3:]
-				title = 'coefficients vs mean absolute error (MAE) ('+suffix+')'
-				figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_p_MAE_'+suffix+'.png'
-				self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p', 'ma')
-			elif self.factor == 'R':
-				xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-				ytitle = 'mean of absolute error from '+prefix[3:]
-				title = 'coefficients vs mean absolute error (MAE) ('+suffix+')'
-				figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_r_MAE_'+suffix+'.png'
-				self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r', 'ma')
-		else:
+				self.plotPrediction3D(f3List+s3List, prefix, suffix, '1,2 vs 3')
+			else:
+				self.plotPredictionMAEFigures4P_R(f3List+s3List, prefix, suffix, '1,2 vs 3', self.factor)
+		# 3D: 1st&2nd vs 4th
+		if len(f4List) > 0 and len(s4List) > 0:
+			if self.factor == 'PR':
+				self.plotPrediction3D(f4List+s4List, prefix, suffix, '1,2 vs 4')
+			else:
+				self.plotPredictionMAEFigures4P_R(f4List+s4List, prefix, suffix, '1,2 vs 4', self.factor)
+		# 3D: 1st&2nd vs 3rd&4th
+		if len(f3List) > 0 and len(f4List) > 0 and len(s3List) > 0 and len(s4List) > 0:
+			if self.factor == 'PR':
+				self.plotPrediction3D(f3List+f4List+s3List+s4List, prefix, suffix, '1,2 vs 3,4')
+			else:
+				self.plotPredictionMAEFigures4P_R(f3List+f4List+s3List+s4List, prefix, suffix, '1,2 vs 3,4', self.factor)
+
+		# 3D: overall: 1st vs 2nd&3rd&4th && 2nd vs 3rd&4th
+		if len(maeList) > 0 and self.proPredictor == 'ALL':
+			if self.factor == 'PR':
+				self.plotPrediction3D(maeList, prefix, suffix, 'Overall')
+			else:
+				self.plotPredictionMAEFigures4P_R(maeList, prefix, suffix, 'Overall', self.factor)
+
+	def plotPrediction3D(self, dataList, prefix, suffix, combination):
+		pointsList, rList, aveAbsErrList = [], [], []
+		for rec in dataList:
+			pointsList.append(int(rec[4])), rList.append(float(rec[5])), aveAbsErrList.append(float(rec[6]))
+		if len(pointsList) > 0:
+			figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'_'+combination+'.png'
+
+			title = 'Points vs r vs MAE: '+suffix+'\nPredictor:'+self.proPredictor+'; H:'+str(self.threshold)+'; '+combination
+			if self.proPredictor == 'ALL':
+				# title = 'Points vs r vs MAE: '+suffix+':'+prefix[3:]+' vs '+self.trainYrsText+'\n'+combination+'; H:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
+				title = 'Points vs r vs MAE: '+suffix+'; rw:'+str(self.rw)+', pw:'+str(self.pw)+'; H:'+str(self.threshold)+'\n'+prefix[3:]+' vs '+self.trainYrsText+'; '+combination
+
 			self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
+
+	def plotPredictionMAEFigures4P_R(self, dataList, prefix, suffix, combination, factor):
+		prList, aveAbsErrList = [], []
+		for rec in dataList:
+			aveAbsErrList.append(float(rec[6]))
+			if factor == 'P':
+				prList.append(int(rec[4]))
+			elif factor == 'R':
+				prList.append(float(rec[5]))
+
+		if len(prList) > 0:
+			figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_'+factor+'_MAE_'+suffix+'_'+combination+'.png'
+			ytitle = 'MAE from '+prefix[3:]
+			if factor == 'R':
+				xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
+				title = 'coefficients vs MAE: '+suffix+':'+prefix[3:]+' vs '+self.trainYrsText+'\n'+combination+'; H:'+str(self.threshold)
+				self.errScatter(xtitle, ytitle, title, prList, aveAbsErrList, figName, 'R')
+			elif factor == 'P':
+				xtitle = 'Sample Points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
+				title = 'Sample Points vs MAE: '+suffix+'; H:'+str(self.threshold)+'\n'+prefix[3:]+' vs '+self.trainYrsText+'; '+combination
+				self.errScatter(xtitle, ytitle, title, prList, aveAbsErrList, figName, 'P')
 
 	def gradePairs(self, testY, testXs, minList, maxList):
 		resultPairs, pairsList, xCrsNums = [], [], []
@@ -2528,68 +2699,45 @@ class prepross(object):
 
 		return resultPairs
 
-	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName, xflag, yflag):
+	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName, xflag):
 		fig = plt.figure()
 		x = np.array(xdata)
 		y = np.array(ydata)
 
 		z = np.polyfit(x, y, 1)
 		p = np.poly1d(z)
-		plt.plot(x, y, 'o', c='red')
+		plt.plot(x, y, '^', c='red')
 		# xp = np.linspace(0, 9, 100)
-		if not (xflag == 'r'):
+		if not (xflag == 'R'):
 			plt.plot(x, p(x), 'b--')
 
 		plt.xlabel(xtitle)
 		plt.ylabel(ytitle)
 		plt.title(title)
 
-		plt.ylim(0.0, max(ydata)+0.5)
+		# plt.ylim(0.0, max(ydata)+0.5)
+		plt.ylim(0.0, 10.0)
 
 		ax = plt.axes()
-		minorLocator = MultipleLocator(0.1)
-		majorLocator = MultipleLocator(0.5)
+		minorLocator, majorLocator = MultipleLocator(0.1), MultipleLocator(0.5)
 		ax.yaxis.set_minor_locator(minorLocator)
 		ax.yaxis.set_major_locator(majorLocator)
 
-		# if yflag == 'mae':
-		# 	plt.ylim(0, 16)
-		# 	ticks = xrange(0, 16, 2)
-		# 	ticks = np.linspace(0.0, 16.0, 8, endpoint=False).tolist()
-		# 	ticks.append(16)
-		# 	plt.yticks(ticks)			
-		# if yflag == 'mape':
-		# 	plt.ylim(0, 5)
-		# 	ticks = np.linspace(0.0, 5.0, 10, endpoint=False).tolist()
-		# 	ticks.append(5.0)
-		# 	plt.yticks(ticks)
-
-		if xflag == 'r':
+		if xflag == 'R':
 			plt.xlim(-1.0, 1.0)
-			# ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
-			# ticks.append(1.0)
-			# plt.xticks(ticks, rotation=20, fontsize='medium')
-
 			minorLocator = MultipleLocator(0.1)
 			majorLocator = MultipleLocator(0.1)
 			plt.xticks(rotation=20, fontsize='medium')
-		if xflag == 'p':
+		if xflag == 'P':
 			plt.xlim(0, 120)
-			# ticks = xrange(0, max(xdata)+5, 5)
-			# ticks = xrange(0, 120, 10)
-			# plt.xticks(ticks)
-
 			minorLocator = MultipleLocator(2)
 			majorLocator = MultipleLocator(10)
-			# ax.grid(which = 'minor')
 			plt.xticks(rotation=90, fontsize='small')
 
 		ax.xaxis.set_minor_locator(minorLocator)
 		ax.xaxis.set_major_locator(majorLocator)
-		# ax.grid(which = 'minor')
 
 		plt.grid(True)
-		# plt.show()
 		fig.savefig(figName)
 		plt.close(fig)
 
