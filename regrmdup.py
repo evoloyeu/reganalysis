@@ -65,9 +65,9 @@ class prepross(object):
 				if not os.path.exists(item):
 					os.makedirs(item)
 
-		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
+		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q, self.boxplots] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/', self.currDir+'boxPlots/']
 
-		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/']
+		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/', self.boxplots]
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
@@ -155,11 +155,11 @@ class prepross(object):
 			# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
-		fileNameList = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv']
+		fileNameList = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv', 'CRS_PAIRS.csv']
 		for x in xrange(0,len(fileNameList)):
 			fileNameList[x] = self.dataDir+'Train/'+fileNameList[x]
 
-		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV, self.nancsv] = fileNameList
+		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV, self.nancsv, self.CRS_PAIRS] = fileNameList
 
 		self.degREPL, self.IDMAPPER = self.dataDir+'REPL_SAS.csv', self.dataDir+'IDMAPPER_SAS.csv'
 
@@ -195,6 +195,7 @@ class prepross(object):
 		self.formatRegSAS(self.regDataPath, self.regNODUP)
 		self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
 		self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS, self.STU_CRS_GRADE)
+		self.createCrspairs(self.CRS_PAIRS, self.CRS_STU)
 		self.pairs()
 		self.pairsHists()
 
@@ -554,6 +555,61 @@ class prepross(object):
 
 			w1.writerow(STU_CRS_row)
 			w2.writerow(STU_CRS_GRADE_row)
+
+	def createCrspairs(self, CRS_PAIRS, CRS_STU):
+		r, w = csv.reader(open(CRS_STU), delimiter=','), csv.writer(open(CRS_PAIRS, 'w'))
+		r.next()
+		f1list,s2list,t3list,f4list = [],[],[],[]
+		for row in r:
+			if row[1][0]=='1':
+				f1list.append(row)
+			elif row[1][0]=='2':
+				s2list.append(row)
+			elif row[1][0]=='3':
+				t3list.append(row)
+			elif row[1][0]=='4':
+				f4list.append(row)
+
+		results = [self.matchPair(f1list, s2list), self.matchPair(f1list, t3list), self.matchPair(f1list, f4list), self.matchPair(s2list, t3list), self.matchPair(s2list, f4list)]
+		for result in results:
+			if len(result) > 0:
+				w.writerows(result)
+
+	def matchPair(self, earlyList, laterList):
+		result = []
+		for itemL in laterList:
+			for itemE in earlyList:
+				L, E = [itemL[0], itemL[1]], [itemE[0], itemE[1]]
+				for x in xrange(2,len(itemL)):
+					if (len(itemL[x]) > 0) and (len(itemE[x]) > 0):
+						L.append(int(itemL[x])), E.append(int(itemE[x]))
+
+				if len(L) > 2:
+					result += [E,L,[]]
+					self.createBoxPlots(E, L)
+
+		return result
+
+	def createBoxPlots(self, edata, ldata):
+		fig = plt.figure()
+		# fig = plt.figure(1, figsize=(4, 6))
+		ax = plt.axes()
+		bp = ax.boxplot([edata[2:], ldata[2:]])
+		# early course, late course
+		ecourse, lcourse = edata[0]+' '+edata[1], ldata[0]+' '+ldata[1]
+		ax.set_xticklabels([ecourse, lcourse])
+
+		if not os.path.exists(self.boxplots+lcourse):
+			os.makedirs(self.boxplots+lcourse)
+
+		minorLocator, majorLocator = MultipleLocator(0.1), MultipleLocator(0.5)
+		ax.yaxis.set_minor_locator(minorLocator)
+		ax.yaxis.set_major_locator(majorLocator)
+		plt.grid(True)
+		# plt.show()
+
+		fig.savefig(self.boxplots+lcourse+'/'+ecourse+ ' ' +lcourse+'.png', bbox_inches='tight')
+		plt.close(fig)
 
 	def techCoursePicker(self, regfile, techcourses):
 		r, w = csv.reader(open(regfile), delimiter = ','), csv.writer(open(techcourses, 'w'))

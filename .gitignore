@@ -90,3 +90,6 @@ ENV/
 
 # MAC specific
 .DS_Store
+
+# Test
+test.py

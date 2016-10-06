@@ -22,6 +22,66 @@ import warnings
 
 # test import error
 
+# test boxplot
+a = [9,9,8,8,6,5,4,7,7,7,6,6,6,6,8,8,8,5,6,5]
+b = [8,7,7,2,6,5,6,4,5,6,7,1,2,6,9,1,8,3,5,3]
+# c = [9,7,6,5,9,5,3,1,9,5,9,1,2,3,8,1,9,2,5,2]
+
+dataCollections = [np.array(a),np.array(b)]
+fig = plt.figure()
+# fig = plt.figure(1, figsize=(4, 6))
+ax = plt.axes()
+bp = ax.boxplot(dataCollections)
+ax.set_xticklabels(['ELEC 220', 'CSC 260'])
+minorLocator, majorLocator = MultipleLocator(0.1), MultipleLocator(0.5)
+ax.yaxis.set_minor_locator(minorLocator)
+ax.yaxis.set_major_locator(majorLocator)
+plt.grid(True)
+plt.show()
+
+# Create a figure instance
+# fig = plt.figure(1, figsize=(9, 6))
+# # Create an axes instance
+# ax = fig.add_subplot(111)
+# # Create the boxplot
+# bp = ax.boxplot([a,b,c])
+# ax.set_xticklabels(['ELEC 220', 'CSC 260', 'CENG 255'])
+# # Save the figure
+# fig.savefig('fig1.png', bbox_inches='tight')
+# plt.show()
+
+# test sort
+# alist = [['ELEC','370','7','8','5','3','8','3','4','6'],
+# ['ELEC','456','9','','','6','','','',''],
+# ['ELEC','450','8','','','','','','9',''],
+# ['ELEC','452','','','','','','','8','8'],
+# ['ELEC','310','8','7','8','5','8','7','3','7'],
+# ['ELEC','199','7','9','7','5','6','4','4','9'],
+# ['ELEC','412','','9','8','','','7','',''],
+# ['ELEC','350','7','8','5','5','7','6','4','5'],
+# ['ELEC','459','','','','','9','','',''],
+# ['ELEC','250','6','8','6','5','8','5','3','7'],
+# ['SENG','422','','','','','','','',''],
+# ['ENGR','446','9','8','6','9','','','6',''],
+# ['MATH','201','8','7','7','4','5','0','0','4'],
+# ['CENG','441','','9','','','','2','',''],
+# ['ELEC','426','','','','','','','',''],
+# ['MATH','133','8','9','8','2','7','0','4','6'],
+# ['CENG','241','9','9','7','7','9','7','6','6'],
+# ['CENG','420','','','','','','','',''],
+# ['CSC','110','','','','','','','8',''],
+# ['CSC','111','9','8','7','2','8','4','','9'],
+# ['CENG','461','','','','8','','','',''],
+# ['MECH','141','8','6','5','3','7','4','3','5'],
+# ['CSC','115','9','9','9','6','9','5','','7'],
+# ['ELEC','482','','6','7','','','5','7','5'],
+# ['ELEC','453','','','','','','','','8'],
+# ['ELEC','349A','8','8','6','3','7','5','2','8']]
+
+# alist.sort(key=itemgetter(1), reverse=False)
+# print alist
+
+
 # sort course pairs
 # testList = [
 # ['CSC','115','MATH','200'],
