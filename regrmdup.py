@@ -14,8 +14,8 @@ class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
-		# self.thresholdList = [1,5,10,15,20]
-		self.thresholdList = [1]
+		self.thresholdList = [1,5,10,15,20]
+		# self.thresholdList = [1]
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
@@ -56,7 +56,7 @@ class prepross(object):
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
 			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
 
-			self.boxplots = self.currDir+'boxPlots/'
+			self.boxplots = self.dataDir+'boxPlots/'
 		else:
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/'+str(self.threshold)+'/'
 			self.dataDir = self.currDir+'data/'
