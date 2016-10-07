@@ -594,6 +594,7 @@ class prepross(object):
 		fig = plt.figure()
 		# fig = plt.figure(1, figsize=(4, 6))
 		ax = plt.axes()
+		plt.ylim(0.0, 9.0)
 		bp = ax.boxplot([edata[2:], ldata[2:]])
 		# early course, late course
 		ecourse, lcourse = edata[0]+' '+edata[1], ldata[0]+' '+ldata[1]
