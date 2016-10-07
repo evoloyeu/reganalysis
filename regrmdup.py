@@ -14,7 +14,8 @@ class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
-		self.thresholdList = [1,5,10,15,20]
+		# self.thresholdList = [1,5,10,15,20]
+		self.thresholdList = [1]
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
@@ -54,9 +55,13 @@ class prepross(object):
 
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
 			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
+
+			self.boxplots = self.currDir+'boxPlots/'
 		else:
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/'+str(self.threshold)+'/'
 			self.dataDir = self.currDir+'data/'
+
+			self.boxplots = path+time.strftime('%Y%m%d')+'/boxPlots/'
 
 			self.meanPearson, self.meanPairs, self.f1s2CrsVnums, self.vnumMeans = self.dataDir+'meanPearsonCorr.csv', self.dataDir+'Train/MEANPAIRS_SAS.csv', self.dataDir+'Train/F1S2CRSVNUMS_SAS.csv', self.dataDir+'Train/VNUMSMEANS_SAS.csv'
 			self.meanPlot, self.meanTest = self.currDir+'meanPlots/', self.currDir+'meanTest/'
@@ -65,7 +70,7 @@ class prepross(object):
 				if not os.path.exists(item):
 					os.makedirs(item)
 
-		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q, self.boxplots] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/', self.currDir+'boxPlots/']
+		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
 
 		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/', self.boxplots]
 		for item in pathBuilderList:
@@ -591,25 +596,28 @@ class prepross(object):
 		return result
 
 	def createBoxPlots(self, edata, ldata):
+		# early course, late course
+		ecourse, lcourse = edata[0]+' '+edata[1], ldata[0]+' '+ldata[1]
+		figname = self.boxplots+lcourse+'/'+ecourse+ ' ' +lcourse+'.png'
+		# already exists, return it and do not re-create it
+		if os.path.exists(figname):
+			return
+		elif not os.path.exists(self.boxplots+lcourse):
+			os.makedirs(self.boxplots+lcourse)
+
 		fig = plt.figure()
 		# fig = plt.figure(1, figsize=(4, 6))
 		ax = plt.axes()
 		plt.ylim(0.0, 9.0)
 		bp = ax.boxplot([edata[2:], ldata[2:]])
-		# early course, late course
-		ecourse, lcourse = edata[0]+' '+edata[1], ldata[0]+' '+ldata[1]
 		ax.set_xticklabels([ecourse, lcourse])
 
-		if not os.path.exists(self.boxplots+lcourse):
-			os.makedirs(self.boxplots+lcourse)
-
 		minorLocator, majorLocator = MultipleLocator(0.1), MultipleLocator(0.5)
-		ax.yaxis.set_minor_locator(minorLocator)
-		ax.yaxis.set_major_locator(majorLocator)
+		ax.yaxis.set_minor_locator(minorLocator), ax.yaxis.set_major_locator(majorLocator)
 		plt.grid(True)
 		# plt.show()
 
-		fig.savefig(self.boxplots+lcourse+'/'+ecourse+ ' ' +lcourse+'.png', bbox_inches='tight')
+		fig.savefig(figname, bbox_inches='tight')
 		plt.close(fig)
 
 	def techCoursePicker(self, regfile, techcourses):
