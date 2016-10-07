@@ -19,8 +19,8 @@ class prepross(object):
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
-		self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141', 'MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230', 'ALL']
-		# self.predictorCourses = ['ALL']
+		# self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141', 'MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230', 'ALL']
+		self.predictorCourses = ['ALL']
 		# self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
 		# self.predictorCourses = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
 		self.factors = ['PR', 'P', 'R']
@@ -56,10 +56,16 @@ class prepross(object):
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
 			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
 
-			self.boxplots = self.dataDir+'boxPlots/'
+			self.linear_plots_ori = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/LPlots_ori/'
+			self.quadratic_plots_ori = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/QPlots_ori/'
+
+			self.boxplots = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/boxPlots/'
 		else:
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/'+str(self.threshold)+'/'
 			self.dataDir = self.currDir+'data/'
+
+			self.linear_plots_ori = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/LPlots_ori/'
+			self.quadratic_plots_ori = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/QPlots_ori/'
 
 			self.boxplots = path+time.strftime('%Y%m%d')+'/boxPlots/'
 
@@ -70,9 +76,9 @@ class prepross(object):
 				if not os.path.exists(item):
 					os.makedirs(item)
 
-		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
+		[self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
 
-		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/', self.boxplots]
+		pathBuilderList = [self.linear_plots_ori, self.quadratic_plots_ori, self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/', self.boxplots]
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
@@ -1269,10 +1275,22 @@ class prepross(object):
 		plt.close(fig)
 
 	def regressionPlot(self, xdata, ydata, r_value, power, xaxis, yaxis, plotDir, points):
-		fig = plt.figure()
 		xarray, yarray = np.array(xdata), np.array(ydata)
 		z = np.polyfit(xarray, yarray, power)
 		p = np.poly1d(z)
+
+		subj, num = xaxis.split(' ')[:2]
+		subjNew, numNew = yaxis.split(' ')[:2]
+		# create Predicting course folder
+		folder = plotDir + subjNew + numNew
+		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + ' ' + str(points) + '.png'
+
+		if os.path.exists(figName):
+			return z
+		elif not os.path.exists(folder):
+			os.makedirs(folder)
+
+		fig = plt.figure()
 
 		if power == 1:
 			slope, intercept = z
@@ -1364,15 +1382,6 @@ class prepross(object):
 		plt.ylim(0,9)
 		plt.grid(True)
 
-		subj, num = xaxis.split(' ')[:2]
-		subjNew, numNew = yaxis.split(' ')[:2]
-
-		# create Predicting course folder
-		folder = plotDir + subjNew + numNew
-		if not os.path.exists(folder):
-			os.makedirs(folder)
-
-		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + ' ' + str(points) + '.png'
 		fig.savefig(figName)
 		plt.close(fig)
 
