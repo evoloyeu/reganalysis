@@ -160,7 +160,7 @@ class prepross(object):
 			# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
-		fileNameList = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv', 'CRS_PAIRS.csv']
+		fileNameList = ['REPL.csv', 'NODUP.csv', 'TECH_NODUP.csv', 'CRSPERSTU.csv', 'STUREGISTERED.csv', 'EMPTY.csv', 'EMPTY_STU.csv', 'EMPTY_CRS.csv', 'CRS_STU.csv', 'CRS_STU_GRADE.csv', 'NODUP_REPL.csv', 'STU_CRS.csv', 'STU_CRS_GRADE.csv', 'CRS_MATRIX.csv', 'DISCARD.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv', 'CRS_PAIRS.csv']
 		for x in xrange(0,len(fileNameList)):
 			fileNameList[x] = self.dataDir+'Train/'+fileNameList[x]
 
