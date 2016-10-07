@@ -597,7 +597,7 @@ class prepross(object):
 
 				if len(L) > 2:
 					result += [E,L,[]]
-					self.createBoxPlots(E, L)
+					# self.createBoxPlots(E, L)
 
 		return result
 
@@ -971,8 +971,7 @@ class prepross(object):
 
 						if len(xdata) == 0:
 							cnt += 1
-							nocommstuList.append(newCourse)
-							nocomList.append([course[0]+' '+course[1], newCourse[0]+' '+newCourse[1]])
+							nocommstuList.append(newCourse), nocomList.append([course[0]+' '+course[1], newCourse[0]+' '+newCourse[1]])
 							print 'cnt:',cnt,'no common students course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
 							continue
 
@@ -986,12 +985,10 @@ class prepross(object):
 						noCorrList.append(newCourse)
 						cnt += 1
 						print 'cnt:',cnt,'no Pearson r course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
-						wnan.writerow([course[0]+course[1],newCourse[0]+newCourse[1],'len:',len(ydata)])
-						wnan.writerow([course[0]+course[1]]+xdata)
-						wnan.writerow([newCourse[0]+newCourse[1]]+ydata)
-						wnan.writerow([])
+						wnan.writerows([[course[0]+course[1],newCourse[0]+newCourse[1],'len:',len(ydata)]]+[[course[0]+course[1]]+xdata]+[[newCourse[0]+newCourse[1]]+ydata]+[])
 						continue
 
+					self.createBoxPlots([course[0], course[1]]+xdata, [newCourse[0], newCourse[1]]+ydata)
 					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
@@ -1025,12 +1022,12 @@ class prepross(object):
 				noCorrList.insert(0, course)
 				if wnocorrlst == '':
 					wnocorrlst = csv.writer(open(nocorrlst, 'w'))
-				wnocorrlst.writerows(noCorrList)
+				wnocorrlst.writerows(noCorrList+[])
 				
-				wnocorrlst.writerow([])
+				# wnocorrlst.writerow([])
 				lst.sort(key=itemgetter(4), reverse=True)
-				wnocorrlst.writerows(lst)
-				wnocorrlst.writerow([])
+				wnocorrlst.writerows(lst+[])
+				# wnocorrlst.writerow([])
 
 				noCorrListTable.append(['Course_1', 'Course_2', '#Student'])
 				[noCorrListTable.append([item[0]+' '+item[1], item[2]+' '+item[3], item[4]]) for item in lst]
@@ -1045,8 +1042,8 @@ class prepross(object):
 
 				if wnocommstulst == '':
 					wnocommstulst = csv.writer(open(nocommstulst, 'w'))
-				wnocommstulst.writerows(nocommstuList)
-				wnocommstulst.writerow([])
+				wnocommstulst.writerows(nocommstuList+[])
+				# wnocommstulst.writerow([])
 
 				wnocommstulst.writerow(['COURSE_1', 'COURSE_2'])
 				wnocommstulst.writerow([course[0]+course[1], nocommstuList[1][0]+nocommstuList[1][1]])
@@ -1105,8 +1102,7 @@ class prepross(object):
 		wnan = csv.writer(open(self.nancsv, 'w'))
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
-		nocorrlst = self.dataDir+'nocorr/no_corr_list.csv'
-		nocommstulst = self.dataDir+'nocomstu/nocomstu_list.csv'
+		nocorrlst, nocommstulst = self.dataDir+'nocorr/no_corr_list.csv', self.dataDir+'nocomstu/nocomstu_list.csv'
 		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
 
 		rlist, plist = [],[]
@@ -1131,8 +1127,7 @@ class prepross(object):
 
 				if len(xdata) == 0:
 					cnt += 1
-					nocommstuList.append(newCourse)
-					nocomList.append([proPredictorCourse[0]+' '+proPredictorCourse[1], newCourse[0]+' '+newCourse[1]])
+					nocommstuList.append(newCourse), nocomList.append([proPredictorCourse[0]+' '+proPredictorCourse[1], newCourse[0]+' '+newCourse[1]])
 					print 'cnt:',cnt,'no common students course pair,', 'len:', len(ydata), proPredictorCourse[0],proPredictorCourse[1],'vs',newCourse[0],newCourse[1],'Predictor:', self.proPredictor, 'Thresh:', self.threshold
 					continue
 
@@ -1146,12 +1141,10 @@ class prepross(object):
 					noCorrList.append(newCourse)
 					cnt += 1
 					print 'cnt:',cnt,'no Pearson r course pair,', 'len:', len(ydata), proPredictorCourse[0],proPredictorCourse[1],'vs',newCourse[0],newCourse[1],'Predictor:', self.proPredictor, 'Thresh:', self.threshold
-					wnan.writerow([proPredictorCourse[0]+proPredictorCourse[1],newCourse[0]+newCourse[1],'len:',len(ydata)])
-					wnan.writerow([proPredictorCourse[0]+proPredictorCourse[1]]+xdata)
-					wnan.writerow([newCourse[0]+newCourse[1]]+ydata)
-					wnan.writerow([])
+					wnan.writerows([[proPredictorCourse[0]+proPredictorCourse[1],newCourse[0]+newCourse[1],'len:',len(ydata)]]+[[proPredictorCourse[0]+proPredictorCourse[1]]+xdata]+[[newCourse[0]+newCourse[1]]+ydata]+[])
 					continue
 
+				self.createBoxPlots([proPredictorCourse[0], proPredictorCourse[1]]+xdata, [newCourse[0], newCourse[1]]+ydata)
 				# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 				# format the parameters precision
 				slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
