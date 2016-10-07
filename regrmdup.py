@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import csv, os, time, hashlib, shutil
 from pylab import *
 import matplotlib.pyplot as plt
@@ -13,24 +15,23 @@ class prepross(object):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
 		self.thresholdList = [1,5,10,15,20]
-
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
-		rwList, pwList = [1.4,1.4,1.2,1.1], [1,1,1,1]
-		self.coefficientList = ['Pearson']
-		# define the predictor course: ALL: use common predictors based on the picking criteria
-		self.predictorCourses = ['CSC 115', 'ALL']
-		# self.predictorCourses = ['ALL']
-		self.factors = ['PR', 'P', 'R']
 
-		# weights dictionary: 
-		# key: the threshold; value: a dictionary with keys of train data length and value of weights
-		self.wdict = {
-		1:{2:1.4, 3:1.4, 4:1.2, 5:1.1},
-		5:{2:1.4, 3:1.0, 4:1.2, 5:1.2},
-		10:{2:1.3, 3:1.2, 4:1.2, 5:1.2},
-		15:{2:1.4, 3:1.2, 4:1.2, 5:1.2},
-		20:{2:1.4, 3:1.2, 4:1.2, 5:1.2}
-		}
+		# define the predictor course: ALL: use common predictors based on the picking criteria
+		self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141', 'MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230', 'ALL']
+		# self.predictorCourses = ['ALL']
+		# self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
+		# self.predictorCourses = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
+		self.factors = ['PR', 'P', 'R']
+		# self.factors = ['R', 'P', 'PR']
+
+		# weights dictionary: key: the threshold; value: a dictionary with keys of train data length and value of weights
+		self.wdict = {	1:{2:1.3, 3:1.1, 4:1.1, 5:1.1},
+						5:{2:1.3, 3:1.1, 4:1.1, 5:1.2},
+						10:{2:1.3, 3:1.1, 4:1.1, 5:1.2},
+						15:{2:1.3, 3:1.1, 4:1.1, 5:1.2},
+						20:{2:1.3, 3:1.1, 4:1.1, 5:1.2} }
+
 		self.errMerge = False
 
 	def statsPath(self):
@@ -42,7 +43,7 @@ class prepross(object):
 		self.matrixDir = path+'matrix/'
 
 		self.allTechCrs = path+'techcourses/'+'technicalCourse.csv'
-		self.availableTechCrsList = []
+		self.availableTechCrsList, self.techList = [],[]
 
 		# No specific predictor
 		if self.proPredictor == 'ALL':
@@ -51,19 +52,22 @@ class prepross(object):
 			else:
 				self.trainYrsText = str(self.trainYrs[0])
 
-			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
-			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
+			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
+			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
 		else:
-			# designated specific predictor
-			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+str(self.threshold)+'/'
+			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/'+str(self.threshold)+'/'
 			self.dataDir = self.currDir+'data/'
 
-		# data directory
-		# self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.coe+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
+			self.meanPearson, self.meanPairs, self.f1s2CrsVnums, self.vnumMeans = self.dataDir+'meanPearsonCorr.csv', self.dataDir+'Train/MEANPAIRS_SAS.csv', self.dataDir+'Train/F1S2CRSVNUMS_SAS.csv', self.dataDir+'Train/VNUMSMEANS_SAS.csv'
+			self.meanPlot, self.meanTest = self.currDir+'meanPlots/', self.currDir+'meanTest/'
+			self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV = self.meanTest+'PMean_L.csv', self.meanTest+'PMean_Q.csv', self.meanTest+'PMean_EL.csv', self.meanTest+'PMean_EQ.csv'
+			for item in [self.meanPlot, self.meanTest]:
+				if not os.path.exists(item):
+					os.makedirs(item)
 
-		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
+		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q, self.boxplots] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/', self.currDir+'boxPlots/']
 
-		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/']
+		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/', self.boxplots]
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
@@ -135,11 +139,11 @@ class prepross(object):
 					testPath = self.dataDir +'Test/' + filename[7:16] + '/'
 
 				prefix = testPath + filename
-				self.fTestRegFileNameList.append(prefix + '_Test.csv')
+				self.fTestRegFileNameList.append([prefix + '_TTech.csv', prefix + '_Test.csv'])
 			else:
 				testPath = self.dataDir +'Test/' + filename[3:] + '/'
 				prefix = testPath + filename[0:3] + 'test' + filename[3:]
-				self.fTestRegFileNameList.append(prefix + '_Test.csv')
+				self.fTestRegFileNameList.append([prefix + '_TTech.csv', prefix + '_Test.csv'])
 
 			if not os.path.exists(testPath):
 				os.makedirs(testPath)
@@ -151,23 +155,21 @@ class prepross(object):
 			# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
-		fileNameList = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv']
+		fileNameList = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv', 'CRS_PAIRS.csv']
 		for x in xrange(0,len(fileNameList)):
 			fileNameList[x] = self.dataDir+'Train/'+fileNameList[x]
 
-		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV, self.nancsv] = fileNameList
+		[self.regREPL, self.regNODUP, self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.EMPTY_STU, self.EMPTY_CRS, self.CRS_STU, self.CRS_STU_GRADE, self.regNODUPREPL, self.STU_CRS, self.STU_CRS_GRADE, self.crsMatrix, self.discardList, self.courselist, self.uniTechCrsList, self.techCrsCSV, self.nancsv, self.CRS_PAIRS] = fileNameList
 
 		self.degREPL, self.IDMAPPER = self.dataDir+'REPL_SAS.csv', self.dataDir+'IDMAPPER_SAS.csv'
 
 	def doBatch(self):
-		for coe in self.coefficientList:
-			self.coe = coe
-			for proPredictor in self.predictorCourses:
-				self.proPredictor = proPredictor
-				if proPredictor == 'ALL':
-					self.computeALL()
-				else:
-					self.computeSpecific()
+		for proPredictor in self.predictorCourses:
+			self.proPredictor = proPredictor
+			if proPredictor == 'ALL':
+				self.computeALL()
+			else:
+				self.computeSpecific()
 
 	def predicting4ALL(self):
 		# predicting
@@ -179,6 +181,10 @@ class prepross(object):
 			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop3[x], self.quadrPredictResultsAveErrTop3[x], 2, predictors[1])
 
 	def predicting4Specific(self):
+		# predition for meanPrediction
+		self.f1s2YrTechYrCrsMeanPrediction(self.meanPairs, self.meanPearson)
+
+		# predition for all test sets
 		self.testSetsStats()
 		for x in xrange(0,len(self.fTestStatFileNameList)):
 			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1, self.top1FactorsFile)
@@ -188,7 +194,8 @@ class prepross(object):
 		self.techCrs()
 		self.formatRegSAS(self.regDataPath, self.regNODUP)
 		self.formatRegSAS(self.techCrsCSV, self.techRegNODUP)
-		self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS, self.STU_CRS_GRADE)
+		self.simpleStats(self.techRegNODUP, self.CRSPERSTU, self.STUREGISTERED, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS, self.STU_CRS_GRADE)
+		self.createCrspairs(self.CRS_PAIRS, self.CRS_STU)
 		self.pairs()
 		self.pairsHists()
 
@@ -208,11 +215,13 @@ class prepross(object):
 		# compute the stats data for the test datasets
 		for testFile in self.testFileList:
 			index = self.testFileList.index(testFile)
-			noDupFile = self.fTestRegFileNameList[index]
-			self.formatRegSAS(testFile, noDupFile)
+			# TTech: all tech records; noDupFile stores noDupTechCourses
+			TTech, noDupFile = self.fTestRegFileNameList[index]
+			self.techCoursePicker(testFile, TTech)
+			self.formatRegSAS(TTech, noDupFile)
 
 			statList = self.fTestStatFileNameList[index]
-			self.simpleStats(noDupFile, statList[0], statList[1], statList[2], statList[3], statList[4], statList[5], statList[6])
+			self.simpleStats(noDupFile, statList[0], statList[1], statList[3], statList[4], statList[5], statList[6])
 
 	def testWeights(self):
 		# trying to find the good weights
@@ -264,6 +273,7 @@ class prepross(object):
 			self.threshold = threshold
 			self.statsPath()
 			self.prepare()
+			self.f1s2YrTechYrCoursesMean(self.CRS_STU, self.STU_CRS)
 			self.predictorsScatterPlots()
 			self.predicting4Specific()
 			# plot yr vs yr scatter plots
@@ -441,6 +451,15 @@ class prepross(object):
 		# user-courseList dictionary: VNUM as key, course as value; group the course data by their VNUM
 		VCDict = {}
 		for row in r:
+			course = row[3].replace(' ','')+row[4].replace(' ','')
+			# change MATH 110 ===> MATH 133; ENGR 110 ===> ENGR 111
+			if course == 'MATH110':
+				row[4] = '133'
+
+			if course == 'ENGR110':
+				row[4] = '111'
+
+			# key: the v_number
 			row[3], key=row[3].replace(' ',''), row[1].replace(' ','')
 			if key not in VCDict:
 				VCDict[key]=[row]
@@ -449,8 +468,7 @@ class prepross(object):
 
 		# iterate each student
 		for vkey in VCDict:
-			# VCDict[vkey]: one student's all possible courses including the records with same subj+num but different grades
-			# vkey: student's vnumber
+			# VCDict[vkey]: one student's all possible courses including the records with same subj+num but different grades; vkey: student's vnumber
 			# crs-same-crs-duplicate-record-List dictionary: subject_code+course_number as key, duplicate records as value; group one student's courses by course code(subj+num)
 			CRSDict = {}
 			for crs in VCDict[vkey]:
@@ -464,176 +482,368 @@ class prepross(object):
 				result = self.removeDup(CRSDict[ckey])
 				if len(result) > 0:
 					w.writerow(result)
+  
+	def simpleStats(self, noDupRegFile, CRSPERSTU, STUREGISTERED, CRS_STU, CRS_STU_GRADE, STU_CRS, STU_CRS_GRADE):
+		# CRSPERSTU: courses' frequency for each student
+		# STUREGISTERED: students' frequency for each course
+		# CRS_STU: course grade point matrix with row of course and column of student
+		# CRS_STU_GRADE: course grade matrix with row of course and column of student
+		# STU_CRS: course grade point matrix with row of student and column of course
+		# STU_CRS_GRADE: course grade matrix with row of student and column of course
+		r = csv.reader(open(noDupRegFile), delimiter=',')
+		r.next()
 
-	def simpleStats(self, noDupRegFile, CRSPERSTU, STUREGISTERED, EMPTY, CRS_STU, CRS_STU_GRADE, STU_CRS, STU_CRS_GRADE):
-		fRegNodupRder = csv.reader(open(noDupRegFile), delimiter=',')
-		# skip header
-		header = fRegNodupRder.next()
-		# count course frequency
-		crsPerStu, crsFre, noGradeRecs, distinctCRSLst, distinctSTULst = {}, {}, [], [], []
-		for record in fRegNodupRder:
-			if record[1] not in distinctSTULst:
-				distinctSTULst.append(record[1])
-			course_code = record[3].replace(' ','')+record[4].replace(' ','')
-			if course_code not in distinctCRSLst:
-				distinctCRSLst.append(course_code)
-
-			# record[1]:v_number; how many courses each students registered
-			if record[1] in crsPerStu:
-				crsPerStu[record[1]] = crsPerStu[record[1]] + 1
+		vnumDict, courseDict = {}, {}
+		for row in r:
+			# [vnum, subj, num, grade, point]
+			course = [row[1], row[3], row[4], row[6], row[8]]
+			# form vnumDict; key: vnum
+			if row[1] not in vnumDict:
+				vnumDict[row[1]]=[course]
 			else:
-				crsPerStu[record[1]] = 1
-
-			# course frequency; how many students each course was been registered
-			if course_code in crsFre:
-				crsFre[course_code] = crsFre[course_code] + 1
+				vnumDict[row[1]].append(course)
+			# form courseDict; key: subj+' '+cnum
+			key = row[3]+' '+row[4]
+			if key not in courseDict:
+				courseDict[key] = [course]
 			else:
-				crsFre[course_code] = 1
+				courseDict[key].append(course)
 
-			if record[6] == '':
-				noGradeRecs.append(record)
-		
-		# count how many courses registered for each student
+		# create CRSPERSTU
 		w = csv.writer(open(CRSPERSTU, 'w'))
-		w.writerow(['V_NUMBER', '#Courses_registered'])
-		w.writerows(crsPerStu.items())
-		# count how many students for each course
+		w.writerow(['VNUM', '#courses'])
+		w.writerows([ [key, len(vnumDict[key])] for key in vnumDict ])
+
+		# create STUREGISTERED
 		w = csv.writer(open(STUREGISTERED, 'w'))
 		w.writerow(['Course', '#Students'])
-		w.writerows(crsFre.items())
-		# pickup the courses without grades
-		w = csv.writer(open(EMPTY, 'w'))
-		noGradeRecs.insert(0, header)
-		w.writerows(noGradeRecs)
-		"""
-		# r = csv.reader(open(self.EMPTY), delimiter=',')
-		# r.next()
-		# uniStu, uniCrs = {}, {}
-		# for record in r:
-		# 	if record[1] not in uniStu:
-		# 		uniStu[record[1]] = 1
-		# 	else:
-		# 		uniStu[record[1]] = uniStu[record[1]] + 1
+		w.writerows([ [key, len(courseDict[key])] for key in courseDict ])
 
-		# 	course_code = record[3].replace(' ','') + record[4].replace(' ','')	
-		# 	if course_code not in uniCrs:
-		# 		uniCrs[course_code] = 1
-		# 	else:
-		# 		uniCrs[course_code] = uniCrs[course_code] + 1
-		
-		# # count the students who have courses without grades and how many no grade courses they have
-		# w = csv.writer(open(self.EMPTY_STU, 'w'))
-		# w.writerow(['V_NUMBER', '#_of_Courses_No_Grades'])
-		# w.writerows(uniStu.items())
-		# # count the #_of_students for the courses which were not assigned any grades
-		# w = csv.writer(open(self.EMPTY_CRS, 'w'))
-		# w.writerow(['Course', '#_of_Students_Reg_No_Grade'])
-		# w.writerows(uniCrs.items())
-		"""
-		# create course list
-		r = csv.reader(open(noDupRegFile), delimiter=',')
-		# skip the header
+		# create CRS_STU, CRS_STU_GRADE
+		w1, w2 = csv.writer(open(CRS_STU, 'w')), csv.writer(open(CRS_STU_GRADE, 'w'))
+		vnumList = vnumDict.keys()
+		w1.writerow(['subj', 'cnum']+vnumList)
+		w2.writerow(['subj', 'cnum']+vnumList)
+		for course in courseDict:
+			CRS_STU_row, CRS_STU_GRADE_row, courses = course.split(' '), course.split(' '), courseDict[course]
+			# insert blank value for every vnum
+			[CRS_STU_row.append('') for vnum in vnumList]
+			[CRS_STU_GRADE_row.append('') for vnum in vnumList]
+			# row: [vnum, subj, num, grade, point]
+			for row in courses:
+				vnum, grade, point = row[0], row[3], row[4]
+				index = vnumList.index(vnum)
+				CRS_STU_row[index+2], CRS_STU_GRADE_row[index+2] = point, grade
+
+			w1.writerow(CRS_STU_row)
+			w2.writerow(CRS_STU_GRADE_row)
+
+		# create STU_CRS, STU_CRS_GRADE
+		w1, w2 = csv.writer(open(STU_CRS, 'w')), csv.writer(open(STU_CRS_GRADE, 'w'))
+		crsList = [crs.replace(' ', '') for crs in courseDict.keys()]
+		w1.writerow(['vnum']+crsList)
+		w2.writerow(['vnum']+crsList)
+		for vnum in vnumDict:
+			STU_CRS_row, STU_CRS_GRADE_row, courses = [vnum], [vnum], vnumDict[vnum]
+			[STU_CRS_row.append('') for crs in crsList]
+			[STU_CRS_GRADE_row.append('') for crs in crsList]
+			for course in courses:
+				# course: [vnum, subj, num, grade, point]
+				grade, point, crs = course[3], course[4], course[1]+course[2]
+				index = crsList.index(crs)
+				STU_CRS_row[index+1], STU_CRS_GRADE_row[index+1] = point, grade
+
+			w1.writerow(STU_CRS_row)
+			w2.writerow(STU_CRS_GRADE_row)
+
+	def createCrspairs(self, CRS_PAIRS, CRS_STU):
+		r, w = csv.reader(open(CRS_STU), delimiter=','), csv.writer(open(CRS_PAIRS, 'w'))
 		r.next()
-		crsLst, crscodeLst, regLst, vnumLst = [], [], [], []
+		f1list,s2list,t3list,f4list = [],[],[],[]
+		for row in r:
+			if row[1][0]=='1':
+				f1list.append(row)
+			elif row[1][0]=='2':
+				s2list.append(row)
+			elif row[1][0]=='3':
+				t3list.append(row)
+			elif row[1][0]=='4':
+				f4list.append(row)
 
-		# header: [subj_code, course_code, v_num1, v_num2, ......]
-		header = ['SUBJECT_CODE', 'COURSE_NUMBER']
-		for record in r:
-			subj_code, course_code = record[3].replace(' ',''), record[4].replace(' ','')
-			# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
-			regLst.append([record[1], subj_code, course_code, record[8], record[6]])
-			crsCode = subj_code + course_code
-			if crsCode not in crscodeLst:
-				crscodeLst.append(crsCode)
-				# cell: [subj_code, course_code, 'NA', ......]
-				cell = [subj_code, course_code]
-				for x in xrange(0,len(distinctSTULst)):
-					# cell.append('NA')
-					cell.append('')
-				crsLst.append(cell)
+		results = [self.matchPair(f1list, s2list), self.matchPair(f1list, t3list), self.matchPair(f1list, f4list), self.matchPair(s2list, t3list), self.matchPair(s2list, f4list)]
+		for result in results:
+			if len(result) > 0:
+				w.writerows(result)
 
-			# header: [subj_code, course_code, v_num1, v_num2, ......]
-			# vnumLst: [v_num1, v_num2, ......]
-			if record[1] not in vnumLst:
-				vnumLst.append(record[1])
-				header.append(record[1])
+	def matchPair(self, earlyList, laterList):
+		result = []
+		for itemL in laterList:
+			for itemE in earlyList:
+				L, E = [itemL[0], itemL[1]], [itemE[0], itemE[1]]
+				for x in xrange(2,len(itemL)):
+					if (len(itemL[x]) > 0) and (len(itemE[x]) > 0):
+						L.append(int(itemL[x])), E.append(int(itemE[x]))
 
-		# create course matrix		
-		w = csv.writer(open(CRS_STU, 'w'))
+				if len(L) > 2:
+					result += [E,L,[]]
+					self.createBoxPlots(E, L)
+
+		return result
+
+	def createBoxPlots(self, edata, ldata):
+		fig = plt.figure()
+		# fig = plt.figure(1, figsize=(4, 6))
+		ax = plt.axes()
+		bp = ax.boxplot([edata[2:], ldata[2:]])
+		# early course, late course
+		ecourse, lcourse = edata[0]+' '+edata[1], ldata[0]+' '+ldata[1]
+		ax.set_xticklabels([ecourse, lcourse])
+
+		if not os.path.exists(self.boxplots+lcourse):
+			os.makedirs(self.boxplots+lcourse)
+
+		minorLocator, majorLocator = MultipleLocator(0.1), MultipleLocator(0.5)
+		ax.yaxis.set_minor_locator(minorLocator)
+		ax.yaxis.set_major_locator(majorLocator)
+		plt.grid(True)
+		# plt.show()
+
+		fig.savefig(self.boxplots+lcourse+'/'+ecourse+ ' ' +lcourse+'.png', bbox_inches='tight')
+		plt.close(fig)
+
+	def techCoursePicker(self, regfile, techcourses):
+		r, w = csv.reader(open(regfile), delimiter = ','), csv.writer(open(techcourses, 'w'))
+		header = r.next()
 		w.writerow(header)
-		wgrade = csv.writer(open(CRS_STU_GRADE, 'w'))
-		wgrade.writerow(header)
 
-		# matrix = [['' for x in range(len(distinctCRSLst))] for x in range(len(distinctSTULst))]
-		for x in xrange(0,len(crscodeLst)):
-			cell, crs_stu, crs_stu_grade = crsLst[x], [], []
-			# copy cell into crs_stu, crs_stu_grade
-			for item in crsLst[x]:
-				crs_stu.append(item)
-				crs_stu_grade.append(item)
+		for row in r:
+			course = row[3].replace(' ','')+row[4].replace(' ','')
+			# change MATH 110 ===> MATH 133; ENGR 110 ===> ENGR 111
+			if course == 'MATH110':
+				row[4] = '133'
 
-			for y in xrange(0,len(regLst)):
-				reg = regLst[y]
-				# get the index of vnum in the vnumLst
-				# vnumLst: [v_num1, v_num2, ......]
-				indx = vnumLst.index(reg[0])
-				# cell: [subj_code, course_code, 'NA', ......]
-				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
-				if (cell[0] == reg[1]) and (cell[1] == reg[2]):
-					if reg[3] == '':
-						# crs_stu[indx+2] = 'NG'
-						# crs_stu_grade[indx+2] = 'NG'
-						crs_stu[indx+2] = ''
-						crs_stu_grade[indx+2] = ''
-					else:
-						crs_stu[indx+2] = reg[3]
-						crs_stu_grade[indx+2] = reg[4]
-			w.writerow(crs_stu)
-			wgrade.writerow(crs_stu_grade)
+			if course == 'ENGR110':
+				row[4] = '111'
 
-		# create course matrix
-		w = csv.writer(open(STU_CRS, 'w'))
-		w1 = csv.writer(open(STU_CRS_GRADE, 'w'))
-		# header: [v_num, crs1, crs2, ......]
-		header = ['V_NUMBER']
-		for crs in distinctCRSLst:
-			header.append(crs)
-		w.writerow(header)
-		w1.writerow(header)
+			crs = row[3].replace(' ','')+row[4].replace(' ','')
+			if crs in self.techList:
+				w.writerow(row)
 
-		# init rows
-		rowLst, rowLst1 = [],[]
-		for stu in distinctSTULst:
-			# row: [v_num, 'NA', 'NA', ......]
-			row = [stu]
-			for y in xrange(0,len(distinctCRSLst)):
-				# row.append('NA')
-				row.append('')
+	def f1s2YrTechYrCoursesMean(self, CRS_STU, STU_CRS):
+		# compute the 1st year tech courses vs 2nd/3rd/4th yr tech courses' average
+		# plot the 1st yr vs mean graphs
+		r1, r2 = csv.reader(open(CRS_STU), delimiter = ','), csv.reader(open(STU_CRS), delimiter = ',')
+		vnumList, crsList = r1.next()[2:], r2.next()[1:]
 
-			rowLst.append(row)
-			rowLst1.append(row)
+		f1CrsList, s2CrsList, t3CrsList, f4CrsList = [], [], [], []
+		# crsVnumDict: key:1st year course name (subj+cnum); value:vnums who took this 1st year tech course
+		crsVnumDict = {}
+		# form crsDict: key:subj+cnum; value:course record for all student graduated from 2010 to 2015
+		w = csv.writer(open(self.f1s2CrsVnums, 'w'))
+		# predictorYr: 1 or 2 (first/second year technical course)
+		predictorYr = self.proPredictor.split(' ')[1][0]
 
-		# fill course grade point for each course		
-		for row in rowLst:
-			for reg in regLst:
-				# row: [v_num, 'NA', 'NA', ......]
-				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
-				if row[0] == reg[0]:
-					index = distinctCRSLst.index(reg[1]+reg[2])
-					row[index+1] = reg[3]
+		crsDict = {}
+		for row in r1:
+			yr, key = row[1][0], row[0]+row[1]
+			crsDict[key] = row
 
-			w.writerow(row)
+			if yr == '1':
+				f1CrsList.append(key)
+				# for each 1st year technical course, to find all students who took this 1st year course
+				if predictorYr == '1':
+					vnums = []
+					for x in xrange(2,len(row)):
+						if len(row[x]) > 0:
+							vnums.append(vnumList[x-2])
+					# crs: the key, subj+cnum; vnums:all vnums who took course crs
+					crsVnumDict[key] = vnums
+					w.writerow([key]+vnums)
+			if yr == '2':
+				s2CrsList.append(key)
+				# for each 2nd year technical course, to find all students who took this 1st year course
+				if predictorYr == '2':
+					vnums = []
+					for x in xrange(2,len(row)):
+						if len(row[x]) > 0:
+							vnums.append(vnumList[x-2])
+					# crs: the key, subj+cnum; vnums:all vnums who took course crs
+					crsVnumDict[key] = vnums
+					w.writerow([key]+vnums)
+			if yr == '3':
+				t3CrsList.append(key)
+			if yr == '4':
+				f4CrsList.append(key)
 
-		# fill course grade point for each course		
-		for row in rowLst1:
-			for reg in regLst:
-				# row: [v_num, 'NA', 'NA', ......]
-				# reg: [v_num, subj_code, course_code, grade_point, grade_notation]
-				if row[0] == reg[0]:
-					index = distinctCRSLst.index(reg[1]+reg[2])
-					row[index+1] = reg[4]
+		# form vnumDict: key:vnum; value: one student's courses' record for all possible technical courses
+		# calculate the average of 2nd/3rd/4th yr courses for each vnum
+		w = csv.writer(open(self.vnumMeans, 'w'))
+		w.writerow(['VNUM', 'MEAN1', 'MEAN2', 'MEAN3', 'MEAN4'])
+		vnumMeanDict = {}
+		for row in r2:
+			# vnumDict[row[0]] = row
+			f1Points, s2Points, t3Points, f4Points = [], [], [], []
+			for x in xrange(1,len(row)):
+				crs = crsList[x-1]
+				if (crs in f1CrsList) and (len(row[x]) > 0):
+					f1Points.append(int(row[x]))
+				if (crs in s2CrsList) and (len(row[x]) > 0):
+					s2Points.append(int(row[x]))
+				if (crs in t3CrsList) and (len(row[x]) > 0):
+					t3Points.append(int(row[x]))
+				if (crs in f4CrsList) and (len(row[x]) > 0):
+					f4Points.append(int(row[x]))
 
-			w1.writerow(row)
+			vnumMeanDict[row[0]] = [format(np.mean(f1Points), '.2f'), format(np.mean(s2Points), '.2f'), format(np.mean(t3Points), '.2f'), format(np.mean(f4Points), '.2f')]
+			w.writerow([row[0], format(np.mean(f1Points), '.2f'), format(np.mean(s2Points), '.2f'), format(np.mean(t3Points), '.2f'), format(np.mean(f4Points), '.2f')])
+
+		# create Pearson coefficient csv; meanPairs csv
+		w1, w2 = csv.writer(open(self.meanPairs, 'w')), csv.writer(open(self.meanPearson, 'w'))
+		w2.writerow(['F1S2CRS', 'YR', 'R', '#points', 'slope', 'intercept', 'a', 'b', 'c'])
+		for crs in crsVnumDict:
+			vnums, course = crsVnumDict[crs], crsDict[crs]
+			crsPoints, vnums2Means, vnumt3Means, vnumf4Means = [], [], [], []
+			for vnum in vnums:
+				index = vnumList.index(vnum)
+				crsPoints.append(float(course[index+2]))
+				vnums2Means.append(float(vnumMeanDict[vnum][1]))
+				vnumt3Means.append(float(vnumMeanDict[vnum][2]))
+				vnumf4Means.append(float(vnumMeanDict[vnum][3]))
+
+			if predictorYr == '1':
+				self.f1PointLaterMeanScatter(crs+' Grade Points', '2nd Year Courses Mean', crs+' vs Mean of 2nd Year Courses Grade Points', crsPoints, vnums2Means, self.meanPlot+crs+' 2nd.png')
+
+			self.f1PointLaterMeanScatter(crs+' Grade Points', '3rd Year Courses Mean', crs+' vs Mean of 3rd Year Courses Grade Points', crsPoints, vnumt3Means, self.meanPlot+crs+' 3rd.png')
+			self.f1PointLaterMeanScatter(crs+' Grade Points', '4th Year Courses Mean', crs+' vs Mean of 4th Year Courses Grade Points', crsPoints, vnumf4Means, self.meanPlot+crs+' 4th.png')
+
+			# compute Pearson correlation coefficients
+			if predictorYr == '1':
+				slope, intercept, r_value, p_value, std_err = linregress(crsPoints, vnums2Means)
+				a,b,c = np.polyfit(crsPoints, vnums2Means, 2)
+				w2.writerow([crs, '2', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
+
+			slope, intercept, r_value, p_value, std_err = linregress(crsPoints, vnumt3Means)
+			a,b,c = np.polyfit(crsPoints, vnumt3Means, 2)
+			w2.writerow([crs, '3', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
+
+			slope, intercept, r_value, p_value, std_err = linregress(crsPoints, vnumf4Means)
+			a,b,c = np.polyfit(crsPoints, vnumf4Means, 2)
+			w2.writerow([crs, '4', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
+
+			# write a Mean Pairs
+			if predictorYr == '1':
+				w1.writerows([[crs]+crsPoints, ['2']+vnums2Means, ['3']+vnumt3Means, ['4']+vnumf4Means])
+			else:
+				w1.writerows([[crs]+crsPoints, ['3']+vnumt3Means, ['4']+vnumf4Means])
+			w1.writerow([])
+
+			print '\nGrade Points:', crs, '\n', crsPoints, '\nvnums2Means:\n', vnums2Means, '\nvnumt3Means:\n', vnumt3Means, '\nvnumf4Means:\n', vnumf4Means
+
+	def f1s2YrTechYrCrsMeanPrediction(self, meanPairs, predictorsFile):
+		r1, r2 = csv.reader(open(meanPairs), delimiter = ','), csv.reader(open(predictorsFile), delimiter = ',')
+		r2.next()
+		# self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV
+		pointMeansDict, tmpList = {}, []
+		for row in r1:
+			if len(row) > 0:
+				tmpList.append(row)
+			else:
+				if len(tmpList) > 0:
+					key = tmpList[0][0]
+					pointMeansDict[key] = tmpList
+					tmpList = []
+
+		if len(tmpList) > 0:
+			key = tmpList[0][0]
+			pointMeansDict[key] = tmpList
+			tmpList = []
+
+		print '\npointMeansDict:\n', pointMeansDict
+		# form predictors dictionary
+		predictorsDict = {}
+		for rec in r2:
+			crs, yr = rec[0], rec[1]
+			if crs not in predictorsDict:
+				predictorsDict[crs] = [rec]
+			else:
+				predictorsDict[crs].append(rec)
+
+		print '\npredictorsDict:\n', predictorsDict, '\n'
+
+		# predictorYr: 1 or 2 (first/second year technical course)
+		predictorYr = self.proPredictor.split(' ')[1][0]
+		# todo: prediction process
+		w1, w2 = csv.writer(open(self.meanPredictedLCSV, 'w')), csv.writer(open(self.meanPredictedQCSV, 'w'))
+		for crs in pointMeansDict:
+			crsPoints, mean2, mean3, mean4, predictor2, predictor3, predictor4 = [], [], [], [], [], [], []
+			if predictorYr == '1':
+				crsPoints, mean2, mean3, mean4 = pointMeansDict[crs]
+				predictor2, predictor3, predictor4 = predictorsDict[crs]
+			else:
+				crsPoints, mean3, mean4 = pointMeansDict[crs]
+				predictor3, predictor4 = predictorsDict[crs]
+
+			if (len(crsPoints) - 1) >= self.threshold:
+				if predictorYr == '1':
+					[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean2, predictor2)
+					w1.writerows([points, means, ['2']+lMeanList, lErrList])
+					w2.writerows([points, means, ['2']+qMeanList, qErrList])
+
+				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean3, predictor3)
+				w1.writerows([points, means, ['3']+lMeanList, lErrList])
+				w2.writerows([points, means, ['3']+qMeanList, qErrList])
+
+				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean4, predictor4)
+				w1.writerows([points, means, ['4']+lMeanList, lErrList])
+				w2.writerows([points, means, ['4']+qMeanList, qErrList])
+
+	def computeLQErr(self, crsPoints, means, predictor):
+		# Linear: k*x+b; Quadratic:a*x^2+b*x+c
+		slope, intercept, a, b, c = [float(item) for item in predictor[4:]]
+		lErrList, qErrList, lMeanList, qMeanList = ['LE'], ['QE'], [], []
+		for x in xrange(1,len(crsPoints)):
+			mean = float(means[x])
+			# Linear
+			lpmean = slope*float(crsPoints[x])+intercept
+			lMeanList.append(format(lpmean, '.2f'))
+			lErrList.append(format(mean-lpmean, '.2f'))
+			# Quadratic
+			qpmean = a*pow(float(crsPoints[x]), 2)+b*float(crsPoints[x])+c
+			qMeanList.append(format(qpmean, '.2f'))
+			qErrList.append(format(mean-qpmean, '.2f'))
+
+		return [crsPoints, means, lMeanList, qMeanList, lErrList, qErrList]
+
+	def f1PointLaterMeanScatter(self, xtitle, ytitle, title, xdata, ydata, figName):
+		fig = plt.figure()
+		x = np.array(xdata)
+		y = np.array(ydata)
+
+		z = np.polyfit(x, y, 1)
+		p = np.poly1d(z)
+		plt.plot(x, y, 'o', c='red')
+		plt.plot(x, p(x), 'b--')
+
+		plt.xlabel(xtitle)
+		plt.ylabel(ytitle)
+		plt.title(title)
+
+		plt.ylim(0.0, 9.0)
+		plt.xlim(0.0, 9.0)
+
+		ax = plt.axes()
+		minorLocator = MultipleLocator(0.1)
+		majorLocator = MultipleLocator(0.5)
+		ax.yaxis.set_minor_locator(minorLocator)
+		ax.yaxis.set_major_locator(majorLocator)
+
+		ax.xaxis.set_minor_locator(minorLocator)
+		ax.xaxis.set_major_locator(majorLocator)
+
+		plt.grid(True)
+		# plt.show()
+		fig.savefig(figName)
+		plt.close(fig)
 
 	def crsStuMatrix(self):
 		# create course matrix and fill the blank grades
@@ -1347,9 +1557,7 @@ class prepross(object):
 				freq[crs] = 1
 			else:
 				freq[crs] = freq[crs] + 1
-		
-		# print freq, '\n', len(freq)
-		
+
 		reader = csv.reader(open(self.regNODUP), delimiter = ',')
 		reader.next()
 		crsLst = []
@@ -1363,19 +1571,12 @@ class prepross(object):
 				writer.writerow([row[3].replace(' ', ''), row[4], freq[crs], row[4][0]])
 
 	def uniqueTechCrsList(self):
-		creader = csv.reader(open(self.courselist), delimiter = ',')
+		creader, writer = csv.reader(open(self.courselist), delimiter = ','), csv.writer(open(self.uniTechCrsList, 'w'))
 		header = creader.next()
-
-		treader = csv.reader(open(self.allTechCrs), delimiter = ',')
-		techCrsList = []
-		for row in treader:
-			techCrsList.append(row[0]+row[1])
-
-		writer = csv.writer(open(self.uniTechCrsList, 'w'))
 		writer.writerow(header)
 		for row in creader:
 			crs = row[0].replace(' ','')+row[1]
-			if crs in techCrsList:
+			if crs in self.techList:
 				writer.writerow(row)
 		
 	def sortCourse(self, courses, values):
@@ -1425,22 +1626,27 @@ class prepross(object):
 					w.writerows(lst)
 
 	def techCrs(self):
-		# reader = csv.reader(open(self.techCrsFile), delimiter = ',')
+		# the technical course file does not have a header
 		reader = csv.reader(open(self.allTechCrs), delimiter = ',')
-		# reader.next()
-		techCrsList = []
 		for row in reader:
-			techCrsList.append(row[0]+row[1])
+			self.techList.append(row[0]+row[1])
 
 		r = csv.reader(open(self.regDataPath), delimiter=',')
 		techWrter = csv.writer(open(self.techCrsCSV, 'w'))
 
 		hearders = r.next()
-		# hearders.insert(2,'COURSE_CODE')
 		techWrter.writerow(hearders)
 		for row in r:
-			crs = row[3].replace(' ','')+row[4]
-			if crs in techCrsList:
+			course = row[3].replace(' ','')+row[4].replace(' ','')
+			# change MATH 110 ===> MATH 133; ENGR 110 ===> ENGR 111
+			if course == 'MATH110':
+				row[4] = '133'
+
+			if course == 'ENGR110':
+				row[4] = '111'
+
+			crs = row[3].replace(' ','')+row[4].replace(' ','')
+			if crs in self.techList:
 				techWrter.writerow(row)
 				# save the available technical course list for future use
 				if crs not in self.availableTechCrsList:
@@ -2311,37 +2517,207 @@ class prepross(object):
 		writer.writerow([])
 		writer.writerows(realEstPairList)
 
+		# format maeList to plot the graphs
+		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'MAE']
+		maeList = [ item[:6]+[item[12]] for item in errRangeStdErrList[1:] ]
+		self.plotPredictionMAEFigures(testReg, power, maeList)
+
+	def plotPredictionMAEFigures(self, testReg, power, maeList):
+		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'MAE']
 		prefix, suffix = testReg.split('/')[-1].split('_')[0], ''
 		if power == 1:
 			suffix, tSuffix = 'L', 'Linear'
 		elif power == 2:
 			suffix, tSuffix = 'Q', 'Quadratic'
 
-		# 3D plots
-		figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'.png'
-		title = ''
-		if self.proPredictor == 'ALL':
-			title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+':'+prefix[3:]+' vs '+self.trainYrsText+'; Threshold:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
-		else:
-			title = 'Sample points vs Pearson coefficient vs MAE \n'+tSuffix+': using predictor of '+self.proPredictor+'; Threshold:'+str(self.threshold)
+		# sort by predictor, then predicted course
+		# 1st yr predictors vs 2nd/3rd/4th predicted courses
+		flist = [x for x in maeList if x[1][0] == '1']
+		# 2nd yr predictors vs 3rd/4th predicted courses
+		slist = [x for x in maeList if x[1][0] == '2']
 
-		if self.proPredictor == 'ALL':
+		# f2List: 1vs2; f3List: 1vs3; f4List: 1vs4; s3List: 2vs3; s4List: 2vs4
+		f2List,f3List,f4List, s3List,s4List = [],[],[],[],[]
+		for rec in flist:
+			yr = rec[3][0]
+			if yr == '2':
+				f2List.append(rec)
+			elif yr == '3':
+				f3List.append(rec)
+			elif yr == '4':
+				f4List.append(rec)
+
+		for rec in slist:
+			yr = rec[3][0]
+			if yr == '3':
+				s3List.append(rec)
+			elif yr == '4':
+				s4List.append(rec)
+
+		# for the predictors in 1st/2nd year technical courses
+		# combinations: 1st vs 2nd/3rd/4th/2nd&3rd/2nd&3rd&4th; 2nd vs 3rd/4th/3rd&4th; 1st&2nd vs 3rd/4th/3rd&4th
+		# 3D: 1st vs 2nd
+		if len(f2List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f2List, prefix, suffix, '1 vs 2')
+				else:
+					self.plotPredictionMAEFigures4P_R(f2List, prefix, suffix, '1 vs 2', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f2List, prefix, suffix, '1 vs 2')
+		# 3D: 1st vs 3rd
+		if len(f3List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f3List, prefix, suffix, '1 vs 3')
+				else:
+					self.plotPredictionMAEFigures4P_R(f3List, prefix, suffix, '1 vs 3', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f3List, prefix, suffix, '1 vs 3')
+		# 3D: 1st vs 4th
+		if len(f4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f4List, prefix, suffix, '1 vs 4')
+				else:
+					self.plotPredictionMAEFigures4P_R(f4List, prefix, suffix, '1 vs 4', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f4List, prefix, suffix, '1 vs 4')
+		# 3D: 1st vs 2nd&3rd
+		if len(f2List) > 0 and len(f3List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f2List+f3List, prefix, suffix, '1 vs 2,3')
+				else:
+					self.plotPredictionMAEFigures4P_R(f2List+f3List, prefix, suffix, '1 vs 2,3', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f2List+f3List, prefix, suffix, '1 vs 2,3')
+		# 3D: 1st vs 2nd&4th
+		if len(f2List) > 0 and len(f4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f2List+f4List, prefix, suffix, '1 vs 2,4')
+				else:
+					self.plotPredictionMAEFigures4P_R(f2List+f4List, prefix, suffix, '1 vs 2,4', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f2List+f4List, prefix, suffix, '1 vs 2,4')
+		# 3D: 1st vs 3rd&4th
+		if len(f3List) > 0 and len(f4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f3List+f4List, prefix, suffix, '1 vs 3,4')
+				else:
+					self.plotPredictionMAEFigures4P_R(f3List+f4List, prefix, suffix, '1 vs 3,4', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f3List+f4List, prefix, suffix, '1 vs 3,4')
+		# 3D: 1st vs 2nd&3rd&4th
+		if len(f2List) > 0 and len(f3List) > 0 and len(f4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(f2List+f3List+f4List, prefix, suffix, '1 vs 2,3,4')
+				else:
+					self.plotPredictionMAEFigures4P_R(f2List+f3List+f4List, prefix, suffix, '1 vs 2,3,4', self.factor)
+			else:
+				# for 1st year technical predictor
+				self.plotPrediction3D(f2List+f3List+f4List, prefix, suffix, '1 vs 2,3,4')
+
+		# 3D: 2nd vs 3nd
+		if len(s3List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(s3List, prefix, suffix, '2 vs 3')
+				else:
+					self.plotPredictionMAEFigures4P_R(s3List, prefix, suffix, '2 vs 3', self.factor)
+			else:
+				# for 2nd year technical predictor
+				self.plotPrediction3D(s3List, prefix, suffix, '2 vs 3')
+		# 3D: 2nd vs 4th
+		if len(s4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(s4List, prefix, suffix, '2 vs 4')
+				else:
+					self.plotPredictionMAEFigures4P_R(s4List, prefix, suffix, '2 vs 4', self.factor)
+			else:
+				# for 2nd year technical predictor
+				self.plotPrediction3D(s4List, prefix, suffix, '2 vs 4')
+		# 3D: 2nd vs 3nd&4th
+		if len(s3List) > 0 and len(s4List) > 0:
+			if self.proPredictor == 'ALL':
+				if self.factor == 'PR':
+					self.plotPrediction3D(s3List+s4List, prefix, suffix, '2 vs 3,4')
+				else:
+					self.plotPredictionMAEFigures4P_R(s3List+s4List, prefix, suffix, '2 vs 3,4', self.factor)
+			else:
+				# for 2nd year technical predictor
+				self.plotPrediction3D(s3List+s4List, prefix, suffix, '2 vs 3,4')
+
+		# 3D: 1st&2nd vs 3rd
+		if len(f3List) > 0 and len(s3List) > 0:
 			if self.factor == 'PR':
-				self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
-			elif self.factor == 'P':
-				xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-				ytitle = 'mean absolute error from '+prefix[3:]
-				title = 'coefficients vs mean absolute error (MAE) ('+suffix+')'
-				figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_p_MAE_'+suffix+'.png'
-				self.errScatter(xtitle, ytitle, title, pointsList, aveAbsErrList, figName, 'p', 'ma')
-			elif self.factor == 'R':
-				xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
-				ytitle = 'mean of absolute error from '+prefix[3:]
-				title = 'coefficients vs mean absolute error (MAE) ('+suffix+')'
-				figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_r_MAE_'+suffix+'.png'
-				self.errScatter(xtitle, ytitle, title, rList, aveAbsErrList, figName, 'r', 'ma')
-		else:
+				self.plotPrediction3D(f3List+s3List, prefix, suffix, '1,2 vs 3')
+			else:
+				self.plotPredictionMAEFigures4P_R(f3List+s3List, prefix, suffix, '1,2 vs 3', self.factor)
+		# 3D: 1st&2nd vs 4th
+		if len(f4List) > 0 and len(s4List) > 0:
+			if self.factor == 'PR':
+				self.plotPrediction3D(f4List+s4List, prefix, suffix, '1,2 vs 4')
+			else:
+				self.plotPredictionMAEFigures4P_R(f4List+s4List, prefix, suffix, '1,2 vs 4', self.factor)
+		# 3D: 1st&2nd vs 3rd&4th
+		if len(f3List) > 0 and len(f4List) > 0 and len(s3List) > 0 and len(s4List) > 0:
+			if self.factor == 'PR':
+				self.plotPrediction3D(f3List+f4List+s3List+s4List, prefix, suffix, '1,2 vs 3,4')
+			else:
+				self.plotPredictionMAEFigures4P_R(f3List+f4List+s3List+s4List, prefix, suffix, '1,2 vs 3,4', self.factor)
+
+		# 3D: overall: 1st vs 2nd&3rd&4th && 2nd vs 3rd&4th
+		if len(maeList) > 0 and self.proPredictor == 'ALL':
+			if self.factor == 'PR':
+				self.plotPrediction3D(maeList, prefix, suffix, 'Overall')
+			else:
+				self.plotPredictionMAEFigures4P_R(maeList, prefix, suffix, 'Overall', self.factor)
+
+	def plotPrediction3D(self, dataList, prefix, suffix, combination):
+		pointsList, rList, aveAbsErrList = [], [], []
+		for rec in dataList:
+			pointsList.append(int(rec[4])), rList.append(float(rec[5])), aveAbsErrList.append(float(rec[6]))
+		if len(pointsList) > 0:
+			figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'_'+combination+'.png'
+
+			title = 'Points vs r vs MAE: '+suffix+'\nPredictor:'+self.proPredictor+'; H:'+str(self.threshold)+'; '+combination
+			if self.proPredictor == 'ALL':
+				# title = 'Points vs r vs MAE: '+suffix+':'+prefix[3:]+' vs '+self.trainYrsText+'\n'+combination+'; H:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
+				title = 'Points vs r vs MAE: '+suffix+'; rw:'+str(self.rw)+', pw:'+str(self.pw)+'; H:'+str(self.threshold)+'\n'+prefix[3:]+' vs '+self.trainYrsText+'; '+combination
+
 			self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
+
+	def plotPredictionMAEFigures4P_R(self, dataList, prefix, suffix, combination, factor):
+		prList, aveAbsErrList = [], []
+		for rec in dataList:
+			aveAbsErrList.append(float(rec[6]))
+			if factor == 'P':
+				prList.append(int(rec[4]))
+			elif factor == 'R':
+				prList.append(float(rec[5]))
+
+		if len(prList) > 0:
+			figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_'+factor+'_MAE_'+suffix+'_'+combination+'.png'
+			ytitle = 'MAE from '+prefix[3:]
+			if factor == 'R':
+				xtitle = 'coefficients from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
+				title = 'coefficients vs MAE: '+suffix+':'+prefix[3:]+' vs '+self.trainYrsText+'\n'+combination+'; H:'+str(self.threshold)
+				self.errScatter(xtitle, ytitle, title, prList, aveAbsErrList, figName, 'R')
+			elif factor == 'P':
+				xtitle = 'Sample Points from training set '+self.trainYrs[0]+'-'+self.trainYrs[-1]
+				title = 'Sample Points vs MAE: '+suffix+'; H:'+str(self.threshold)+'\n'+prefix[3:]+' vs '+self.trainYrsText+'; '+combination
+				self.errScatter(xtitle, ytitle, title, prList, aveAbsErrList, figName, 'P')
 
 	def gradePairs(self, testY, testXs, minList, maxList):
 		resultPairs, pairsList, xCrsNums = [], [], []
@@ -2379,68 +2755,45 @@ class prepross(object):
 
 		return resultPairs
 
-	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName, xflag, yflag):
+	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName, xflag):
 		fig = plt.figure()
 		x = np.array(xdata)
 		y = np.array(ydata)
 
 		z = np.polyfit(x, y, 1)
 		p = np.poly1d(z)
-		plt.plot(x, y, 'o', c='red')
+		plt.plot(x, y, '^', c='red')
 		# xp = np.linspace(0, 9, 100)
-		if not (xflag == 'r'):
+		if not (xflag == 'R'):
 			plt.plot(x, p(x), 'b--')
 
 		plt.xlabel(xtitle)
 		plt.ylabel(ytitle)
 		plt.title(title)
 
-		plt.ylim(0.0, max(ydata)+0.5)
+		# plt.ylim(0.0, max(ydata)+0.5)
+		plt.ylim(0.0, 10.0)
 
 		ax = plt.axes()
-		minorLocator = MultipleLocator(0.1)
-		majorLocator = MultipleLocator(0.5)
+		minorLocator, majorLocator = MultipleLocator(0.1), MultipleLocator(0.5)
 		ax.yaxis.set_minor_locator(minorLocator)
 		ax.yaxis.set_major_locator(majorLocator)
 
-		# if yflag == 'mae':
-		# 	plt.ylim(0, 16)
-		# 	ticks = xrange(0, 16, 2)
-		# 	ticks = np.linspace(0.0, 16.0, 8, endpoint=False).tolist()
-		# 	ticks.append(16)
-		# 	plt.yticks(ticks)			
-		# if yflag == 'mape':
-		# 	plt.ylim(0, 5)
-		# 	ticks = np.linspace(0.0, 5.0, 10, endpoint=False).tolist()
-		# 	ticks.append(5.0)
-		# 	plt.yticks(ticks)
-
-		if xflag == 'r':
+		if xflag == 'R':
 			plt.xlim(-1.0, 1.0)
-			# ticks = np.linspace(-1.0, 1.0, 20, endpoint=False).tolist()
-			# ticks.append(1.0)
-			# plt.xticks(ticks, rotation=20, fontsize='medium')
-
 			minorLocator = MultipleLocator(0.1)
 			majorLocator = MultipleLocator(0.1)
 			plt.xticks(rotation=20, fontsize='medium')
-		if xflag == 'p':
+		if xflag == 'P':
 			plt.xlim(0, 120)
-			# ticks = xrange(0, max(xdata)+5, 5)
-			# ticks = xrange(0, 120, 10)
-			# plt.xticks(ticks)
-
 			minorLocator = MultipleLocator(2)
 			majorLocator = MultipleLocator(10)
-			# ax.grid(which = 'minor')
 			plt.xticks(rotation=90, fontsize='small')
 
 		ax.xaxis.set_minor_locator(minorLocator)
 		ax.xaxis.set_major_locator(majorLocator)
-		# ax.grid(which = 'minor')
 
 		plt.grid(True)
-		# plt.show()
 		fig.savefig(figName)
 		plt.close(fig)
 
@@ -2449,7 +2802,27 @@ class prepross(object):
 		fig = plt.figure()
 		ax = Axes3D(fig)
 
-		ax.scatter(point, r, MAE, c='r', marker='o')
+		# ax.scatter(point, r, MAE, c='r', marker='o')
+		for index in xrange(0,len(point)):
+			if MAE[index] >= 4.0:
+				ax.scatter(point[index], r[index], MAE[index], c='blue', marker='v')
+			elif MAE[index] >= 3.0:
+				ax.scatter(point[index], r[index], MAE[index], c='red', marker='o')
+			elif MAE[index] >= 2.0:
+				ax.scatter(point[index], r[index], MAE[index], c='yellow', marker='^')
+			elif MAE[index] >= 1.0:
+				ax.scatter(point[index], r[index], MAE[index], c='green', marker='+')
+			else:
+				ax.scatter(point[index], r[index], MAE[index], c='purple', marker='x')
+
+		# add legend
+		# labels = ['>=4.0', '>=3.0', '>=2.0', '>=1.0', '>=0.0']
+		labels = ['[4.0,inf)', '[3.0,4.0)', '[2.0,3.0)', '[1.0,2.0)', '[0.0,1.0)']
+		markerColors = [['v', 'blue'], ['o','red'], ['^', 'yellow'], ['+', 'green'], ['x', 'purple']]
+		points = [ax.scatter([], [], [], marker=s[0], c=s[1]) for s in markerColors]
+		plt.legend(points, labels, scatterpoints=1, loc=0)
+
+		# set lables
 		ax.set_xlabel('Sample Points', fontsize='medium')
 		ax.set_ylabel('Pearson r', fontsize='medium')
 		ax.set_zlabel('MAE', fontsize='medium', rotation=90)
@@ -2462,16 +2835,18 @@ class prepross(object):
 
 		ax.xaxis.set_minor_locator(MultipleLocator(2))
 		ax.xaxis.set_major_locator(MultipleLocator(10))
-		plt.xticks(rotation=90, fontsize='small')
+		plt.xticks(rotation=90, fontsize='9')
 
 		ax.yaxis.set_minor_locator(MultipleLocator(0.1))
 		ax.yaxis.set_major_locator(MultipleLocator(0.1))
-		plt.yticks(rotation=90, fontsize='small')
+		plt.yticks(rotation=90, fontsize='9')
 
 		ax.zaxis.set_minor_locator(MultipleLocator(0.1))
 		ax.zaxis.set_major_locator(MultipleLocator(0.5))
+		for t in ax.zaxis.get_major_ticks():
+			t.label.set_fontsize(9)
 
-		ax.view_init(elev=27, azim=27)
+		ax.view_init(elev=26, azim=57)
 		fig.savefig(figName)
 		plt.close(fig)
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import regrmdup, rawData, os, sys, csv, random, shutil
 from datetime import datetime
 

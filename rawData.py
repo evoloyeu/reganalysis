@@ -1,4 +1,7 @@
-import csv, os
+#!/usr/bin/env python
+
+import csv, os, random
+from datetime import datetime
 
 class splitRawData(object):
 	"""docstring for splitRawData"""
@@ -10,17 +13,17 @@ class splitRawData(object):
 
 		pathList = self.rawDeg.split('/')
 		degFilename, regFileName = self.rawDeg.split('/')[-1], self.rawReg.split('/')[-1]
+		self.vnumDict = {}
 
 		path = '/'
 		for x in xrange(0,len(pathList[1:-2])):
 			path = path + pathList[1:-1][x] + '/'
 
-		# self.currDir = path+'users/splits_'+time.strftime('%Y%m%d')+'/'
 		self.currDir = path+'users/splits/'
 		if not os.path.exists(self.currDir):
 			os.makedirs(self.currDir)
 
-		self.regFileList, self.degFileList = [],[]
+		self.regFileList, self.degFileList, self.degcsv, self.regcsv = [],[],self.currDir+'deg.csv',self.currDir+'reg.csv'
 		self.yearList = ['2010', '2011', '2012', '2013', '2014', '2015']
 		for yr in self.yearList:
 			self.regFileList.append(self.currDir+'reg'+yr+'.csv')
@@ -56,6 +59,13 @@ class splitRawData(object):
 			elif (row[1] in DegIDList15):
 				regList15.append(row)
 
+		for row in (regList10+regList11+regList12+regList13+regList14+regList15):
+			row[1]=self.vnumDict[row[1]]
+
+		# write reg data
+		w = csv.writer(open(self.regcsv, 'w'))
+		w.writerow(header)
+		w.writerows(regList10+regList11+regList12+regList13+regList14+regList15)
 		# write degree data by year from 2010 to 2015
 		index = 0
 		for crsList in [regList10, regList11, regList12, regList13, regList14, regList15]:
@@ -65,6 +75,19 @@ class splitRawData(object):
 			w.writerows(crsList)
 			index += 1
 
+	def encryptVNUM(self, vnumList):
+		vnumDict, nums = {}, []
+		random.seed(datetime.now())
+		for vnum in vnumList:
+			while True:
+				num = random.randint(100,len(vnumList)+100)
+				if num not in nums:
+					nums.append(num)
+					vnumDict[vnum] = 'ID_'+str(num)
+					break
+
+		return vnumDict
+
 	def degIDListByYrDegreeDataBuilder(self):
 		degReader = csv.reader(open(self.rawDeg), delimiter=',')
 		header = degReader.next()
@@ -73,33 +96,41 @@ class splitRawData(object):
 		DegList10, DegList11, DegList12, DegList13, DegList14, DegList15 = [], [], [], [], [], []
 
 		for deg in degReader:
-			graduateYr = deg[9]
-			if (graduateYr == '2010') and (not graduateYr in DegIDList10):
+			# graduateYr,OFFICIAL_SNAPSHOT_IND = deg[9],deg[12]
+			if (deg[9] == '2010') and (not deg[9] in DegIDList10) and (deg[12]=='Y'):
 				DegList10.append(deg)
 				if deg[1] not in DegIDList10:
 					DegIDList10.append(deg[1])
-			elif (graduateYr == '2011') and (not graduateYr in DegIDList11):
+			elif (deg[9] == '2011') and (not deg[9] in DegIDList11) and (deg[12]=='Y'):
 				DegList11.append(deg)
 				if deg[1] not in DegIDList11:
 					DegIDList11.append(deg[1])
-			# elif (graduateYr == '2012') and (not graduateYr in DegIDList12) and (deg[1]!='V00232128'):
-			elif (graduateYr == '2012') and (not graduateYr in DegIDList12):
+			elif (deg[9] == '2012') and (not deg[9] in DegIDList12) and (deg[12]=='Y'):
 				DegList12.append(deg)
 				if deg[1] not in DegIDList12:
 					DegIDList12.append(deg[1])
-			elif (graduateYr == '2013') and (not graduateYr in DegIDList13):
+			elif (deg[9] == '2013') and (not deg[9] in DegIDList13) and (deg[12]=='Y'):
 				DegList13.append(deg)
 				if deg[1] not in DegIDList13:
 					DegIDList13.append(deg[1])
-			elif (graduateYr == '2014') and (not graduateYr in DegIDList14):
+			elif (deg[9] == '2014') and (not deg[9] in DegIDList14) and (deg[12]=='Y'):
 				DegList14.append(deg)
 				if deg[1] not in DegIDList14:
 					DegIDList14.append(deg[1])
-			elif (graduateYr == '2015') and (not graduateYr in DegIDList15):
+			elif (deg[9] == '2015') and (not deg[9] in DegIDList15) and (deg[12]=='Y'):
 				DegList15.append(deg)
 				if deg[1] not in DegIDList15:
 					DegIDList15.append(deg[1])
 
+		# map vnum to a random integer
+		self.vnumDict = self.encryptVNUM(DegIDList10+DegIDList11+DegIDList12+DegIDList13+DegIDList14+DegIDList15)
+		for row in (DegList10+DegList11+DegList12+DegList13+DegList14+DegList15):
+			row[1]=self.vnumDict[row[1]]
+
+		# write degree data
+		w = csv.writer(open(self.degcsv, 'w'))
+		w.writerow(header)
+		w.writerows(DegList10+DegList11+DegList12+DegList13+DegList14+DegList15)
 		# write degree data by year from 2010 to 2015
 		index = 0
 		for degList in [DegList10, DegList11, DegList12, DegList13, DegList14, DegList15]:
@@ -113,7 +144,7 @@ class splitRawData(object):
 		return [DegIDList10, DegIDList11, DegIDList12, DegIDList13, DegIDList14, DegIDList15]
 
 	def splitedRawData(self):
-		return [self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg]
+		return [self.regFileList, self.degFileList, self.yearList, self.regcsv, self.degcsv]
 
 	def combinedDataNameList(self):
 		nameList = []
