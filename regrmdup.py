@@ -78,7 +78,18 @@ class prepross(object):
 
 		[self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
 
-		pathBuilderList = [self.linear_plots_ori, self.quadratic_plots_ori, self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/', self.boxplots]
+		pathBuilderList = [self.linear_plots_ori, self.quadratic_plots_ori, self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T1/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.boxplots]
+
+		# filter the folders to create depending on the proPredictor and the year of predictor course
+		if self.proPredictor == 'ALL':
+			pathBuilderList += [self.currDir+'T3/L/', self.currDir+'T3/Q/', self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr2q+'3/', self.yr2q+'4/']
+		else:
+			yr = self.proPredictor.split(' ')[1][0]
+			if yr == '1':
+				pathBuilderList += [self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/']
+			elif yr == '2':
+				pathBuilderList += [self.yr2l+'3/', self.yr2l+'4/', self.yr2q+'3/', self.yr2q+'4/']
+
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
