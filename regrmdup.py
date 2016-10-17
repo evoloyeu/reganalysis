@@ -14,8 +14,8 @@ class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
-		self.thresholdList = [1,5,10,15,20]
-		# self.thresholdList = [1]
+		# self.thresholdList = [1,5,10,15,20]
+		self.thresholdList = [1]
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
@@ -2407,11 +2407,11 @@ class prepross(object):
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
 		header = ''
 		if self.proPredictor == 'ALL':
-			header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval', 'Pxy']
+			header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval', 'Pxy', 'RMSE']
 		else:
-			header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
+			header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval', 'RMSE']
 
-		errRangeStdErrList.append(header)
+		# errRangeStdErrList.append(header)
 
 		for pairsList in predictingList:
 			for pairs in pairsList:
@@ -2432,7 +2432,7 @@ class prepross(object):
 						pointsList.append(float(pointFreq))
 						rList.append(float(coefficient))
 						# compute errors: aesum: absolute err sum; aepsum: absolute err percent sum
-						errorList, absErrPerList, aesum, aepsum = [], [], 0, 0
+						errorList, absErrPerList, aesum, aepsum, mseSum = [], [], 0, 0, 0
 						# compute predicting grade of testY using the equation located above
 						predictGrades = [ygrades[0], ygrades[1]]
 						for index in xrange(2, len(xgrades)):
@@ -2449,6 +2449,9 @@ class prepross(object):
 							# calculate predicting err
 							error = actualGrade-grade
 
+							# sum the mse
+							mseSum += np.power(error, 2)
+
 							errorList.append(error)
 							aesum += abs(error)
 
@@ -2460,6 +2463,10 @@ class prepross(object):
 
 							aepsum += absErrPer
 							absErrPerList.append(str(format(absErrPer*100, '.2f'))+'%')
+
+						# compute mse
+						mse = mseSum/(len(xgrades)-2)
+						rmse = format(np.sqrt(mse), '.2f')
 
 						mae = format(aesum/len(errorList), '.2f')
 						aveAbsErrList.append(float(mae))
@@ -2484,9 +2491,9 @@ class prepross(object):
 						tempList = ''
 						if self.proPredictor == 'ALL':
 							Pxy = predictor[6]
-							tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList), Pxy]
+							tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList), Pxy, rmse]
 						else:
-							tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
+							tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList), rmse]
 
 						errRangeStdErrList.append(tempList+errorList)
 
@@ -2519,32 +2526,50 @@ class prepross(object):
 
 						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
 
+		# writer.writerows([]+[header])
+		# writer.writerows(errRangeStdErrList)
+		# writer.writerow([])
+
+		# pick the 1st year predictors and 2nd year predictors
+		# sort errRangeStdErrList
 		writer.writerow([])
-		writer.writerows(errRangeStdErrList)
+		flist = [x for x in errRangeStdErrList if x[1][0] == '1']
+		slist = [x for x in errRangeStdErrList if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		writer.writerows([header]+flist+slist)
 		writer.writerow([])
+
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		# build the header-format table and sort by predictor, then predicted course
-		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'rMean', 'std', 'rStd', 'mean diff', 'std diff', 'MAE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
-		writer.writerow(header)
-		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]]+item[14:18] for item in errRangeStdErrList[1:] ]
+		header, cutIndex = '', -1
+		if self.proPredictor == 'ALL':
+			header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'rMean', 'std', 'rStd', 'mean diff', 'std diff', 'MAE', 'insOneCrs', 'minErr', 'maxErr', 'interval', 'Pxy', 'RMSE']
+			cutIndex = 20
+		else:
+			header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'rMean', 'std', 'rStd', 'mean diff', 'std diff', 'MAE', 'insOneCrs', 'minErr', 'maxErr', 'interval', 'RMSE']
+			cutIndex = 19
+
+		# writer.writerow(header)
+		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]]+item[14:cutIndex] for item in errRangeStdErrList[1:] ]
 
 		# pick the 1st year predictors and 2nd year predictors
 		flist = [x for x in tmp if x[1][0] == '1']
 		slist = [x for x in tmp if x[1][0] == '2']
 		flist.sort(key=itemgetter(3), reverse=False)
 		slist.sort(key=itemgetter(3), reverse=False)
-		writer.writerows(flist+[header]+slist)
+		writer.writerows([header]+flist+[header]+slist)
 		writer.writerow([])
 
 		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'rMin', 'rMax', 'pMin', 'pMax', 'rInterval', 'pInterval', 'abs diff']
-		writer.writerow(header)
+		# writer.writerow(header)
 		tmp = [pairRangeList[x]+[float(pairRangeList[x][5])-float(pairRangeList[x][4]), float(pairRangeList[x][7])-float(pairRangeList[x][6]), abs((float(pairRangeList[x][5])-float(pairRangeList[x][4]))-(float(pairRangeList[x][7])-float(pairRangeList[x][6])))] for x in xrange(0, len(pairRangeList))]
 		# sort by predictor, then predicted course
 		flist = [x for x in tmp if x[1][0] == '1']
 		slist = [x for x in tmp if x[1][0] == '2']
 		flist.sort(key=itemgetter(3), reverse=False)
 		slist.sort(key=itemgetter(3), reverse=False)
-		writer.writerows(flist+[header]+slist)
+		writer.writerows([header]+flist+[header]+slist)
 
 		# add real vs estimated grade pairs
 		writer.writerow([])
