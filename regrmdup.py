@@ -70,7 +70,7 @@ class prepross(object):
 			self.boxplots = path+time.strftime('%Y%m%d')+'/boxPlots/'
 
 			self.meanPearson, self.meanPairs, self.f1s2CrsVnums, self.vnumMeans = self.dataDir+'meanPearsonCorr.csv', self.dataDir+'Train/MEANPAIRS_SAS.csv', self.dataDir+'Train/F1S2CRSVNUMS_SAS.csv', self.dataDir+'Train/VNUMSMEANS_SAS.csv'
-			self.meanPlot, self.meanTest = self.currDir+'meanPlots/', self.currDir+'meanTest/'
+			self.meanPlot, self.meanTest = path+time.strftime('%Y%m%d')+'/meanPlots/', self.currDir+'meanTest/'
 			self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV = self.meanTest+'PMean_L.csv', self.meanTest+'PMean_Q.csv', self.meanTest+'PMean_EL.csv', self.meanTest+'PMean_EQ.csv'
 			for item in [self.meanPlot, self.meanTest]:
 				if not os.path.exists(item):
@@ -841,6 +841,9 @@ class prepross(object):
 		return [crsPoints, means, lMeanList, qMeanList, lErrList, qErrList]
 
 	def f1PointLaterMeanScatter(self, xtitle, ytitle, title, xdata, ydata, figName):
+		if os.path.exists(figName):
+			return
+
 		fig = plt.figure()
 		x = np.array(xdata)
 		y = np.array(ydata)
