@@ -2749,10 +2749,11 @@ class prepross(object):
 		if len(pointsList) > 0:
 			figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'_'+combination+'.png'
 
-			title = 'Points vs r vs MAE: '+suffix+'\nPredictor:'+self.proPredictor+'; H:'+str(self.threshold)+'; '+combination
+			# title = 'Points vs r vs MAE: '+suffix+'\nPredictor:'+self.proPredictor+'; H:'+str(self.threshold)+'; '+combination
+			title = 'Points vs r vs MAE: '+suffix+'\nPredictor:'+self.proPredictor+'; '+combination
 			if self.proPredictor == 'ALL':
 				# title = 'Points vs r vs MAE: '+suffix+':'+prefix[3:]+' vs '+self.trainYrsText+'\n'+combination+'; H:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
-				title = 'Points vs r vs MAE: '+suffix+'; rw:'+str(self.rw)+', pw:'+str(self.pw)+'; H:'+str(self.threshold)+'\n'+prefix[3:]+' vs '+self.trainYrsText+'; '+combination
+				title = 'Points vs r vs MAE: '+suffix+'; rw:'+str(self.rw)+', pw:'+str(self.pw)+'\n'+prefix[3:]+' vs '+self.trainYrsText+'; '+combination
 
 			self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
 
