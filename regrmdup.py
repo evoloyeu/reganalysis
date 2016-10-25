@@ -2554,7 +2554,7 @@ class prepross(object):
 			cutIndex = 19
 
 		# writer.writerow(header)
-		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]]+item[14:cutIndex] for item in errRangeStdErrList[1:] ]
+		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]]+item[14:cutIndex] for item in errRangeStdErrList ]
 
 		# pick the 1st year predictors and 2nd year predictors
 		flist = [x for x in tmp if x[1][0] == '1']
