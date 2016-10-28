@@ -957,7 +957,7 @@ class prepross(object):
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
 		nocorrlst = self.dataDir+'nocorr/no_corr_list.csv'
 		nocommstulst = self.dataDir+'nocomstu/nocomstu_list.csv'
-		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
+		wnocorrlst, wnocommstulst, nocomList, noCorrListTable, corrList = '', '', [], [], []
 
 		rlist, plist = [],[]
 		for x in xrange(0,len(matrix)):
@@ -1014,7 +1014,9 @@ class prepross(object):
 
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
-					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+					# w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+					corrList.append([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+
 					rlist.append(r_value)
 					plist.append(len(ydata))
 					print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope, 'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
@@ -1067,6 +1069,13 @@ class prepross(object):
 
 		self.coefficientPointsPlot(rlist, plist)
 
+		# sort r records
+		flist = [x for x in corrList if x[1][0] == '1']
+		slist = [x for x in corrList if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		w.writerows(flist+slist)
+
 		if len(nocorrDict) > 0:
 			nocorr = self.dataDir+'nocorr/no_corr_list_fre.csv'
 			wnocorr = csv.writer(open(nocorr, 'w'))
@@ -1117,7 +1126,7 @@ class prepross(object):
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
 		nocorrlst, nocommstulst = self.dataDir+'nocorr/no_corr_list.csv', self.dataDir+'nocomstu/nocomstu_list.csv'
-		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
+		wnocorrlst, wnocommstulst, nocomList, noCorrListTable, corrList = '', '', [], [], []
 
 		rlist, plist = [],[]
 		for x in xrange(0,len(matrix)):
@@ -1170,7 +1179,9 @@ class prepross(object):
 
 				slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
-				w.writerow([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+				# w.writerow([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+				corrList.append([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+
 				rlist.append(r_value)
 				plist.append(len(ydata))
 				print 'cnt:', cnt, proPredictorCourse[0], proPredictorCourse[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope, 'Predictor:', self.proPredictor, 'Thresh:', self.threshold
@@ -1222,6 +1233,13 @@ class prepross(object):
 			wnocommstulst.writerow([])
 
 		self.coefficientPointsPlot(rlist, plist)
+
+		# sort r records
+		flist = [x for x in corrList if x[1][0] == '1']
+		slist = [x for x in corrList if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		w.writerows(flist+slist)
 
 		if len(nocorrDict) > 0:
 			nocorr = self.dataDir+'nocorr/no_corr_list_fre.csv'
@@ -1911,7 +1929,7 @@ class prepross(object):
 		factorWriter.writerow(header)
 		factorTop3Writer.writerow(header)
 
-		ylist, rlist, plist = [], [], []
+		ylist, rlist, plist, t1Lists = [], [], [], []
 		for x in xrange(0,len(rows)):
 			ylist.append(rows[x])
 			rlist.append(abs(float(rows[x][4])))
@@ -1923,7 +1941,8 @@ class prepross(object):
 					ylist, top1List, top3List = self.PxyPredictors(ylist, rlist, plist, w1, w2)
 					writer.writerows(ylist)
 					writer.writerow([])
-					factorWriter.writerows(top1List)
+					# factorWriter.writerows(top1List)
+					t1Lists += top1List
 					factorTop3Writer.writerows(top3List)
 
 					ylist, rlist, plist = [], [], []
@@ -1932,10 +1951,18 @@ class prepross(object):
 			writer.writerow(header)
 			ylist, top1List, top3List = self.PxyPredictors(ylist, rlist, plist, w1, w2)
 			writer.writerows(ylist)
-			factorWriter.writerows(top1List)
+			# factorWriter.writerows(top1List)
+			t1Lists += top1List
 			factorTop3Writer.writerows(top3List)
 
 			ylist, rlist, plist = [], [], []
+
+		# sort r records
+		flist = [x for x in t1Lists if x[1][0] == '1']
+		slist = [x for x in t1Lists if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		factorWriter.writerows(flist+slist)
 
 	def PxyPredictors(self, ylist, rlist, plist, w1, w2):
 		pxyArr, top1List, top3List = [], [], []
