@@ -64,8 +64,7 @@ class prepross(object):
 			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/'+str(self.threshold)+'/'
 			self.dataDir = self.currDir+'data/'
 
-			self.linear_plots_ori = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/LPlots_ori/'
-			self.quadratic_plots_ori = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/QPlots_ori/'
+			self.linear_plots_ori, self.quadratic_plots_ori = path+time.strftime('%Y%m%d')+'/LPlots_ori/', path+time.strftime('%Y%m%d')+'/QPlots_ori/'
 
 			self.boxplots = path+time.strftime('%Y%m%d')+'/boxPlots/'
 
@@ -78,7 +77,7 @@ class prepross(object):
 
 		[self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
 
-		pathBuilderList = [self.linear_plots_ori, self.quadratic_plots_ori, self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T1/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.boxplots]
+		pathBuilderList = [self.linear_plots_ori, self.quadratic_plots_ori, self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T1/Q/', self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.boxplots]
 
 		# filter the folders to create depending on the proPredictor and the year of predictor course
 		if self.proPredictor == 'ALL':
