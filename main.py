@@ -2,7 +2,7 @@
 
 import regrmdup, rawData, sys, MTIS, Validate
 
-validate, mtis, split = True, False, False
+validate, mtis, split = False, False, False
 
 if validate:
 	Validate.myValidate(sys.argv).doBatch()

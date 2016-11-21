@@ -46,6 +46,7 @@ class prepross(object):
 		self.allTechCrs = path+'techcourses/'+'technicalCourse.csv'
 		self.availableTechCrsList, self.techList = [],[]
 
+		timeDir = path+time.strftime('%Y%m%d')
 		# No specific predictor
 		if self.proPredictor == 'ALL':
 			if len(self.trainYrs) > 1:
@@ -53,23 +54,23 @@ class prepross(object):
 			else:
 				self.trainYrsText = str(self.trainYrs[0])
 
-			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
-			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
+			self.currDir = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+self.factor+'/'
+			self.dataDir = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+'data/'
 
-			self.linear_plots_ori = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/LPlots_ori/'
-			self.quadratic_plots_ori = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/QPlots_ori/'
+			self.linear_plots_ori = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/LPlots_ori/'
+			self.quadratic_plots_ori = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/QPlots_ori/'
 
-			self.boxplots = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/boxPlots/'
+			self.boxplots = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/boxPlots/'
 		else:
-			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/'+str(self.threshold)+'/'
+			self.currDir = timeDir+'/'+self.proPredictor.replace(' ','')+'/'
 			self.dataDir = self.currDir+'data/'
 
-			self.linear_plots_ori, self.quadratic_plots_ori = path+time.strftime('%Y%m%d')+'/LPlots_ori/', path+time.strftime('%Y%m%d')+'/QPlots_ori/'
+			self.linear_plots_ori, self.quadratic_plots_ori = timeDir+'/LPlots_ori/', timeDir+'/QPlots_ori/'
 
-			self.boxplots = path+time.strftime('%Y%m%d')+'/boxPlots/'
+			self.boxplots = timeDir+'/boxPlots/'
 
 			self.meanPearson, self.meanPairs, self.f1s2CrsVnums, self.vnumMeans = self.dataDir+'meanPearsonCorr.csv', self.dataDir+'Train/MEANPAIRS_SAS.csv', self.dataDir+'Train/F1S2CRSVNUMS_SAS.csv', self.dataDir+'Train/VNUMSMEANS_SAS.csv'
-			self.meanPlot, self.meanTest = path+time.strftime('%Y%m%d')+'/meanPlots/', self.currDir+'meanTest/'
+			self.meanPlot, self.meanTest = timeDir+'/mean/meanPlots/', timeDir+'/mean/meanTest/'
 			self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV = self.meanTest+'PMean_L.csv', self.meanTest+'PMean_Q.csv', self.meanTest+'PMean_EL.csv', self.meanTest+'PMean_EQ.csv'
 			for item in [self.meanPlot, self.meanTest]:
 				if not os.path.exists(item):
@@ -671,34 +672,29 @@ class prepross(object):
 		crsDict = {}
 		for row in r1:
 			yr, key = row[1][0], row[0]+row[1]
-			crsDict[key] = row
+			crsDict[key], vnums = row, []
 
 			if yr == '1':
 				f1CrsList.append(key)
 				# for each 1st year technical course, to find all students who took this 1st year course
-				if predictorYr == '1':
-					vnums = []
-					for x in xrange(2,len(row)):
-						if len(row[x]) > 0:
-							vnums.append(vnumList[x-2])
-					# crs: the key, subj+cnum; vnums:all vnums who took course crs
-					crsVnumDict[key] = vnums
-					w.writerow([key]+vnums)
+				for x in xrange(2,len(row)):
+					if len(row[x]) > 0:
+						vnums.append(vnumList[x-2])
 			if yr == '2':
 				s2CrsList.append(key)
-				# for each 2nd year technical course, to find all students who took this 1st year course
-				if predictorYr == '2':
-					vnums = []
-					for x in xrange(2,len(row)):
-						if len(row[x]) > 0:
-							vnums.append(vnumList[x-2])
-					# crs: the key, subj+cnum; vnums:all vnums who took course crs
-					crsVnumDict[key] = vnums
-					w.writerow([key]+vnums)
+				# for each 2nd year technical course, to find all students who took this 2nd year course
+				for x in xrange(2,len(row)):
+					if len(row[x]) > 0:
+						vnums.append(vnumList[x-2])
 			if yr == '3':
 				t3CrsList.append(key)
 			if yr == '4':
 				f4CrsList.append(key)
+
+			if len(vnums) > 0:
+				# crs: the key, subj+cnum; vnums:all vnums who took course crs
+				crsVnumDict[key] = vnums
+				w.writerow([key]+vnums)
 
 		# form vnumDict: key:vnum; value: one student's courses' record for all possible technical courses
 		# calculate the average of 2nd/3rd/4th yr courses for each vnum
@@ -726,7 +722,7 @@ class prepross(object):
 		w1, w2 = csv.writer(open(self.meanPairs, 'w')), csv.writer(open(self.meanPearson, 'w'))
 		w2.writerow(['F1S2CRS', 'YR', 'R', '#points', 'slope', 'intercept', 'a', 'b', 'c'])
 		for crs in crsVnumDict:
-			vnums, course = crsVnumDict[crs], crsDict[crs]
+			vnums, course, yr = crsVnumDict[crs], crsDict[crs], crsDict[crs][1][0]
 			crsPoints, vnums2Means, vnumt3Means, vnumf4Means = [], [], [], []
 			for vnum in vnums:
 				index = vnumList.index(vnum)
@@ -735,14 +731,14 @@ class prepross(object):
 				vnumt3Means.append(float(vnumMeanDict[vnum][2]))
 				vnumf4Means.append(float(vnumMeanDict[vnum][3]))
 
-			if predictorYr == '1':
+			if yr == '1':
 				self.f1PointLaterMeanScatter(crs+' Grade Points', '2nd Year Courses Mean', crs+' vs Mean of 2nd Year Courses Grade Points', crsPoints, vnums2Means, self.meanPlot+crs+' 2nd.png')
 
 			self.f1PointLaterMeanScatter(crs+' Grade Points', '3rd Year Courses Mean', crs+' vs Mean of 3rd Year Courses Grade Points', crsPoints, vnumt3Means, self.meanPlot+crs+' 3rd.png')
 			self.f1PointLaterMeanScatter(crs+' Grade Points', '4th Year Courses Mean', crs+' vs Mean of 4th Year Courses Grade Points', crsPoints, vnumf4Means, self.meanPlot+crs+' 4th.png')
 
 			# compute Pearson correlation coefficients
-			if predictorYr == '1':
+			if yr == '1':
 				slope, intercept, r_value, p_value, std_err = linregress(crsPoints, vnums2Means)
 				a,b,c = np.polyfit(crsPoints, vnums2Means, 2)
 				w2.writerow([crs, '2', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
@@ -756,7 +752,7 @@ class prepross(object):
 			w2.writerow([crs, '4', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
 
 			# write a Mean Pairs
-			if predictorYr == '1':
+			if yr == '1':
 				w1.writerows([[crs]+crsPoints, ['2']+vnums2Means, ['3']+vnumt3Means, ['4']+vnumf4Means])
 			else:
 				w1.writerows([[crs]+crsPoints, ['3']+vnumt3Means, ['4']+vnumf4Means])
@@ -795,32 +791,35 @@ class prepross(object):
 
 		print '\npredictorsDict:\n', predictorsDict, '\n'
 
-		# predictorYr: 1 or 2 (first/second year technical course)
-		predictorYr = self.proPredictor.split(' ')[1][0]
 		# todo: prediction process
+		# if the prediction has been done, just ignore it and return
+		for item in [self.meanPredictedLCSV, self.meanPredictedQCSV]:
+			if os.path.exists(item):
+				return
+
 		w1, w2 = csv.writer(open(self.meanPredictedLCSV, 'w')), csv.writer(open(self.meanPredictedQCSV, 'w'))
 		for crs in pointMeansDict:
 			crsPoints, mean2, mean3, mean4, predictor2, predictor3, predictor4 = [], [], [], [], [], [], []
-			if predictorYr == '1':
+			if len(pointMeansDict[crs]) == 4:
 				crsPoints, mean2, mean3, mean4 = pointMeansDict[crs]
 				predictor2, predictor3, predictor4 = predictorsDict[crs]
-			else:
+			elif len(pointMeansDict[crs]) == 3:
 				crsPoints, mean3, mean4 = pointMeansDict[crs]
 				predictor3, predictor4 = predictorsDict[crs]
 
-			if (len(crsPoints) - 1) >= self.threshold:
-				if predictorYr == '1':
-					[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean2, predictor2)
-					w1.writerows([points, means, ['2']+lMeanList, lErrList])
-					w2.writerows([points, means, ['2']+qMeanList, qErrList])
+			# if (len(crsPoints) - 1) >= self.threshold:
+			if len(pointMeansDict[crs]) == 4:
+				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean2, predictor2)
+				w1.writerows([points, means, ['2']+lMeanList, lErrList])
+				w2.writerows([points, means, ['2']+qMeanList, qErrList])
 
-				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean3, predictor3)
-				w1.writerows([points, means, ['3']+lMeanList, lErrList])
-				w2.writerows([points, means, ['3']+qMeanList, qErrList])
+			[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean3, predictor3)
+			w1.writerows([points, means, ['3']+lMeanList, lErrList])
+			w2.writerows([points, means, ['3']+qMeanList, qErrList])
 
-				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean4, predictor4)
-				w1.writerows([points, means, ['4']+lMeanList, lErrList])
-				w2.writerows([points, means, ['4']+qMeanList, qErrList])
+			[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean4, predictor4)
+			w1.writerows([points, means, ['4']+lMeanList, lErrList])
+			w2.writerows([points, means, ['4']+qMeanList, qErrList])
 
 	def computeLQErr(self, crsPoints, means, predictor):
 		# Linear: k*x+b; Quadratic:a*x^2+b*x+c
