@@ -54,24 +54,23 @@ class prepross(object):
 			else:
 				self.trainYrsText = str(self.trainYrs[0])
 
-			self.currDir = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+self.factor+'/'
-			self.dataDir = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+'data/'
+			self.currDir = timeDir+'/'+self.trainYrsText+'/'+self.factor+'/'
+			self.dataDir = timeDir+'/'+self.trainYrsText+'/'+'data/'
 
-			self.linear_plots_ori = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/LPlots_ori/'
-			self.quadratic_plots_ori = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/QPlots_ori/'
+			self.linear_plots_ori = timeDir+'/'+self.trainYrsText+'/LPlots_ori/'
+			self.quadratic_plots_ori = timeDir+'/'+self.trainYrsText+'/QPlots_ori/'
 
-			self.boxplots = timeDir+'/'+self.proPredictor+'/'+self.trainYrsText+'/boxPlots/'
+			self.boxplots = timeDir+'/'+self.trainYrsText+'/boxPlots/'
 		else:
 			self.currDir = timeDir+'/'+self.proPredictor.replace(' ','')+'/'
 			self.dataDir = self.currDir+'data/'
-
 			self.linear_plots_ori, self.quadratic_plots_ori = timeDir+'/LPlots_ori/', timeDir+'/QPlots_ori/'
 
 			self.boxplots = timeDir+'/boxPlots/'
 
 			self.meanPearson, self.meanPairs, self.f1s2CrsVnums, self.vnumMeans = self.dataDir+'meanPearsonCorr.csv', self.dataDir+'Train/MEANPAIRS_SAS.csv', self.dataDir+'Train/F1S2CRSVNUMS_SAS.csv', self.dataDir+'Train/VNUMSMEANS_SAS.csv'
 			self.meanPlot, self.meanTest = timeDir+'/mean/meanPlots/', timeDir+'/mean/meanTest/'
-			self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV = self.meanTest+'PMean_L.csv', self.meanTest+'PMean_Q.csv', self.meanTest+'PMean_EL.csv', self.meanTest+'PMean_EQ.csv'
+			self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPrecisionL, self.meanPredictedELCSV, self.meanPredictedEQCSV, self.meanPrecisionQ = self.meanTest+'PMean_L.csv', self.meanTest+'PMean_Q.csv', self.meanTest+'PMean_PL.csv', self.meanTest+'PMean_EL.csv', self.meanTest+'PMean_EQ.csv', self.meanTest+'PMean_PQ.csv'
 			for item in [self.meanPlot, self.meanTest]:
 				if not os.path.exists(item):
 					os.makedirs(item)
@@ -761,6 +760,11 @@ class prepross(object):
 			print '\nGrade Points:', crs, '\n', crsPoints, '\nvnums2Means:\n', vnums2Means, '\nvnumt3Means:\n', vnumt3Means, '\nvnumf4Means:\n', vnumf4Means
 
 	def f1s2YrTechYrCrsMeanPrediction(self, meanPairs, predictorsFile):
+		# if the prediction has been done, just ignore it and return
+		for item in [self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPrecisionL, self.meanPrecisionQ]:
+			if os.path.exists(item):
+				return
+
 		r1, r2 = csv.reader(open(meanPairs), delimiter = ','), csv.reader(open(predictorsFile), delimiter = ',')
 		r2.next()
 		# self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV
@@ -792,12 +796,11 @@ class prepross(object):
 		print '\npredictorsDict:\n', predictorsDict, '\n'
 
 		# todo: prediction process
-		# if the prediction has been done, just ignore it and return
-		for item in [self.meanPredictedLCSV, self.meanPredictedQCSV]:
-			if os.path.exists(item):
-				return
-
 		w1, w2 = csv.writer(open(self.meanPredictedLCSV, 'w')), csv.writer(open(self.meanPredictedQCSV, 'w'))
+
+		s2LmeanPrecisionList, t3LmeanPrecisionList, f4LmeanPrecisionList = [], [], []
+		s2QmeanPrecisionList, t3QmeanPrecisionList, f4QmeanPrecisionList = [], [], []
+
 		for crs in pointMeansDict:
 			crsPoints, mean2, mean3, mean4, predictor2, predictor3, predictor4 = [], [], [], [], [], [], []
 			if len(pointMeansDict[crs]) == 4:
@@ -807,19 +810,32 @@ class prepross(object):
 				crsPoints, mean3, mean4 = pointMeansDict[crs]
 				predictor3, predictor4 = predictorsDict[crs]
 
-			# if (len(crsPoints) - 1) >= self.threshold:
 			if len(pointMeansDict[crs]) == 4:
 				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean2, predictor2)
 				w1.writerows([points, means, ['2']+lMeanList, lErrList])
 				w2.writerows([points, means, ['2']+qMeanList, qErrList])
+				# collect predictors and the mean error to compute the precision for linear and quadratic
+				s2LmeanPrecisionList.append([points[0]]+lErrList[1:])
+				s2QmeanPrecisionList.append([points[0]]+qErrList[1:])
 
 			[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean3, predictor3)
 			w1.writerows([points, means, ['3']+lMeanList, lErrList])
 			w2.writerows([points, means, ['3']+qMeanList, qErrList])
+			# collect predictors and the mean error to compute the precision for linear and quadratic
+			t3LmeanPrecisionList.append([points[0]]+lErrList[1:])
+			t3QmeanPrecisionList.append([points[0]]+qErrList[1:])
 
 			[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean4, predictor4)
 			w1.writerows([points, means, ['4']+lMeanList, lErrList])
 			w2.writerows([points, means, ['4']+qMeanList, qErrList])
+			# collect predictors and the mean error to compute the precision for linear and quadratic
+			f4LmeanPrecisionList.append([points[0]]+lErrList[1:])
+			f4QmeanPrecisionList.append([points[0]]+qErrList[1:])
+
+		# self.meanPrecisionL, self.meanPrecisionQ
+		w1, w2 = csv.writer(open(self.meanPrecisionL, 'w')), csv.writer(open(self.meanPrecisionQ, 'w'))
+		w1.writerows(s2LmeanPrecisionList+['']+t3LmeanPrecisionList+['']+f4LmeanPrecisionList)
+		w2.writerows(s2QmeanPrecisionList+['']+t3QmeanPrecisionList+['']+f4QmeanPrecisionList)
 
 	def computeLQErr(self, crsPoints, means, predictor):
 		# Linear: k*x+b; Quadratic:a*x^2+b*x+c
@@ -2439,8 +2455,6 @@ class prepross(object):
 		else:
 			header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval', 'RMSE']
 
-		# errRangeStdErrList.append(header)
-
 		for pairsList in predictingList:
 			for pairs in pairsList:
 				[xgrades, ygrades] = pairs
@@ -2535,13 +2549,9 @@ class prepross(object):
 						xgrades.insert(0, 'predictor')
 						ygrades.insert(0, 'real')
 						predictGrades.insert(0, 'predicting')				
-						
-						for x in xrange(0,2):
-							errorList.insert(x, '')
-							absErrPerList.insert(x, '')
 
-						errorList.insert(2, 'Err:')
-						absErrPerList.insert(2, 'AbsErrPer:%')
+						errorList = ['', '', 'Err']+errorList
+						absErrPerList = ['', '', 'AbsErrPer:%']+absErrPerList
 
 						# appendix = ['point#', pointFreq, 'Coefficient:', coefficient, 'average error:', errorave]
 						appendix = [ 'mean Err:', errorave, 'mea:', mae, 'mape:', mape]
@@ -2554,19 +2564,13 @@ class prepross(object):
 
 						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
 
-		# writer.writerows([]+[header])
-		# writer.writerows(errRangeStdErrList)
-		# writer.writerow([])
-
 		# pick the 1st year predictors and 2nd year predictors
 		# sort errRangeStdErrList
-		writer.writerow([])
 		flist = [x for x in errRangeStdErrList if x[1][0] == '1']
 		slist = [x for x in errRangeStdErrList if x[1][0] == '2']
 		flist.sort(key=itemgetter(3), reverse=False)
 		slist.sort(key=itemgetter(3), reverse=False)
-		writer.writerows([header]+flist+slist)
-		writer.writerow([])
+		writer.writerows(['']+[header]+flist+slist+[''])
 
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		# build the header-format table and sort by predictor, then predicted course
@@ -2586,8 +2590,7 @@ class prepross(object):
 		slist = [x for x in tmp if x[1][0] == '2']
 		flist.sort(key=itemgetter(3), reverse=False)
 		slist.sort(key=itemgetter(3), reverse=False)
-		writer.writerows([header]+flist+[header]+slist)
-		writer.writerow([])
+		writer.writerows([header]+flist+[header]+slist+[''])
 
 		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'rMin', 'rMax', 'pMin', 'pMax', 'rInterval', 'pInterval', 'abs diff']
 		# writer.writerow(header)
@@ -2600,8 +2603,7 @@ class prepross(object):
 		writer.writerows([header]+flist+[header]+slist)
 
 		# add real vs estimated grade pairs
-		writer.writerow([])
-		writer.writerows(realEstPairList)
+		writer.writerows(['']+realEstPairList)
 
 		# format maeList to plot the graphs
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'MAE']
