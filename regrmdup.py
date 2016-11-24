@@ -20,6 +20,7 @@ class prepross(object):
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
 		self.predictorCourses = ['ALL', 'SINGLE']
+		# self.predictorCourses = ['SINGLE']
 		self.f1courseList = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
 		self.s2courseList = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
 
@@ -760,11 +761,6 @@ class prepross(object):
 			print '\nGrade Points:', crs, '\n', crsPoints, '\nvnums2Means:\n', vnums2Means, '\nvnumt3Means:\n', vnumt3Means, '\nvnumf4Means:\n', vnumf4Means
 
 	def f1s2YrTechYrCrsMeanPrediction(self, meanPairs, predictorsFile):
-		# if the prediction has been done, just ignore it and return
-		# for item in [self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPrecisionL, self.meanPrecisionQ]:
-		# 	if os.path.exists(item):
-		# 		return
-
 		r1, r2 = csv.reader(open(meanPairs), delimiter = ','), csv.reader(open(predictorsFile), delimiter = ',')
 		r2.next()
 		# self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV
@@ -815,27 +811,93 @@ class prepross(object):
 				w1.writerows([points, means, ['2']+lMeanList, lErrList])
 				w2.writerows([points, means, ['2']+qMeanList, qErrList])
 				# collect predictors and the mean error to compute the precision for linear and quadratic
-				s2LmeanPrecisionList.append([points[0]]+lErrList[1:])
-				s2QmeanPrecisionList.append([points[0]]+qErrList[1:])
+				s2LmeanPrecisionList.append([points[0], '2nd']+predictor2[2:4]+lErrList[1:])
+				s2QmeanPrecisionList.append([points[0], '2nd']+predictor2[2:4]+qErrList[1:])
 
 			[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean3, predictor3)
 			w1.writerows([points, means, ['3']+lMeanList, lErrList])
 			w2.writerows([points, means, ['3']+qMeanList, qErrList])
 			# collect predictors and the mean error to compute the precision for linear and quadratic
-			t3LmeanPrecisionList.append([points[0]]+lErrList[1:])
-			t3QmeanPrecisionList.append([points[0]]+qErrList[1:])
+			t3LmeanPrecisionList.append([points[0], '3rd']+predictor3[2:4]+lErrList[1:])
+			t3QmeanPrecisionList.append([points[0], '3rd']+predictor3[2:4]+qErrList[1:])
 
 			[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean4, predictor4)
 			w1.writerows([points, means, ['4']+lMeanList, lErrList])
 			w2.writerows([points, means, ['4']+qMeanList, qErrList])
 			# collect predictors and the mean error to compute the precision for linear and quadratic
-			f4LmeanPrecisionList.append([points[0]]+lErrList[1:])
-			f4QmeanPrecisionList.append([points[0]]+qErrList[1:])
+			f4LmeanPrecisionList.append([points[0], '4th']+predictor4[2:4]+lErrList[1:])
+			f4QmeanPrecisionList.append([points[0], '4th']+predictor4[2:4]+qErrList[1:])
 
 		# self.meanPrecisionL, self.meanPrecisionQ
 		w1, w2 = csv.writer(open(self.meanPrecisionL, 'w')), csv.writer(open(self.meanPrecisionQ, 'w'))
-		w1.writerows(s2LmeanPrecisionList+['']+t3LmeanPrecisionList+['']+f4LmeanPrecisionList)
-		w2.writerows(s2QmeanPrecisionList+['']+t3QmeanPrecisionList+['']+f4QmeanPrecisionList)
+		# compute the precision
+		header = ['CRS','YR','r','P','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
+		precisionsL = self.computePrecisionForMeanPrediction(s2LmeanPrecisionList+t3LmeanPrecisionList+f4LmeanPrecisionList)
+		precisionsQ = self.computePrecisionForMeanPrediction(s2QmeanPrecisionList+t3QmeanPrecisionList+f4QmeanPrecisionList)
+
+		for key, values in self.sortMeanPredictionByIndex(precisionsL, 1).items():
+			w1.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(precisionsL, 0).items():
+			w1.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(precisionsQ, 1).items():
+			w2.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(precisionsQ, 0).items():
+			w2.writerows([header]+values+[''])
+
+		header = ['CRS','YR','r','P']
+		for key, values in self.sortMeanPredictionByIndex(s2LmeanPrecisionList+t3LmeanPrecisionList+f4LmeanPrecisionList, 1).items():
+			w1.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(s2LmeanPrecisionList+t3LmeanPrecisionList+f4LmeanPrecisionList, 0).items():
+			w1.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(s2QmeanPrecisionList+t3QmeanPrecisionList+f4QmeanPrecisionList, 1).items():
+			w2.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(s2QmeanPrecisionList+t3QmeanPrecisionList+f4QmeanPrecisionList, 0).items():
+			w2.writerows([header]+values+[''])
+
+		# w1.writerows([header]+s2LmeanPrecisionList+['']+[header]+t3LmeanPrecisionList+['']+[header]+f4LmeanPrecisionList)
+		# w2.writerows([header]+s2QmeanPrecisionList+['']+[header]+t3QmeanPrecisionList+['']+[header]+f4QmeanPrecisionList)
+
+	def computePrecisionForMeanPrediction(self, errRecList):
+		# error range: '0~0.5','0.5~1.0','1.0~1.5','gt1.5'
+		# header = ['CRS','YR','r','P','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']		
+		# by defaut, the precisionList is ordered by YR
+		precisionList = []
+		for errRec in errRecList:
+			# instance = len(errRec[4:])
+			rec, errorList = errRec[:4]+[len(errRec[4:])], errRec[4:]
+
+			le_05 = be_05_10 = be_10_15 = gt15 = 0
+			for err in errorList:
+				if abs(float(err)) <= 0.5:
+					le_05 += 1
+				elif abs(float(err)) <= 1.0:
+					be_05_10 += 1
+				elif abs(float(err)) <= 1.5:
+					be_10_15 += 1
+				else:
+					gt15 += 1
+
+			instance = le_05+be_05_10+be_10_15+gt15
+			rec += [le_05, format(le_05*100.0/instance, '.4'), be_05_10, format(be_05_10*100.0/instance, '.4'), le_05+be_05_10, format((le_05+be_05_10)*100.0/instance, '.4'), be_10_15, format(be_10_15*100.0/instance, '.4'), gt15, format(gt15*100.0/instance, '.4')]
+			precisionList.append(rec)
+
+		return precisionList
+
+	def sortMeanPredictionByIndex(self, dataList, sortIndex):
+		dataListDict = {}
+		for rec in dataList:
+			if rec[sortIndex] not in dataListDict:
+				dataListDict[rec[sortIndex]] = [rec]
+			else:
+				dataListDict[rec[sortIndex]].append(rec)
+
+		return dataListDict
 
 	def computeLQErr(self, crsPoints, means, predictor):
 		# Linear: k*x+b; Quadratic:a*x^2+b*x+c
@@ -2763,7 +2825,7 @@ class prepross(object):
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
 		header = ['xSubj','xNum','ySubj','yNum','point#','r','mean','std','errStd','rMean','rStd','ME','MAE','MAPE','instance','minErr','maxErr','interval','RMSE']
 		# create errRangeStdErrList dict by predictors and predicting courses, respectively
-		# writer.writerows(self.sortPredictionResults(errRangeStdErrList, header))
+		writer.writerows(self.sortPredictionResults(errRangeStdErrList, header))
 		# =================================================================== #
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'instance', 'minErr', 'maxErr', 'interval']
 		# build the header-format table and sort by predictor, then predicted course
