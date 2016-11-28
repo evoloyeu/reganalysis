@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import csv, os, time, hashlib, shutil
+import csv, os, time, hashlib, shutil, xlsxwriter
 from pylab import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -94,7 +94,7 @@ class prepross(object):
 
 		self.pairsFrequency, self.pearsoncorr = self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv'
 		if self.proPredictor == 'ALL':
-			self.degDataPath, self.regDataPath = self.splitsDir+'degtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'regtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
+			self.degDataPath, self.regDataPath = self.splitsDir+'deg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'reg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
 			self.top1pFactors, self.top3pFactors = self.dataDir + 'T1F_P_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_P_' + self.trainYrsText +'.csv'
 			self.top1rFactors, self.top3rFactors = self.dataDir + 'T1F_R_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_R_' + self.trainYrsText +'.csv'
 			self.top1FactorsFile, self.top3FactorsFile = '', ''
@@ -116,7 +116,7 @@ class prepross(object):
 
 		if self.proPredictor == 'ALL':
 			# create year combined test data
-			combineYrsTestData = self.splitsDir+'regtest'+self.yearList[len(self.trainYrs)]+'-'+self.yearList[-1]+'.csv'
+			combineYrsTestData = self.splitsDir+'reg'+self.yearList[len(self.trainYrs)]+'-'+self.yearList[-1]+'.csv'
 			# self.comYrsTestHeader = ''
 			for yr in self.yearList:
 				if (yr not in self.trainYrs):
@@ -138,24 +138,23 @@ class prepross(object):
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
-			self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/PG_' + filename + '_' + self.proPredictor + '_LT1.csv')
-			self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/PG_' + filename + '_' + self.proPredictor + '_QT1.csv')
-
 			if self.proPredictor == 'ALL':
-				self.linearPredictResultsListTop3.append(self.currDir + 'T3/L/PG_' + filename +'_LT3.csv')
-				self.quadrPredictResultsListTop3.append(self.currDir + 'T3/Q/PG_' + filename +'_QT3.csv')
-				self.linearPredictResultsListALL.append(self.currDir + 'T1/L/ALL_PG_' + filename + '_' + self.proPredictor + '_LALL.csv')
-				self.quadrPredictResultsListALL.append(self.currDir + 'T1/Q/ALL_PG_' + filename + '_' + self.proPredictor + '_QALL.csv')
+				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.factor + '_L1.csv')
+				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.factor + '_Q1.csv')
+				self.linearPredictResultsListALL.append(self.currDir + 'T1/L/' + filename + self.factor + 'L.csv')
+				self.quadrPredictResultsListALL.append(self.currDir + 'T1/Q/' + filename + self.factor + 'Q.csv')
+				self.linearPredictResultsListTop3.append(self.currDir + 'T3/L/' + filename +'_L3.csv')
+				self.quadrPredictResultsListTop3.append(self.currDir + 'T3/Q/' + filename +'_Q3.csv')
+			else:
+				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.proPredictor + '_L1.csv')
+				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.proPredictor + '_Q1.csv')
 
 			tmpList, prefix, testPath, yr = [], '', '',''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
-				if fname == self.regDataPath:
-					if self.proPredictor == 'ALL':
-						testPath = self.dataDir +'Test/' + filename[8:17] + '/'
-					else:
-						testPath = self.dataDir +'Test/' + filename + '/'
+				if self.proPredictor == 'ALL':
+					testPath = self.dataDir +'Test/' + filename[3:12] + '/'
 				else:
-					testPath = self.dataDir +'Test/' + filename[7:16] + '/'
+					testPath = self.dataDir +'Test/' + filename + '/'
 
 				prefix = testPath + filename
 				self.fTestRegFileNameList.append([prefix + '_TTech.csv', prefix + '_Test.csv'])
@@ -280,6 +279,7 @@ class prepross(object):
 					self.predictorsScatterPlots()
 					# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 					self.predicting4ALL()
+					self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL)
 
 					# merge MAEs, Ranges
 					self.mergeMAEsRangesManager()
@@ -3600,3 +3600,15 @@ class prepross(object):
 		destMAEs = self.currDir + 'T1/T1QM' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destRanges = self.currDir + 'T1/T1QR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destMAEs, destRanges)
+
+	def mergePrecision4ALL(self, trainYrsText, precisionList):
+		precisionXlsx = self.currDir+'T1/'+trainYrsText+'_'+self.factor+'_Precision.xlsx'
+		workbook = xlsxwriter.Workbook(precisionXlsx)
+		for p in precisionList:
+			filename = p.split('/')[-1].split('.')[0][3:]
+			print filename
+			worksheet = workbook.add_worksheet(filename)
+			rowcnt = 0
+			for row in csv.reader(open(p), delimiter=','):
+				worksheet.write_row(rowcnt,0,row)
+				rowcnt+=1

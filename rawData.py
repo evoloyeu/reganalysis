@@ -149,8 +149,8 @@ class splitRawData(object):
 	def combinedDataNameList(self):
 		nameList = []
 		for yrList in self.trainYrsList:
-			nameList.append(self.currDir+'degtrain'+yrList[0]+'-'+yrList[-1]+'.csv')
-			nameList.append(self.currDir+'regtrain'+yrList[0]+'-'+yrList[-1]+'.csv')
+			nameList.append(self.currDir+'deg'+yrList[0]+'-'+yrList[-1]+'.csv')
+			nameList.append(self.currDir+'reg'+yrList[0]+'-'+yrList[-1]+'.csv')
 			if len(yrList) != 5:
 				nameList.append(self.currDir+'regtest'+self.yearList[len(yrList)]+'-'+self.yearList[-1]+'.csv')
 
@@ -159,15 +159,15 @@ class splitRawData(object):
 	def dataMerger(self):
 		for yrList in self.trainYrsList:
 			self.rheader, self.dheader = '', ''
-			degDataPath = self.currDir+'degtrain'+yrList[0]+'-'+yrList[-1]+'.csv'
-			regDataPath = self.currDir+'regtrain'+yrList[0]+'-'+yrList[-1]+'.csv'
+			degDataPath = self.currDir+'deg'+yrList[0]+'-'+yrList[-1]+'.csv'
+			regDataPath = self.currDir+'reg'+yrList[0]+'-'+yrList[-1]+'.csv'
 			for yr in yrList:
 				index = self.yearList.index(yr)
 				reg, deg = self.regFileList[index], self.degFileList[index]
 				self.concatenateData(reg, regDataPath, 'reg')
 				self.concatenateData(deg, degDataPath, 'deg')
 
-			combineYrsTestData = self.currDir+'regtest'+self.yearList[len(yrList)]+'-'+self.yearList[-1]+'.csv'
+			combineYrsTestData = self.currDir+'reg'+self.yearList[len(yrList)]+'-'+self.yearList[-1]+'.csv'
 			self.comYrsTestHeader = ''
 			for yr in self.yearList:
 				if (yr not in yrList):
