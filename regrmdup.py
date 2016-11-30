@@ -46,7 +46,7 @@ class prepross(object):
 		self.allTechCrs = path+'techcourses/'+'technicalCourse.csv'
 		self.availableTechCrsList, self.techList = [],[]
 
-		timeDir = path+time.strftime('%Y%m%d')
+		self.timeDir = path+time.strftime('%Y%m%d')+'/'
 		# No specific predictor
 		if self.proPredictor == 'ALL':
 			if len(self.trainYrs) > 1:
@@ -54,24 +54,24 @@ class prepross(object):
 			else:
 				self.trainYrsText = str(self.trainYrs[0])
 
-			self.currDir = timeDir+'/'+self.trainYrsText+'/'+self.factor+'/'
-			self.dataDir = timeDir+'/'+self.trainYrsText+'/'+'data/'
+			self.currDir = self.timeDir+self.trainYrsText+'/'+self.factor+'/'
+			self.dataDir = self.timeDir+self.trainYrsText+'/'+'data/'
 
-			self.linear_plots_ori = timeDir+'/'+self.trainYrsText+'/LPlots_ori/'
-			self.quadratic_plots_ori = timeDir+'/'+self.trainYrsText+'/QPlots_ori/'
+			self.linear_plots_ori = self.timeDir+self.trainYrsText+'/LPlots_ori/'
+			self.quadratic_plots_ori = self.timeDir+self.trainYrsText+'/QPlots_ori/'
 
-			self.boxplots = timeDir+'/'+self.trainYrsText+'/boxPlots/'
+			self.boxplots = self.timeDir+self.trainYrsText+'/boxPlots/'
 		else:
-			self.currDir = timeDir+'/'+self.proPredictor.replace(' ','')+'/'
+			self.currDir = self.timeDir+self.proPredictor.replace(' ','')+'/'
 			self.dataDir, self.rpDir4Single = self.currDir+'data/', self.currDir+'rp/'
-			self.linear_plots_ori, self.quadratic_plots_ori = timeDir+'/'+self.proPredictor+'/LPlots_ori/', timeDir+'/'+self.proPredictor+'/QPlots_ori/'
+			self.linear_plots_ori, self.quadratic_plots_ori = self.timeDir+self.proPredictor+'/LPlots_ori/', self.timeDir+self.proPredictor+'/QPlots_ori/'
 
-			self.boxplots = timeDir+'/boxPlots/'
+			self.boxplots = self.timeDir+'boxPlots/'
 
 			self.mergeSingleL, self.mergeSingleQ = self.currDir+'T1/L/mergeSingleL.csv', self.currDir+'T1/Q/mergeSingleQ.csv'
 
 			self.meanPearson, self.meanPairs, self.f1s2CrsVnums, self.vnumMeans = self.dataDir+'meanPearsonCorr.csv', self.dataDir+'Train/MEANPAIRS_SAS.csv', self.dataDir+'Train/F1S2CRSVNUMS_SAS.csv', self.dataDir+'Train/VNUMSMEANS_SAS.csv'
-			self.meanPlot, self.meanTest = timeDir+'/MEAN/meanPlots/', timeDir+'/MEAN/meanTest/'
+			self.meanPlot, self.meanTest = self.timeDir+'MEAN/meanPlots/', self.timeDir+'MEAN/meanTest/'
 			self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPrecisionL, self.meanPredictedELCSV, self.meanPredictedEQCSV, self.meanPrecisionQ = self.meanTest+'PMean_L.csv', self.meanTest+'PMean_Q.csv', self.meanTest+'PMean_PL.csv', self.meanTest+'PMean_EL.csv', self.meanTest+'PMean_EQ.csv', self.meanTest+'PMean_PQ.csv'
 			for item in [self.meanPlot, self.meanTest, self.rpDir4Single]:
 				if not os.path.exists(item):
@@ -279,7 +279,7 @@ class prepross(object):
 					self.predictorsScatterPlots()
 					# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 					self.predicting4ALL()
-					self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL)
+					self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL, self.factor)
 
 					# merge MAEs, Ranges
 					self.mergeMAEsRangesManager()
@@ -302,6 +302,7 @@ class prepross(object):
 		self.predicting4Specific()
 		# plot yr vs yr scatter plots
 		# self.gradePointsDistribution(self.top1FactorsFile)
+		self.mergePrecision4ALL('SINGLE_MEAN', self.linearPredictResultsListTop1+self.quadrPredictResultsListTop1+[self.meanPrecisionL, self.meanPrecisionQ], '')
 
 		if self.errMerge:
 			self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
@@ -2881,13 +2882,14 @@ class prepross(object):
 		# write predictorsDict
 		for key in predictorsDict:
 			recs = predictorsDict[key]
-			recs.sort(key=itemgetter(3), reverse=False)
+			# sort by precision
+			recs.sort(key=itemgetter(12), reverse=True)
 			# writer.writerows([header]+recs+[''])
 			ret+=[header]+recs+['']
 		# write predictingDict
 		for key in predictingDict:
 			recs = predictingDict[key]
-			recs.sort(key=itemgetter(1), reverse=False)
+			recs.sort(key=itemgetter(12), reverse=True)
 			# writer.writerows([header]+recs+[''])
 			ret+=[header]+recs+['']
 
@@ -2910,7 +2912,7 @@ class prepross(object):
 					gt15 += 1
 
 			instance = le_05+be_05_10+be_10_15+gt15
-			rec += [le_05, format(le_05*100.0/instance, '.4'), be_05_10, format(be_05_10*100.0/instance, '.4'), le_05+be_05_10, format((le_05+be_05_10)*100.0/instance, '.4'), be_10_15, format(be_10_15*100.0/instance, '.4'), gt15, format(gt15*100.0/instance, '.4')]
+			rec += [le_05, float(format(le_05*100.0/instance, '.4')), be_05_10, float(format(be_05_10*100.0/instance, '.4')), le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), be_10_15, float(format(be_10_15*100.0/instance, '.4')), gt15, float(format(gt15*100.0/instance, '.4'))]
 			precisionList.append(rec)
 
 		return self.sortPredictionResults(precisionList, header)
@@ -3601,8 +3603,8 @@ class prepross(object):
 		destRanges = self.currDir + 'T1/T1QR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destMAEs, destRanges)
 
-	def mergePrecision4ALL(self, trainYrsText, precisionList):
-		precisionXlsx = self.currDir+'T1/'+trainYrsText+'_'+self.factor+'_Precision.xlsx'
+	def mergePrecision4ALL(self, trainYrsText, precisionList, factor):
+		precisionXlsx = self.timeDir+trainYrsText+'_'+factor+'_Precision.xlsx'
 		workbook = xlsxwriter.Workbook(precisionXlsx)
 		for p in precisionList:
 			filename = p.split('/')[-1].split('.')[0][3:]
