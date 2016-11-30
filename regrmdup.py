@@ -2882,10 +2882,12 @@ class prepross(object):
 		# write predictorsDict
 		for key in predictorsDict:
 			recs = predictorsDict[key]
-			# sort by precision
-			recs.sort(key=itemgetter(12), reverse=True)
-			# writer.writerows([header]+recs+[''])
-			ret+=[header]+recs+['']
+			for key, items in self.partitionCoursesByYear(recs):
+				# print items
+				# sort by precision
+				items.sort(key=itemgetter(12), reverse=True)
+				# writer.writerows([header]+recs+[''])
+				ret+=[header]+items+['']
 		# write predictingDict
 		for key in predictingDict:
 			recs = predictingDict[key]
@@ -2916,6 +2918,17 @@ class prepross(object):
 			precisionList.append(rec)
 
 		return self.sortPredictionResults(precisionList, header)
+
+	def partitionCoursesByYear(self, dataList):
+		yrCrsDict = {}
+		for data in dataList:
+			key = data[3][0]
+			if key not in yrCrsDict:
+				yrCrsDict[key]=[data]
+			else:
+				yrCrsDict[key].append(data)
+
+		return yrCrsDict.items()
 
 	def plotPredictionMAEFigures(self, testReg, power, maeList, predictor4Single):
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'MAE']
