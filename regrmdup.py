@@ -3623,11 +3623,12 @@ class prepross(object):
 	def mergePrecision4ALL(self, trainYrsText, precisionList, factor):
 		precisionXlsx = self.timeDir+trainYrsText+'_'+factor+'_Precision.xlsx'
 		workbook = xlsxwriter.Workbook(precisionXlsx)
+		myformat = workbook.add_format({'align':'center_across'})
 		for p in precisionList:
 			filename = p.split('/')[-1].split('.')[0][3:]
 			print filename
 			worksheet = workbook.add_worksheet(filename)
 			rowcnt = 0
 			for row in csv.reader(open(p), delimiter=','):
-				worksheet.write_row(rowcnt,0,row)
+				worksheet.write_row(rowcnt,0,row,myformat)
 				rowcnt+=1
