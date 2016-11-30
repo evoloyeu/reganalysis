@@ -837,16 +837,20 @@ class prepross(object):
 		precisionsQ = self.computePrecisionForMeanPrediction(s2QmeanPrecisionList+t3QmeanPrecisionList+f4QmeanPrecisionList)
 
 		for key, values in self.sortMeanPredictionByIndex(precisionsL, 1).items():
-			w1.writerows([header]+values.sort(key=itemgetter(10), reverse=True)+[''])
+			values.sort(key=itemgetter(10), reverse=True)
+			w1.writerows([header]+values+[''])
 
 		for key, values in self.sortMeanPredictionByIndex(precisionsL, 0).items():
-			w1.writerows([header]+values.sort(key=itemgetter(10), reverse=True)+[''])
+			values.sort(key=itemgetter(10), reverse=True)
+			w1.writerows([header]+values+[''])
 
 		for key, values in self.sortMeanPredictionByIndex(precisionsQ, 1).items():
-			w2.writerows([header]+values.sort(key=itemgetter(10), reverse=True)+[''])
+			values.sort(key=itemgetter(10), reverse=True)
+			w2.writerows([header]+values+[''])
 
 		for key, values in self.sortMeanPredictionByIndex(precisionsQ, 0).items():
-			w2.writerows([header]+values.sort(key=itemgetter(10), reverse=True)+[''])
+			values.sort(key=itemgetter(10), reverse=True)
+			w2.writerows([header]+values+[''])
 
 		header = ['CRS','YR','r','P']
 		for key, values in self.sortMeanPredictionByIndex(s2LmeanPrecisionList+t3LmeanPrecisionList+f4LmeanPrecisionList, 1).items():
