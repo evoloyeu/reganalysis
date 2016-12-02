@@ -19,7 +19,7 @@ class prepross(object):
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
-		self.predictorCourses = ['ALL', 'SINGLE']
+		self.predictorCourses = ['SINGLE', 'ALL']
 		# self.predictorCourses = ['SINGLE']
 		self.f1courseList = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
 		self.s2courseList = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
@@ -889,7 +889,7 @@ class prepross(object):
 					gt15 += 1
 
 			instance = le_05+be_05_10+be_10_15+gt15
-			rec += [le_05, format(le_05*100.0/instance, '.4'), be_05_10, format(be_05_10*100.0/instance, '.4'), le_05+be_05_10, format((le_05+be_05_10)*100.0/instance, '.4'), be_10_15, format(be_10_15*100.0/instance, '.4'), gt15, format(gt15*100.0/instance, '.4')]
+			rec += [le_05, float(format(le_05*100.0/instance, '.4')), be_05_10, float(format(be_05_10*100.0/instance, '.4')), le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), be_10_15, float(format(be_10_15*100.0/instance, '.4')), gt15, float(format(gt15*100.0/instance, '.4'))]
 			precisionList.append(rec)
 
 		return precisionList
