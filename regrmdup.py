@@ -20,7 +20,7 @@ class prepross(object):
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
 		self.predictorCourses = ['SINGLE', 'ALL']
-		# self.predictorCourses = ['SINGLE']
+		# self.predictorCourses = ['ALL']
 		self.f1courseList = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
 		self.s2courseList = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
 
@@ -97,7 +97,7 @@ class prepross(object):
 			self.degDataPath, self.regDataPath = self.splitsDir+'deg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'reg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
 			self.top1pFactors, self.top3pFactors = self.dataDir + 'T1F_P_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_P_' + self.trainYrsText +'.csv'
 			self.top1rFactors, self.top3rFactors = self.dataDir + 'T1F_R_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_R_' + self.trainYrsText +'.csv'
-			self.top1FactorsFile, self.top3FactorsFile = '', ''
+			self.top1FactorsFile, self.top3FactorsFile, self.weightPxyFile = '', '', ''
 
 			self.linearTop1Top3Stats, self.quadraticTop1Top3Stats = self.currDir+'LT1T3Stats_'+self.trainYrsText+'.csv', self.currDir+'QT1T3Stats_'+self.trainYrsText+'.csv'
 			self.linearQuadraticTop1Stats, self.linearQuadraticTop3Stats = self.currDir+'LQT1Stats_'+self.trainYrsText+'.csv', self.currDir+'LQT3Stats_'+self.trainYrsText+'.csv'
@@ -2030,8 +2030,8 @@ class prepross(object):
 
 		rows.sort(key=itemgetter(2,3,4,5), reverse=True)
 
-		fV1Reulsts = self.dataDir + 'fv1_' + str(w1) + '_' + str(w2) +'.csv'
-		writer = csv.writer(open(fV1Reulsts, 'w'))
+		self.weightPxyFile = self.dataDir + 'fv1_' + str(w1) + '_' + str(w2) +'.csv'
+		writer = csv.writer(open(self.weightPxyFile, 'w'))
 		# build the self.predictorFile
 		self.top1FactorsFile = self.dataDir + 'T1F_' + str(w1) + '_' + str(w2) + '_' + self.trainYrsText +'.csv'
 		factorWriter = csv.writer(open(self.top1FactorsFile, 'w'))
@@ -2866,7 +2866,31 @@ class prepross(object):
 				sub_maeList = predictorsDict[predictor]
 				self.plotPredictionMAEFigures(testReg, power, sub_maeList, predictor)
 
+	def insertPxy(self, resultsData):
+		r = csv.reader(open(self.weightPxyFile), delimiter=',')
+		pxyPredictedCrsDict = {}
+		for rec in r:
+			if (len(rec) > 0) and (rec[0] != 'xsubCode'):
+				key = rec[2]+rec[3]
+				if key not in pxyPredictedCrsDict:
+					pxyPredictedCrsDict[key] = [[rec[0], rec[1], rec[6]]]
+				else:
+					pxyPredictedCrsDict[key].append([rec[0], rec[1], rec[6]])
+
+		for rec in resultsData:
+			key = rec[2]+rec[3]
+			for predictor in pxyPredictedCrsDict[key]:
+				if (rec[0]+rec[1]) == (predictor[0]+predictor[1]):
+					rec.insert(6, predictor[2])
+
+		return resultsData
+
 	def sortPredictionResults(self, resultsData, header):
+		if self.proPredictor == 'ALL':
+			if self.factor == 'PR':
+				header.insert(6, 'Pxy')
+				self.insertPxy(resultsData)
+
 		predictorsDict, predictingDict = {}, {}
 		for rec in resultsData:
 			predictor, predicting = rec[0]+rec[1], rec[2]+rec[3]
