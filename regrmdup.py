@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import csv, os, time, hashlib, shutil, xlsxwriter
+import csv, os, time, hashlib, shutil, xlsxwriter, copy as myCopy
 from pylab import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -2825,12 +2825,20 @@ class prepross(object):
 			# writer.writerow([''])
 		# =================================================================== #
 		header = ['xSubj','xNum','ySubj','yNum','point#','r','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
-		writer.writerows(self.predictionPrecision(errRangeStdErrList, header))
+		# insert Pxy
+		if (self.proPredictor == 'ALL') and (self.factor == 'PR'):
+			writer.writerows(self.insertPxy(self.predictionPrecision(errRangeStdErrList, header)))
+		else:
+			writer.writerows(self.predictionPrecision(errRangeStdErrList, header))
 		# =================================================================== #
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
 		header = ['xSubj','xNum','ySubj','yNum','point#','r','mean','std','errStd','rMean','rStd','ME','MAE','MAPE','instance','minErr','maxErr','interval','RMSE']
 		# create errRangeStdErrList dict by predictors and predicting courses, respectively
-		writer.writerows(self.sortPredictionResults(errRangeStdErrList, header))
+		# insert Pxy
+		if (self.proPredictor == 'ALL') and (self.factor == 'PR'):
+			writer.writerows(self.insertPxy(self.sortPredictionResults(errRangeStdErrList, header)))
+		else:
+			writer.writerows(self.sortPredictionResults(errRangeStdErrList, header))
 		# =================================================================== #
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'instance', 'minErr', 'maxErr', 'interval']
 		# build the header-format table and sort by predictor, then predicted course
@@ -2877,20 +2885,23 @@ class prepross(object):
 				else:
 					pxyPredictedCrsDict[key].append([rec[0], rec[1], rec[6]])
 
-		for rec in resultsData:
-			key = rec[2]+rec[3]
-			for predictor in pxyPredictedCrsDict[key]:
-				if (rec[0]+rec[1]) == (predictor[0]+predictor[1]):
-					rec.insert(6, predictor[2])
+		ret = []
+		for record in resultsData:
+			rec = myCopy.deepcopy(record)
+			if len(rec) > 0:
+				if (rec[0] != 'xSubj'):
+					key = rec[2]+rec[3]
+					for predictor in pxyPredictedCrsDict[key]:
+						if (rec[0]+rec[1]) == (predictor[0]+predictor[1]):
+							rec.insert(6, predictor[2])
+				elif (rec[0] == 'xSubj'):
+					rec.insert(6, 'Pxy')
 
-		return resultsData
+			ret.append(rec)
+
+		return ret
 
 	def sortPredictionResults(self, resultsData, header):
-		if self.proPredictor == 'ALL':
-			if self.factor == 'PR':
-				header.insert(6, 'Pxy')
-				self.insertPxy(resultsData)
-
 		predictorsDict, predictingDict = {}, {}
 		for rec in resultsData:
 			predictor, predicting = rec[0]+rec[1], rec[2]+rec[3]
