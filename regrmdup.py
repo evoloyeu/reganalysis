@@ -2826,10 +2826,17 @@ class prepross(object):
 		# =================================================================== #
 		header = ['xSubj','xNum','ySubj','yNum','point#','r','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
 		# insert Pxy
+		topPrecisions, precisions = '', ''
 		if (self.proPredictor == 'ALL') and (self.factor == 'PR'):
-			writer.writerows(self.insertPxy(self.predictionPrecision(errRangeStdErrList, header)))
+			# writer.writerows(self.insertPxy(self.predictionPrecision(errRangeStdErrList, header)))
+			precisions = self.insertPxy(self.predictionPrecision(errRangeStdErrList, header))
+			topPrecisions = self.pickTopPrecision(precisions)
 		else:
-			writer.writerows(self.predictionPrecision(errRangeStdErrList, header))
+			precisions = self.predictionPrecision(errRangeStdErrList, header)
+			topPrecisions = self.pickTopPrecision(precisions)
+			# writer.writerows(self.predictionPrecision(errRangeStdErrList, header))
+
+		writer.writerows(topPrecisions+precisions)
 		# =================================================================== #
 		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
 		header = ['xSubj','xNum','ySubj','yNum','point#','r','mean','std','errStd','rMean','rStd','ME','MAE','MAPE','instance','minErr','maxErr','interval','RMSE']
@@ -2873,6 +2880,99 @@ class prepross(object):
 			for predictor in predictorsDict:
 				sub_maeList = predictorsDict[predictor]
 				self.plotPredictionMAEFigures(testReg, power, sub_maeList, predictor)
+
+	def pickTopPrecision(self, datasets):
+		header = ''
+		f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor = [], [], []
+		f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted = [], [], []
+		tempList, precisionIndex = [], ''
+		for rec in datasets:
+			if len(rec) > 0:
+				if rec[0] == 'xSubj':
+					header, precisionIndex = rec, rec.index('0~1.0')
+				else:
+					tempList.append(rec)
+			else:
+				self.pickTopPrecision4S2T3(precisionIndex+1, tempList, f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted)
+				tempList = []
+
+		if len(tempList) > 0:
+			self.pickTopPrecision4S2T3(precisionIndex+1, tempList, f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted)
+
+		for x in [f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted]:
+			x.sort(key=itemgetter(precisionIndex+1), reverse=True)
+
+		return [['f1s2P'], ['']]+[header]+f1s2ListPredictor+[[''],['f1t3P'], ['']]+[header]+f1t3ListPredictor+[[''],['s2t3P'], ['']]+[header]+s2t3ListPredictor+[[''],['f1s2Ped'], ['']]+[header]+f1s2ListPredicted+[[''],['f1t3Ped'], ['']]+[header]+f1t3ListPredicted+[[''],['s2t3Ped'], ['']]+[header]+s2t3ListPredicted+['']
+
+	def pickTopPrecision4S2T3(self, precisionIndex, tempList, f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted):
+		xyr, yyr = tempList[0][1][0], tempList[0][3][0]
+		if yyr == '4':
+			return
+
+		maxPrecision = self.pickMaxPrecision(tempList, precisionIndex)
+
+		freqx = Counter(item[0]+item[1] for item in tempList)
+		freqy = Counter(item[2]+item[3] for item in tempList)
+
+		# for predictor
+		if len(freqx) == 1:
+			# first year predictors
+			if xyr == '1':
+				# second year predicted courses
+				if yyr == '2':
+					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
+					f1s2ListPredictor += ret
+				# third year predicted courses
+				else:
+					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
+					f1t3ListPredictor += ret
+			# second year predictors
+			else:
+				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
+				s2t3ListPredictor += ret
+		# for predicted course
+		elif len(freqy) == 1:
+			# second year predicted courses: 1-2
+			if yyr == '2':
+				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
+				f1s2ListPredicted += ret
+			# third year predicted courses
+			else:
+				f1List, s2List = [], []
+				for x in tempList:
+					if x[1][0] == '1':
+						f1List.append(x)
+					else:
+						s2List.append(x)
+				# first year predictor: 1-3
+				maxPrecision = self.pickMaxPrecision(f1List, precisionIndex)
+				ret = self.pickRecordsByCondiction(f1List, [precisionIndex, maxPrecision])
+				f1t3ListPredicted += ret
+				# second year predictor: 2-3
+				maxPrecision = self.pickMaxPrecision(s2List, precisionIndex)
+				ret = self.pickRecordsByCondiction(s2List, [precisionIndex, maxPrecision])
+				s2t3ListPredicted += ret
+
+	def pickMaxPrecision(self, tempList, precisionIndex):
+		precisionList = []
+		[precisionList.append(float(x[precisionIndex])) for x in tempList]
+		maxPrecision = max(precisionList)
+		precisionList.sort(reverse=True)
+		if maxPrecision == float(100):
+			freq = Counter(item for item in precisionList)
+			if len(freq) > 1:
+				maxPrecision = precisionList[freq[maxPrecision]]
+
+		return maxPrecision
+
+	def pickRecordsByCondiction(self, datasets, condition):
+		ret = []
+		[precisionIndex, maxp] = condition
+		for x in datasets:
+			if float(x[precisionIndex]) >= float(maxp):
+				ret.append(x)
+
+		return ret
 
 	def insertPxy(self, resultsData):
 		r = csv.reader(open(self.weightPxyFile), delimiter=',')
