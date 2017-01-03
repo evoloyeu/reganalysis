@@ -3767,3 +3767,69 @@ class prepross(object):
 			for row in csv.reader(open(p), delimiter=','):
 				worksheet.write_row(rowcnt,0,row,myformat)
 				rowcnt+=1
+
+		ret, header = '', ''
+		if trainYrsText == 'SINGLE_MEAN':
+			ret, header = self.sortPredictorPrecisionsInDiffTestSet(precisionList[:2])
+		else:
+			ret, header = self.sortPredictorPrecisionsInDiffTestSet(precisionList)
+
+		f1s2P,f1t3P,s2t3P,f1s2Ped,f1t3Ped,s2t3Ped = [],[],[],[],[],[]
+		keys = ret.keys()
+		for key in keys:
+			# f1s2P, f1t3P, s2t3P, f1s2Ped, f1t3Ped, s2t3Ped
+			f1s2P += ret[key]['f1s2P'], f1t3P += ret[key]['f1t3P'], s2t3P += ret[key]['s2t3P']
+			f1s2Ped += ret[key]['f1s2Ped'], f1t3Ped += ret[key]['f1t3Ped'], s2t3Ped += ret[key]['s2t3Ped']
+
+		worksheet = workbook.add_worksheet('PPed')
+		rowcnt, sortIndex = 0, 0
+		for mylist in [f1s2P,f1t3P,s2t3P,f1s2Ped,f1t3Ped,s2t3Ped]:
+			worksheet.write_row(rowcnt,0,header,myformat)
+			rowcnt+=1
+
+			if sortIndex <= 2:
+				mylist.sort(key=itemgetter(2,1,0), reverse=True)
+			else:
+				mylist.sort(key=itemgetter(4,3,0), reverse=True)
+
+			# sortIndex = 0, 1, 2, sort for predictors; sortIndex = 3, 4, 5, sort for predicted courses
+			sortIndex += 1
+
+			for row in mylist:
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
+
+			worksheet.write_row(rowcnt,0,[''],myformat)
+			rowcnt+=1
+
+	def sortPredictorPrecisionsInDiffTestSet(self, precisionList):
+		# f1s2P, f1t3P, s2t3P, f1s2Ped, f1t3Ped, s2t3Ped
+		# datasetDict = {'2010': {'f1s2P': mylist, 'f1t3P': mylist, ......}}
+		datasetDict, header = {}, ''
+		for p in precisionList:
+			filename = p.split('/')[-1].split('.')[0][3:]
+			start, key, mydict = 0, '', {}
+			for row in csv.reader(open(p), delimiter=','):
+				if (len(row) == 1) and (row[0] != ''):
+					key = row[0]
+				elif len(row) > 1:
+					if (row[0] != 'xSubj'):
+						row.insert(0, filename)
+						if key not in mydict:
+							mydict[key] = [row]
+						else:
+							mydict[key].append(row)
+					else:
+						row.insert(0, '')
+						header = row
+				elif len(row) == 0:
+					if start == 0:
+						start = 1
+					else:
+						start = 0
+						if key == 's2t3Ped':
+							break
+
+			datasetDict[filename] = mydict
+
+		return [datasetDict, header]
