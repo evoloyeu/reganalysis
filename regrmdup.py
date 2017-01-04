@@ -2902,7 +2902,7 @@ class prepross(object):
 		for x in [f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted]:
 			x.sort(key=itemgetter(precisionIndex+1), reverse=True)
 
-		return [['f1s2P'], ['']]+[header]+f1s2ListPredictor+[[''],['f1t3P'], ['']]+[header]+f1t3ListPredictor+[[''],['s2t3P'], ['']]+[header]+s2t3ListPredictor+[[''],['f1s2Ped'], ['']]+[header]+f1s2ListPredicted+[[''],['f1t3Ped'], ['']]+[header]+f1t3ListPredicted+[[''],['s2t3Ped'], ['']]+[header]+s2t3ListPredicted+['']
+		return [['f1s2P'], [''], header]+f1s2ListPredictor+[[''],['f1t3P'], [''], header]+f1t3ListPredictor+[[''],['s2t3P'], [''], header]+s2t3ListPredictor+[[''],['f1s2Ped'], [''], header]+f1s2ListPredicted+[[''],['f1t3Ped'], [''], header]+f1t3ListPredicted+[[''],['s2t3Ped'], [''], header]+s2t3ListPredicted+['']
 
 	def pickTopPrecision4S2T3(self, precisionIndex, tempList, f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted):
 		xyr, yyr = tempList[0][1][0], tempList[0][3][0]
@@ -3778,12 +3778,19 @@ class prepross(object):
 		keys = ret.keys()
 		for key in keys:
 			# f1s2P, f1t3P, s2t3P, f1s2Ped, f1t3Ped, s2t3Ped
-			f1s2P += ret[key]['f1s2P'], f1t3P += ret[key]['f1t3P'], s2t3P += ret[key]['s2t3P']
-			f1s2Ped += ret[key]['f1s2Ped'], f1t3Ped += ret[key]['f1t3Ped'], s2t3Ped += ret[key]['s2t3Ped']
+			f1s2P += ret[key]['f1s2P']
+			f1t3P += ret[key]['f1t3P']
+			s2t3P += ret[key]['s2t3P']
+			f1s2Ped += ret[key]['f1s2Ped']
+			f1t3Ped += ret[key]['f1t3Ped']
+			s2t3Ped += ret[key]['s2t3Ped']
 
+		prefix = ['f1s2P', 'f1t3P', 's2t3P', 'f1s2Ped', 'f1t3Ped', 's2t3Ped']
 		worksheet = workbook.add_worksheet('PPed')
+		print 'PPed'
 		rowcnt, sortIndex = 0, 0
 		for mylist in [f1s2P,f1t3P,s2t3P,f1s2Ped,f1t3Ped,s2t3Ped]:
+			header[0]=prefix[sortIndex]
 			worksheet.write_row(rowcnt,0,header,myformat)
 			rowcnt+=1
 
@@ -3808,8 +3815,9 @@ class prepross(object):
 		datasetDict, header = {}, ''
 		for p in precisionList:
 			filename = p.split('/')[-1].split('.')[0][3:]
-			start, key, mydict = 0, '', {}
+			key, mydict = '', {}
 			for row in csv.reader(open(p), delimiter=','):
+				print row
 				if (len(row) == 1) and (row[0] != ''):
 					key = row[0]
 				elif len(row) > 1:
@@ -3823,12 +3831,9 @@ class prepross(object):
 						row.insert(0, '')
 						header = row
 				elif len(row) == 0:
-					if start == 0:
-						start = 1
-					else:
-						start = 0
-						if key == 's2t3Ped':
-							break
+					print '========== ', key, ' =========='
+					if key == 's2t3Ped':
+						break
 
 			datasetDict[filename] = mydict
 
