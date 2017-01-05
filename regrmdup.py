@@ -3788,6 +3788,7 @@ class prepross(object):
 			f1t3Ped += ret[key]['f1t3Ped']
 			s2t3Ped += ret[key]['s2t3Ped']
 
+		summaryList = []
 		prefix = ['f1s2P', 'f1t3P', 's2t3P', 'f1s2Ped', 'f1t3Ped', 's2t3Ped']
 		worksheet = workbook.add_worksheet('PPed')
 		print 'PPed'
@@ -3807,12 +3808,25 @@ class prepross(object):
 
 				mylist.sort(key=itemgetter(4,3,0), reverse=True)
 
+			summaryList.append([Tied, Smaller, Bigger, Tied+Smaller+Bigger])
+			summaryList[sortIndex].insert(0, prefix[sortIndex])
+
+			for row in mylist+[[''], ['Class', 'Tied', 'Smaller', 'Bigger', 'Total'], [prefix[sortIndex], Tied, Smaller, Bigger, Tied+Smaller+Bigger], ['']]:
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
+
 			# sortIndex = 0, 1, 2, sort for predictors; sortIndex = 3, 4, 5, sort for predicted courses
 			sortIndex += 1
 
-			for row in mylist+[['Tied', 'Smaller', 'Bigger', 'Total'],[Tied, Smaller, Bigger, Tied+Smaller+Bigger], ['']]:
-				worksheet.write_row(rowcnt,0,row,myformat)
-				rowcnt+=1
+		summaryList.insert(3, ['Class', 'Tied', 'Smaller', 'Bigger', 'Total'])
+		summaryList.insert(3, [''])
+		summaryList.insert(0, ['Class', 'Tied', 'Smaller', 'Bigger', 'Total'])
+		for x in summaryList:
+			worksheet.write_row(rowcnt,0,x,myformat)
+			rowcnt+=1
+			print x
+
+		print '\n'
 
 	def comparePrecisionInDiffDataset4EachCourse(self, dataset, pped, precisionIndex):
 		Tied, Smaller, Bigger = 0, 0, 0
