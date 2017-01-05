@@ -3810,7 +3810,7 @@ class prepross(object):
 			# sortIndex = 0, 1, 2, sort for predictors; sortIndex = 3, 4, 5, sort for predicted courses
 			sortIndex += 1
 
-			for row in mylist+[['Tied', 'Smaller', 'Bigger'],[Tied, Smaller, Bigger], ['']]:
+			for row in mylist+[['Tied', 'Smaller', 'Bigger', 'Total'],[Tied, Smaller, Bigger, Tied+Smaller+Bigger], ['']]:
 				worksheet.write_row(rowcnt,0,row,myformat)
 				rowcnt+=1
 
