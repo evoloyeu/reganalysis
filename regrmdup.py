@@ -146,8 +146,8 @@ class prepross(object):
 				self.linearPredictResultsListTop3.append(self.currDir + 'T3/L/' + filename +'_L3.csv')
 				self.quadrPredictResultsListTop3.append(self.currDir + 'T3/Q/' + filename +'_Q3.csv')
 			else:
-				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.proPredictor + '_L1.csv')
-				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.proPredictor + '_Q1.csv')
+				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.proPredictor + '_L.csv')
+				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.proPredictor + '_Q.csv')
 
 			tmpList, prefix, testPath, yr = [], '', '',''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
@@ -3774,6 +3774,9 @@ class prepross(object):
 		else:
 			ret, header = self.sortPredictorPrecisionsInDiffTestSet(precisionList)
 
+		# precision index
+		precisionIndex = header.index('0~1.0')+1
+
 		f1s2P,f1t3P,s2t3P,f1s2Ped,f1t3Ped,s2t3Ped = [],[],[],[],[],[]
 		keys = ret.keys()
 		for key in keys:
@@ -3794,20 +3797,135 @@ class prepross(object):
 			worksheet.write_row(rowcnt,0,header,myformat)
 			rowcnt+=1
 
+			Tied, Smaller, Bigger = 0, 0, 0
 			if sortIndex <= 2:
+				Tied, Smaller, Bigger = self.comparePrecisionInDiffDataset4EachCourse(mylist, 'P', precisionIndex)
+
 				mylist.sort(key=itemgetter(2,1,0), reverse=True)
 			else:
+				Tied, Smaller, Bigger = self.comparePrecisionInDiffDataset4EachCourse(mylist, 'Ped', precisionIndex)
+
 				mylist.sort(key=itemgetter(4,3,0), reverse=True)
 
 			# sortIndex = 0, 1, 2, sort for predictors; sortIndex = 3, 4, 5, sort for predicted courses
 			sortIndex += 1
 
-			for row in mylist:
+			for row in mylist+[['Tied', 'Smaller', 'Bigger'],[Tied, Smaller, Bigger], ['']]:
 				worksheet.write_row(rowcnt,0,row,myformat)
 				rowcnt+=1
 
-			worksheet.write_row(rowcnt,0,[''],myformat)
-			rowcnt+=1
+	def comparePrecisionInDiffDataset4EachCourse(self, dataset, pped, precisionIndex):
+		Tied, Smaller, Bigger = 0, 0, 0
+		# pped: P: predictor; Ped: predicted courses
+		crsIndex, numIndex = -1, -1
+		if pped == 'P':
+			crsIndex, numIndex = 1, 2
+		elif pped == 'Ped':
+			crsIndex, numIndex = 3, 4
+		else:
+			return
+
+		crsDict = {}
+		for rec in dataset:
+			key = rec[crsIndex]+rec[numIndex]
+			if key not in crsDict:
+				crsDict[key] = [rec]
+			else:
+				crsDict[key].append(rec)
+
+		for key, v in crsDict.items():
+			v.sort(key=itemgetter(0), reverse=True)
+
+			pair = []
+			for x in xrange(0, len(v)-1):
+				q=v[x][0][-1]
+				# Q
+				if q == 'Q':
+					pair.append(v[x])
+				# L
+				else:
+					pair.append(v[x])
+					# pair found
+					if v[x+1][0][-1] == 'Q':
+						ret = self.precisionQLCmopare(pair, precisionIndex)
+						if ret[1] == '+':
+							Bigger += 1
+						elif ret[1] == '-':
+							Smaller += 1
+						elif ret[1] == '#':
+							Tied += 1
+						# ===============================
+						print ret[1]
+						for rec in ret[0]:
+							print rec
+						print '\n'
+						# ===============================
+						pair = []
+
+			pair.append(v[-1])
+			ret = self.precisionQLCmopare(pair, precisionIndex)
+			if ret[1] == '+':
+				Bigger += 1
+			elif ret[1] == '-':
+				Smaller += 1
+			elif ret[1] == '#':
+				Tied += 1
+
+			# ===============================
+			print ret[1]
+			for rec in ret[0]:
+				print rec
+			print '\n'
+			# ===============================
+
+		return [Tied, Smaller, Bigger]
+
+	def precisionQLCmopare(self, pair, precisionIndex):
+		setDict = {}
+		for x in pair:
+			# dataset in Q or L; key: L or Q
+			key = x[0][-1]
+			if key not in setDict:
+				setDict[key] = [x]
+			else:
+				setDict[key].append(x)
+
+		qMax, lMax = [], []
+		for k in ['Q', 'L']:
+			precisionList = []
+			for x in setDict[k]:
+				# remove duplicate precisions
+				if float(x[precisionIndex]) not in precisionList:
+					precisionList.append(float(x[precisionIndex]))
+
+			# descendingly order
+			precisionList.sort(reverse=True)
+			if k == 'Q':
+				[qMax.append(i) for i in precisionList]
+			else:
+				[lMax.append(i) for i in precisionList]
+
+		# q precision, l precision
+		qp, lp = '', ''
+		if len(qMax) > 1:
+			qp = qMax[1]
+		else:
+			qp = qMax[0]
+
+		if len(lMax) > 1:
+			lp = lMax[1]
+		else:
+			lp = lMax[0]
+
+		if qp > lp:
+			pair[-1] += ['+']
+			return [pair, '+']
+		elif qp < lp:
+			pair[-1] += ['-']
+			return [pair, '-']
+		else:
+			pair[-1] += ['#']
+			return [pair, '#']
 
 	def sortPredictorPrecisionsInDiffTestSet(self, precisionList):
 		# f1s2P, f1t3P, s2t3P, f1s2Ped, f1t3Ped, s2t3Ped
