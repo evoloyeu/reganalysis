@@ -115,6 +115,8 @@ class prepross(object):
 		self.testFileList = [self.regDataPath]
 
 		if self.proPredictor == 'ALL':
+			# use all of the data as one of the test datasets
+			self.testFileList.append(self.rawReg)
 			# create year combined test data
 			combineYrsTestData = self.splitsDir+'reg'+self.yearList[len(self.trainYrs)]+'-'+self.yearList[-1]+'.csv'
 			# self.comYrsTestHeader = ''
@@ -152,15 +154,19 @@ class prepross(object):
 			tmpList, prefix, testPath, yr = [], '', '',''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
 				if self.proPredictor == 'ALL':
-					testPath = self.dataDir +'Test/' + filename[3:12] + '/'
+						testPath = self.dataDir +'Test/' + filename[3:12] + '/'
 				else:
 					testPath = self.dataDir +'Test/' + filename + '/'
 
 				prefix = testPath + filename
 				self.fTestRegFileNameList.append([prefix + '_TTech.csv', prefix + '_Test.csv'])
 			else:
-				testPath = self.dataDir +'Test/' + filename[3:] + '/'
-				prefix = testPath + filename[0:3] + 'test' + filename[3:]
+				if (fname == self.rawReg):
+					testPath = self.dataDir +'Test/' + filename + '/'
+					prefix = testPath + filename
+				else:
+					testPath = self.dataDir +'Test/' + filename[3:] + '/'
+					prefix = testPath + filename[0:3] + 'test' + filename[3:]
 				self.fTestRegFileNameList.append([prefix + '_TTech.csv', prefix + '_Test.csv'])
 
 			if not os.path.exists(testPath):
