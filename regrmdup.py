@@ -260,12 +260,14 @@ class prepross(object):
 		self.formulaV1Integrate(w1,w2)
 
 	def computeALL(self):
+		self.predictionPrecisionALLList = []
 		for yrList in self.trainYrsList:
 			for threshold in self.thresholdList:
 				self.isPrepared = False
 				for factor in self.factors:
 					self.threshold, self.trainYrs, self.factor = threshold, yrList, factor
 					self.statsPath()
+					self.predictionPrecisionALLList += myCopy.deepcopy(self.linearPredictResultsListTop1+self.quadrPredictResultsListTop1)
 
 					if not self.isPrepared:
 						self.prepare()
@@ -280,7 +282,7 @@ class prepross(object):
 						# self.rw,self.pw = rw, pw
 						# use factors of Points, coefficients
 						self.createPRFactors()
-						self.predictorsDict = {'PR': [self.top1FactorsFile, self.top3FactorsFile],'P': [self.top1pFactors, self.top3pFactors],'R': [self.top1rFactors, self.top3rFactors]}
+						self.predictorsDict = {'PR':[self.top1FactorsFile, self.top3FactorsFile],'P':[self.top1pFactors, self.top3pFactors],'R':[self.top1rFactors, self.top3rFactors]}
 
 					self.predictorsScatterPlots()
 					# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
@@ -300,6 +302,8 @@ class prepross(object):
 						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
 						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
 
+		self.mergePrecision4PedALL(self.predictionPrecisionALLList)
+
 	def computeSpecific(self):
 		self.statsPath()
 		self.prepare()
@@ -312,6 +316,113 @@ class prepross(object):
 
 		if self.errMerge:
 			self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+
+	def sortResultFiles(self, resultLists):
+		trainDict = {}
+		for fname in resultLists:
+			key = fname.split('/')[-5]
+			if key not in trainDict:
+				trainDict[key] = [fname]
+			else:
+				trainDict[key].append(fname)
+
+		return trainDict
+
+	def mergePrecision4PedALL(self, resultLists):
+		precisionXlsx = self.timeDir+'Ped_Precision.xlsx'
+		workbook = xlsxwriter.Workbook(precisionXlsx)
+		myformat = workbook.add_format({'align':'center_across'})
+		allList, head, pindex = [], '', -1
+		for key, sublist in self.sortResultFiles(resultLists).items():
+			dataset, recList, rowcnt = '', [], 0
+			for fname in sublist:
+				print fname
+				# dataset = fname.split('/')[-1].split('.')[0][3:-1]
+				r = csv.reader(open(fname), delimiter=',')
+				head = r.next()
+				for row in r:
+					if len(row) > 0:
+						dataset = row[0]
+						recList.append(row)
+						# print len(row), ': ', row
+					else:
+						break
+
+			print dataset
+
+			recList.sort(key=itemgetter(6,5,0,1,2,4), reverse=False)
+			allList += myCopy.deepcopy(recList)
+
+			worksheet = workbook.add_worksheet(dataset)
+			ret = self.pickCourses(recList, pindex, head)
+			pindex = head.index('0~1.0')+1
+			for row in ret:
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
+
+		# reset rowcnt
+		rowcnt = 0
+		worksheet = workbook.add_worksheet('ALLPed')
+		allList.sort(key=itemgetter(6,0,2,4), reverse=False)
+		ret = self.sortALLPed(allList, pindex, head)
+		for row in ret:
+			worksheet.write_row(rowcnt,0,row,myformat)
+			rowcnt+=1
+
+	def sortALLPed(self, mylist, pindex, head):
+		keys, crsDict = [],{}
+		TiedL, SmallerL, BiggerL = [],[],[]
+		ret, diffList = [],[]
+		for row in mylist:
+			key = row[6]+row[5]
+			if key not in crsDict:
+				keys.append(key)
+				crsDict[key]=[row]
+			else:
+				crsDict[key].append(row)
+
+		for key in keys:
+			crsList = crsDict[key]
+			crsList.sort(key=itemgetter(2), reverse=False)
+			ret += [head]+crsList+[['']]
+			# Tied, Smaller, Bigger, crs, num = 0, 0, 0, crsList[0][5], crsList[0][6]
+
+		return ret
+
+	def pickCourses(self, mylist, pindex, head):
+		keys, crsDict = [],{}
+		TiedL, SmallerL, BiggerL = [],[],[]
+		ret, diffList = [],[]
+		for row in mylist:
+			key = row[6]+row[5]
+			if key not in crsDict:
+				keys.append(key)
+				crsDict[key]=[row]
+			else:
+				crsDict[key].append(row)
+
+		for key in keys:
+			crsList = crsDict[key]
+			crsList.sort(key=itemgetter(6,5,0,1,2,4), reverse=False)
+			Tied, Smaller, Bigger, crs, num = 0, 0, 0, crsList[0][5], crsList[0][6]
+			for i in xrange(0,len(crsList)-1,2):
+				diff = float(crsList[i][pindex])-float(crsList[i+1][pindex])
+				if diff > 0:
+					crsList[i+1]+=['-']
+					Smaller += 1
+				elif diff < 0:
+					crsList[i+1]+=['+']
+					Bigger += 1
+				elif diff == 0:
+					crsList[i+1]+=['#']
+					Tied += 1
+
+			d1, d2 = [crs, num, Tied, Smaller, Bigger, Tied+Smaller+Bigger], ['subj', 'num', 'Tied', 'Smaller', 'Bigger', 'Total']
+
+			ret += [head]+myCopy.deepcopy(crsList)+[[''],d2,d1,['']]
+			diffList += [d1]
+
+		return ret+[d2]+diffList
 
 	def misc(self):
 		self.coefficientHists(self.hist_ori, self.pearsoncorr)
@@ -2509,6 +2620,27 @@ class prepross(object):
 		else:
 			return []
 
+	def precision4Ped(self, errRangeStdErrList, dataset):
+		precisionList = []
+		for errRec in errRangeStdErrList:
+			rec, errorList = [self.trainYrsText, dataset, self.factor]+errRec[:6]+[errRec[18],errRec[14]], errRec[20:]
+			le_05 = be_05_10 = be_10_15 = gt15 = 0
+			for err in errorList:
+				if abs(float(err)) <= 0.5:
+					le_05 += 1
+				elif abs(float(err)) <= 1.0:
+					be_05_10 += 1
+				elif abs(float(err)) <= 1.5:
+					be_10_15 += 1
+				else:
+					gt15 += 1
+
+			instance = le_05+be_05_10+be_10_15+gt15
+			rec += [le_05, float(format(le_05*100.0/instance, '.4')), be_05_10, float(format(be_05_10*100.0/instance, '.4')), le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), be_10_15, float(format(be_10_15*100.0/instance, '.4')), gt15, float(format(gt15*100.0/instance, '.4'))]
+			precisionList.append(rec)
+
+		return precisionList
+
 	def predictProcessTop1Factors(self, testReg, predictResults, power, predictorsFile):
 		# this prediction process only works for Top1 ALL
 		# build equation/predictor dict
@@ -2548,9 +2680,7 @@ class prepross(object):
 
 		writer = csv.writer(open(predictResults, 'w'))
 
-		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList, pairRangeList = [], [], [], [], [], [], [], []
-		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
-		header = ['xSubj','xNum','ySubj','yNum','point#','r','mean','std','errStd','rMean','rStd','ME','MAE','MAPE','instance','minErr','maxErr','interval','Pxy','RMSE']
+		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList, pairRangeList, ppedRec = [], [], [], [], [], [], [], [], []
 		for pairsList in predictingList:
 			for pairs in pairsList:
 				[xgrades, ygrades] = pairs
@@ -2638,16 +2768,30 @@ class prepross(object):
 						# appendix = ['point#', pointFreq, 'Coefficient:', coefficient, 'average error:', errorave]
 						appendix = [ 'mean Err:', errorave, 'mea:', mae, 'mape:', mape]
 
-						if not self.errMerge:
-							writer.writerows([xgrades, ygrades, predictGrades, errorList])
+						ppedRec += [myCopy.deepcopy(xgrades), myCopy.deepcopy(ygrades), myCopy.deepcopy(predictGrades), myCopy.deepcopy(errorList)]
+						# if not self.errMerge:
+							# writer.writerows([xgrades, ygrades, predictGrades, errorList])
 							# writer.writerows([xgrades, ygrades, predictGrades, errorList, absErrPerList, appendix])
 						# errw.writerow([errorave, coefficient, pointFreq])
 						AERPList.append([errorave, coefficient, pointFreq])
 
 						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
 
+		# write precision
+		header = ['TrainSet','Set','Factor','xSubj','xNum','ySubj','yNum','point#','r','Pxy','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
+		dataset = predictResults.split('/')[-1].split('.')[0][3:-1]
+		precisionList = self.precision4Ped(errRangeStdErrList, dataset)
+		precisionList.sort(key=itemgetter(6,0,2,4), reverse=False)
+		writer.writerows([header]+precisionList)
+
+		# write predictor-predicted course lists
+		if not self.errMerge:
+			writer.writerows(['']+ppedRec)
+
 		# pick the 1st year predictors and 2nd year predictors
 		# sort errRangeStdErrList
+		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
+		header = ['xSubj','xNum','ySubj','yNum','point#','r','mean','std','errStd','rMean','rStd','ME','MAE','MAPE','instance','minErr','maxErr','interval','Pxy','RMSE']
 		flist = [x for x in errRangeStdErrList if x[1][0] == '1']
 		slist = [x for x in errRangeStdErrList if x[1][0] == '2']
 		flist.sort(key=itemgetter(3), reverse=False)
@@ -3761,11 +3905,11 @@ class prepross(object):
 		destRanges = self.currDir + 'T1/T1QR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destMAEs, destRanges)
 
-	def mergePrecision4ALL(self, trainYrsText, precisionList, factor):
+	def mergePrecision4ALL(self, trainYrsText, precisionListALL, factor):
 		precisionXlsx = self.timeDir+trainYrsText+'_'+factor+'_Precision.xlsx'
 		workbook = xlsxwriter.Workbook(precisionXlsx)
 		myformat = workbook.add_format({'align':'center_across'})
-		for p in precisionList:
+		for p in precisionListALL:
 			filename = p.split('/')[-1].split('.')[0][3:]
 			print filename
 			worksheet = workbook.add_worksheet(filename)
@@ -3776,9 +3920,9 @@ class prepross(object):
 
 		ret, header = '', ''
 		if trainYrsText == 'SINGLE_MEAN':
-			ret, header = self.sortPredictorPrecisionsInDiffTestSet(precisionList[:2])
+			ret, header = self.sortPredictorPrecisionsInDiffTestSet(precisionListALL[:2])
 		else:
-			ret, header = self.sortPredictorPrecisionsInDiffTestSet(precisionList)
+			ret, header = self.sortPredictorPrecisionsInDiffTestSet(precisionListALL)
 
 		# precision index
 		precisionIndex = header.index('0~1.0')+1
