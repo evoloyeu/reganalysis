@@ -350,12 +350,12 @@ class prepross(object):
 
 			print dataset
 
-			recList.sort(key=itemgetter(6,5,0,1,2,4), reverse=False)
+			recList.sort(key=itemgetter(7,6,0,1,3,5), reverse=False)
 			allList += myCopy.deepcopy(recList)
 
 			worksheet = workbook.add_worksheet(dataset)
-			ret = self.pickCourses(recList, pindex, head)
 			pindex = head.index('0~1.0')+1
+			ret = self.pickCourses(recList, pindex, head)
 			for row in ret:
 				worksheet.write_row(rowcnt,0,row,myformat)
 				rowcnt+=1
@@ -363,7 +363,7 @@ class prepross(object):
 		# reset rowcnt
 		rowcnt = 0
 		worksheet = workbook.add_worksheet('ALLPed')
-		allList.sort(key=itemgetter(6,0,2,4), reverse=False)
+		allList.sort(key=itemgetter(7,0,3,5), reverse=False)
 		ret = self.sortALLPed(allList, pindex, head)
 		for row in ret:
 			worksheet.write_row(rowcnt,0,row,myformat)
@@ -374,7 +374,7 @@ class prepross(object):
 		TiedL, SmallerL, BiggerL = [],[],[]
 		ret, diffList = [],[]
 		for row in mylist:
-			key = row[6]+row[5]
+			key = row[7]+row[6]
 			if key not in crsDict:
 				keys.append(key)
 				crsDict[key]=[row]
@@ -394,7 +394,7 @@ class prepross(object):
 		TiedL, SmallerL, BiggerL = [],[],[]
 		ret, diffList = [],[]
 		for row in mylist:
-			key = row[6]+row[5]
+			key = row[7]+row[6]
 			if key not in crsDict:
 				keys.append(key)
 				crsDict[key]=[row]
@@ -403,8 +403,8 @@ class prepross(object):
 
 		for key in keys:
 			crsList = crsDict[key]
-			crsList.sort(key=itemgetter(6,5,0,1,2,4), reverse=False)
-			Tied, Smaller, Bigger, crs, num = 0, 0, 0, crsList[0][5], crsList[0][6]
+			crsList.sort(key=itemgetter(7,6,0,1,3,5), reverse=False)
+			Tied, Smaller, Bigger, crs, num = 0, 0, 0, crsList[0][6], crsList[0][7]
 			for i in xrange(0,len(crsList)-1,2):
 				diff = float(crsList[i][pindex])-float(crsList[i+1][pindex])
 				if diff > 0:
@@ -2623,7 +2623,7 @@ class prepross(object):
 	def precision4Ped(self, errRangeStdErrList, dataset):
 		precisionList = []
 		for errRec in errRangeStdErrList:
-			rec, errorList = [self.trainYrsText, dataset, self.factor]+errRec[:6]+[errRec[18],errRec[14]], errRec[20:]
+			rec, errorList = [self.trainYrsText, dataset, dataset[-1], self.factor]+errRec[:6]+[errRec[18],errRec[14]], errRec[20:]
 			le_05 = be_05_10 = be_10_15 = gt15 = 0
 			for err in errorList:
 				if abs(float(err)) <= 0.5:
@@ -2778,10 +2778,10 @@ class prepross(object):
 						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
 
 		# write precision
-		header = ['TrainSet','Set','Factor','xSubj','xNum','ySubj','yNum','point#','r','Pxy','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
+		header = ['TrainSet','TestSet','LQ','Factor','xSubj','xNum','ySubj','yNum','point#','r','Pxy','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
 		dataset = predictResults.split('/')[-1].split('.')[0][3:-1]
 		precisionList = self.precision4Ped(errRangeStdErrList, dataset)
-		precisionList.sort(key=itemgetter(6,0,2,4), reverse=False)
+		precisionList.sort(key=itemgetter(7,0,3,5), reverse=False)
 		writer.writerows([header]+precisionList)
 
 		# write predictor-predicted course lists
