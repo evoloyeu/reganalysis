@@ -370,30 +370,24 @@ class prepross(object):
 			rowcnt+=1
 
 		# analyze courses' precision
-		# reset rowcnt
-		rowcnt = 0
-		worksheet = workbook.add_worksheet('SameTr')
-		ret = self.analyzePrecision4Courses(allList, head)
-		for row in ret:
-			worksheet.write_row(rowcnt,0,row,myformat)
-			rowcnt+=1
-
-	def analyzePrecision4Courses(self, mylist, head):
 		keys, crsDict = [],{}
-		for row in mylist:
+		for row in allList:
 			# predicted course
-			key = row[7]+row[6]
+			key = row[6]+row[7]
 			if key not in crsDict:
 				keys.append(key)
 				crsDict[key]=[row]
 			else:
 				crsDict[key].append(row)
 
-		ret = []
 		for key in keys:
-			ret += self.analyzePrecision4OneCourse(crsDict[key], head)
-
-		return ret
+			# reset rowcnt
+			worksheet = workbook.add_worksheet(key)
+			ret = self.analyzePrecision4OneCourse(crsDict[key], head)
+			rowcnt = 0
+			for row in ret:
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
 
 	def analyzePrecision4OneCourse(self, crsList, head):
 		pointIndex,rIndex,PxyIndex,insIndex,accIndex=head.index('point#'),head.index('r'),head.index('Pxy'),head.index('instance'),head.index('0~1.0')+1
@@ -420,20 +414,16 @@ class prepross(object):
 			# same Tr, same Test
 			# sameTrRecs.sort(key=itemgetter(2,1), reverse=False)
 			lList.sort(key=itemgetter(2,1), reverse=False), qList.sort(key=itemgetter(2,1), reverse=False)
-			ret1 += [['L']]
 			ret1 += self.sameTrSameT(key, lList, 'L', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])
-			ret1 += [['Q']]
 			ret1 += self.sameTrSameT(key, qList, 'Q', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])
 
 			# same Tr, diff Test
 			# sameTrRecs.sort(key=itemgetter(3,2), reverse=False)
 			lList.sort(key=itemgetter(3,2), reverse=False), qList.sort(key=itemgetter(3,2), reverse=False)
-			ret2 += [['L']]
 			ret2 += self.sameTrDiffT(key, lList, 'L', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])
-			ret2 += [['Q']]
 			ret2 += self.sameTrDiffT(key, qList, 'Q', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])
 
-		return myCopy.deepcopy(ret1+[['']]+ret2)
+		return myCopy.deepcopy([['STrST']]+ret1+[[''],['STrDT']]+ret2)
 
 	def sameTrDiffT(self, train, mylist, lq, indexList):
 		PList,PRList,RList = [],[],[]
@@ -442,7 +432,7 @@ class prepross(object):
 			if x[3] == 'P':
 				test = x[1].split('_')
 				if len(test[0]) == 0:
-					test = 'ALL'
+					test = ['ALL']
 				header.append(test[0])
 				PList.append(x)
 			if x[3] == 'PR':
@@ -450,11 +440,11 @@ class prepross(object):
 			if x[3] == 'R':
 				RList.append(x)
 
-		ret1 = self.sameTrDiffTFormation(train, header, PList, 'P', 'L', indexList)
-		ret2 = self.sameTrDiffTFormation(train, header, PRList, 'PR', 'L', indexList)
-		ret3 = self.sameTrDiffTFormation(train, header, RList, 'PR', 'L', indexList)
+		ret1 = self.sameTrDiffTFormation(train, header, PList, 'P', lq, indexList)
+		ret2 = self.sameTrDiffTFormation(train, header, PRList, 'PR', lq, indexList)
+		ret3 = self.sameTrDiffTFormation(train, header, RList, 'PR', lq, indexList)
 
-		return myCopy.deepcopy([['PR']]+ret2+[['P']]+ret1+[['R']]+ret3)
+		return myCopy.deepcopy(ret2+ret1+ret3)
 
 	def sameTrDiffTFormation(self, train, header, mylist, factor, lq, indexList):
 		pointIndex, rIndex, PxyIndex, insIndex, accIndex = indexList
@@ -464,7 +454,7 @@ class prepross(object):
 		for x in mylist:
 			Point.append(x[pointIndex]),R.append(x[rIndex]),Pxy.append(x[PxyIndex]),ins.append(x[insIndex]),acc.append(x[accIndex])
 
-		return myCopy.deepcopy([['Acc'], header, acc, ['P'], header, Point, ['r'], header, R, ['Pxy'], header, Pxy, ['ins'], header, ins, ['']])
+		return myCopy.deepcopy([header, acc, Point, R, Pxy, ins])
 
 	def sameTrSameT(self, train, mylist, lq, indexList):
 		pointIndex,rIndex,PxyIndex,insIndex,accIndex = indexList
@@ -492,7 +482,7 @@ class prepross(object):
 				if x[3] == 'R':
 					RQ_Point.append(x[pointIndex]),RQ_R.append(x[rIndex]),RQ_Pxy.append(x[PxyIndex]),RQ_ins.append(x[insIndex]),RQ_acc.append(x[accIndex])
 
-		return myCopy.deepcopy([['Acc'], header, PRQ_acc, PQ_acc, RQ_acc, ['P'], header, PRQ_Point, PQ_Point, RQ_Point, ['r'], header, PRQ_R, PQ_R, RQ_R, ['Pxy'], header, PRQ_Pxy, PQ_Pxy, RQ_Pxy, ['ins'], header, PRQ_ins, PQ_ins, RQ_ins, ['']])
+		return myCopy.deepcopy([header, PRQ_acc, PQ_acc, RQ_acc, header, PRQ_Point, PQ_Point, RQ_Point, header, PRQ_R, PQ_R, RQ_R, header, PRQ_Pxy, PQ_Pxy, RQ_Pxy, header, PRQ_ins, PQ_ins, RQ_ins])
 
 	def sortALLPed(self, mylist, pindex, head):
 		keys, crsDict = [],{}
