@@ -414,16 +414,16 @@ class prepross(object):
 			# same Tr, same Test
 			# sameTrRecs.sort(key=itemgetter(2,1), reverse=False)
 			lList.sort(key=itemgetter(2,1), reverse=False), qList.sort(key=itemgetter(2,1), reverse=False)
-			ret1 += self.sameTrSameT(key, lList, 'L', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])
-			ret1 += self.sameTrSameT(key, qList, 'Q', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])
+			ret1 += self.sameTrSameT(key, lList, 'L', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])+[['']]
+			ret1 += self.sameTrSameT(key, qList, 'Q', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])+[['']]
 
 			# same Tr, diff Test
 			# sameTrRecs.sort(key=itemgetter(3,2), reverse=False)
 			lList.sort(key=itemgetter(3,2), reverse=False), qList.sort(key=itemgetter(3,2), reverse=False)
-			ret2 += self.sameTrDiffT(key, lList, 'L', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])
-			ret2 += self.sameTrDiffT(key, qList, 'Q', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])
+			ret2 += self.sameTrDiffT(key, lList, 'L', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])+[['']]
+			ret2 += self.sameTrDiffT(key, qList, 'Q', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])+[['']]
 
-		return myCopy.deepcopy([['STrST']]+ret1+[[''],['STrDT']]+ret2)
+		return myCopy.deepcopy([['STrST']]+ret1+[[''],[''],[''],[''],['STrDT']]+ret2)
 
 	def sameTrDiffT(self, train, mylist, lq, indexList):
 		PList,PRList,RList = [],[],[]
