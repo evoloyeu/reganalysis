@@ -408,7 +408,7 @@ class prepross(object):
 			for x in sameTrRecs:
 				if x[2] == 'L':
 					lList.append(x)
-				if x[2] == 'Q':
+				elif x[2] == 'Q':
 					qList.append(x)
 
 			# same Tr, same Test
@@ -427,22 +427,28 @@ class prepross(object):
 
 	def sameTrDiffT(self, train, mylist, lq, indexList):
 		PList,PRList,RList = [],[],[]
-		header = ['CRS', 'Tr', 'Type']
+		headerPR,headerP,headerR = ['CRS', 'Tr', 'Type'],['CRS', 'Tr', 'Type'],['CRS', 'Tr', 'Type']
 		for x in mylist:
+			test = x[1].split('_')[0]
+			if len(test) == 0:
+				test = 'ALL'
+
 			if x[3] == 'P':
-				test = x[1].split('_')
-				if len(test[0]) == 0:
-					test = ['ALL']
-				header.append(test[0])
+				if test not in headerP:
+					headerP.append(test)
 				PList.append(x)
-			if x[3] == 'PR':
+			elif x[3] == 'PR':
+				if test not in headerPR:
+					headerPR.append(test)
 				PRList.append(x)
-			if x[3] == 'R':
+			elif x[3] == 'R':
+				if test not in headerR:
+					headerR.append(test)
 				RList.append(x)
 
-		ret1 = self.sameTrDiffTFormation(train, header, PList, 'P', lq, indexList)
-		ret2 = self.sameTrDiffTFormation(train, header, PRList, 'PR', lq, indexList)
-		ret3 = self.sameTrDiffTFormation(train, header, RList, 'PR', lq, indexList)
+		ret1 = self.sameTrDiffTFormation(train, headerP, PList, 'P', lq, indexList)
+		ret2 = self.sameTrDiffTFormation(train, headerPR, PRList, 'PR', lq, indexList)
+		ret3 = self.sameTrDiffTFormation(train, headerR, RList, 'R', lq, indexList)
 
 		return myCopy.deepcopy(ret2+ret1+ret3)
 
@@ -451,10 +457,24 @@ class prepross(object):
 		crs = mylist[0][6]+mylist[0][7]
 		Point, R, Pxy, ins, acc = [crs,train,factor+lq+'P'], [crs,train,factor+lq+'R'], [crs,train,factor+lq+'Pxy'], [crs,train,factor+lq+'ins'], [crs,train,factor+lq+'acc']
 
-		for x in mylist:
-			Point.append(x[pointIndex]),R.append(x[rIndex]),Pxy.append(x[PxyIndex]),ins.append(x[insIndex]),acc.append(x[accIndex])
+		pl,rl,pxyl,il,al=[],[],[],[],[]
+		for x in xrange(0,len(header)-3):
+			for y in [pl,rl,pxyl,il,al]:
+				y.append(0)
 
-		return myCopy.deepcopy([header, acc, Point, R, Pxy, ins])
+		for x in mylist:
+			test = x[1].split('_')[0]
+			if len(test) == 0:
+				test = 'ALL'
+
+			index = header.index(test)-3
+			pl[index], rl[index], pxyl[index], il[index], al[index] = x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+
+			# Point.append(x[pointIndex]),R.append(x[rIndex]),Pxy.append(x[PxyIndex]),ins.append(x[insIndex]),acc.append(x[accIndex])
+		print '\nsameTrDiffTFormation:'
+		print 'pl: ',pl,'\n','rl: ',rl,'\n','pxyl: ',pxyl,'\n','il: ',il,'\n','al: ',al,'\n',
+
+		return myCopy.deepcopy([header, acc+al, Point+pl, R+rl, Pxy+pxyl, ins+il])
 
 	def sameTrSameT(self, train, mylist, lq, indexList):
 		pointIndex,rIndex,PxyIndex,insIndex,accIndex = indexList
@@ -466,23 +486,42 @@ class prepross(object):
 		PRQ_ins,PQ_ins,RQ_ins = [crs, train,'PR'+lq+'ins'], [crs, train,'P'+lq+'ins'], [crs, train,'R'+lq+'ins']
 		PRQ_acc,PQ_acc,RQ_acc = [crs, train,'PR'+lq+'acc'], [crs, train,'P'+lq+'acc'], [crs, train,'R'+lq+'acc']
 
+		p_pl,p_rl,p_pxyl,p_il,p_al, pr_pl,pr_rl,pr_pxyl,pr_il,pr_al, r_pl,r_rl,r_pxyl,r_il,r_al = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+
 		header = ['CRS', 'Tr', 'Type']
-		for index in xrange(0,len(mylist), 3):
-			x = mylist[index]
+		for x in mylist:
 			test = x[1].split('_')[0]
 			if len(test) == 0:
 				test = 'ALL'
-			header.append(test)
+			if test not in header:
+				header.append(test)
 
-			for x in mylist[index:index+3]:
-				if x[3] == 'P':
-					PQ_Point.append(x[pointIndex]),PQ_R.append(x[rIndex]),PQ_Pxy.append(x[PxyIndex]),PQ_ins.append(x[insIndex]),PQ_acc.append(x[accIndex])
-				if x[3] == 'PR':
-					PRQ_Point.append(x[pointIndex]),PRQ_R.append(x[rIndex]),PRQ_Pxy.append(x[PxyIndex]),PRQ_ins.append(x[insIndex]),PRQ_acc.append(x[accIndex])
-				if x[3] == 'R':
-					RQ_Point.append(x[pointIndex]),RQ_R.append(x[rIndex]),RQ_Pxy.append(x[PxyIndex]),RQ_ins.append(x[insIndex]),RQ_acc.append(x[accIndex])
+		# inital lists
+		for x in xrange(0,len(header)-3):
+			for y in [p_pl,p_rl,p_pxyl,p_il,p_al,pr_pl,pr_rl,pr_pxyl,pr_il,pr_al,r_pl,r_rl,r_pxyl,r_il,r_al]:
+				y.append(0)
 
-		return myCopy.deepcopy([header, PRQ_acc, PQ_acc, RQ_acc, header, PRQ_Point, PQ_Point, RQ_Point, header, PRQ_R, PQ_R, RQ_R, header, PRQ_Pxy, PQ_Pxy, RQ_Pxy, header, PRQ_ins, PQ_ins, RQ_ins])
+		for x in mylist:
+			test = x[1].split('_')[0]
+			if len(test) == 0:
+				test = 'ALL'
+
+			index = header.index(test)-3
+			if x[3] == 'P':
+				# PQ_Point.append(x[pointIndex]),PQ_R.append(x[rIndex]),PQ_Pxy.append(x[PxyIndex]),PQ_ins.append(x[insIndex]),PQ_acc.append(x[accIndex])
+				p_pl[index], p_rl[index], p_pxyl[index], p_il[index], p_al[index]=x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+			if x[3] == 'PR':
+				# PRQ_Point.append(x[pointIndex]),PRQ_R.append(x[rIndex]),PRQ_Pxy.append(x[PxyIndex]),PRQ_ins.append(x[insIndex]),PRQ_acc.append(x[accIndex])
+				pr_pl[index], pr_rl[index], pr_pxyl[index], pr_il[index], pr_al[index] =x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+			if x[3] == 'R':
+				# RQ_Point.append(x[pointIndex]),RQ_R.append(x[rIndex]),RQ_Pxy.append(x[PxyIndex]),RQ_ins.append(x[insIndex]),RQ_acc.append(x[accIndex])
+				r_pl[index], r_rl[index], r_pxyl[index], r_il[index], r_al[index]=x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+
+		print 'sameTrSameT: P --> \npoint: ',p_pl,'\nr: ',p_rl,'\npxy: ',p_pxyl,'\nins: ',p_il,'\nacc: ',p_al
+		print 'sameTrSameT: PR --> \nppoint: ',pr_pl,'\nr: ',pr_rl,'\npxy: ',pr_pxyl,'\nins: ',pr_il,'\nacc: ',pr_al
+		print 'sameTrSameT: R --> \npoint: ',r_pl,'\nr: ',r_rl,'\npxy: ',r_pxyl,'\nins: ',r_il,'\nacc: ',r_al
+
+		return myCopy.deepcopy([header, PRQ_acc+pr_al, PQ_acc+p_al, RQ_acc+r_al, header, PRQ_Point+pr_pl, PQ_Point+p_pl, RQ_Point+r_pl, header, PRQ_R+pr_rl, PQ_R+p_rl, RQ_R+r_rl, header, PRQ_Pxy+pr_pxyl, PQ_Pxy+p_pxyl, RQ_Pxy+r_pxyl, header, PRQ_ins+pr_il, PQ_ins+p_il, RQ_ins+r_il])
 
 	def sortALLPed(self, mylist, pindex, head):
 		keys, crsDict = [],{}
