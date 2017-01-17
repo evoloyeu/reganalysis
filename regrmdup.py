@@ -1374,7 +1374,7 @@ class prepross(object):
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
 					# if self.proPredictor == 'ALL':
-					corrList.append([course[0],course[1],newCourse[0],newCourse[1],r,len(ydata),p_value,std_err,slope,intercept,a,b,c,r*r,min(xdata),max(xdata)])
+					corrList.append([course[0],course[1],newCourse[0],newCourse[1],r,len(ydata),p_value,std_err,slope,intercept,a,b,c,float(format(r*r, '.4f')),min(xdata),max(xdata)])
 					# else:
 						# corrList.append([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
 
@@ -1566,7 +1566,7 @@ class prepross(object):
 				slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
 				# w.writerow([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
-				corrList.append([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+				corrList.append([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, float(format(r*r, '.4f')), min(xdata), max(xdata)])
 
 				rlist.append(r_value)
 				plist.append(len(ydata))
@@ -2357,7 +2357,7 @@ class prepross(object):
 			norm_p = float(sublist[5])/float(max(plist))
 			pxy = w1*norm_r + w2*norm_p
 
-			pxy = float(format(pxy, '.6f'))
+			pxy = float(format(pxy, '.4f'))
 			pxyArr.append(pxy)
 			sublist.insert(6, pxy)
 
@@ -2503,6 +2503,7 @@ class prepross(object):
 		for sublist in ylist:
 			r, p, maxr, maxp = float(sublist[4]), float(sublist[5]), float(max(rlist)), float(max(plist))
 			for x in xrange(0,len(w1list)):
+				pxy = ''
 				if r < 0:
 					pxy = w1list[x]*r*(-1.0)/maxr + w2list[x]*p/maxp
 				else:
@@ -3933,7 +3934,7 @@ class prepross(object):
 				rList.append(abs(predictor[4]))
 			for predictor in predictors:
 				pxy = abs(predictor[4])*predictor[5]/(max(rList)*max(pList))
-				predictor.insert(6, float(format(pxy, '.6')))
+				predictor.insert(6, float(format(pxy, '.4f')))
 			# build top1 pFactors: self.top1pFactors
 			top1pFactor = self.topFactors(predictors, 1, 5)
 			wTop1pF.writerows(top1pFactor)
