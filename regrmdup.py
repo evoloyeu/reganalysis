@@ -3211,7 +3211,7 @@ class prepross(object):
 
 		return [['f1s2P'], [''], header]+f1s2ListPredictor+[[''],['f1t3P'], [''], header]+f1t3ListPredictor+[[''],['s2t3P'], [''], header]+s2t3ListPredictor+[[''],['f1s2Ped'], [''], header]+f1s2ListPredicted+[[''],['f1t3Ped'], [''], header]+f1t3ListPredicted+[[''],['s2t3Ped'], [''], header]+s2t3ListPredicted+['']
 
-	def pickTopPrecision4S2T3(self, precisionIndex, tempList, f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted):
+	def pickTopPrecision4S2T3(self, precisionIndex, tempList, f1s2ListP, f1t3ListP, s2t3ListP, f1s2ListPed, f1t3ListPed, s2t3ListPed):
 		xyr, yyr = tempList[0][1][0], tempList[0][3][0]
 		if yyr == '4':
 			return
@@ -3228,21 +3228,21 @@ class prepross(object):
 				# second year predicted courses
 				if yyr == '2':
 					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-					f1s2ListPredictor += ret
+					f1s2ListP += ret
 				# third year predicted courses
 				else:
 					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-					f1t3ListPredictor += ret
+					f1t3ListP += ret
 			# second year predictors
 			else:
 				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-				s2t3ListPredictor += ret
+				s2t3ListP += ret
 		# for predicted course
 		elif len(freqy) == 1:
 			# second year predicted courses: 1-2
 			if yyr == '2':
 				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-				f1s2ListPredicted += ret
+				f1s2ListPed += ret
 			# third year predicted courses
 			else:
 				f1List, s2List = [], []
@@ -3254,11 +3254,11 @@ class prepross(object):
 				# first year predictor: 1-3
 				maxPrecision = self.pickMaxPrecision(f1List, precisionIndex)
 				ret = self.pickRecordsByCondiction(f1List, [precisionIndex, maxPrecision])
-				f1t3ListPredicted += ret
+				f1t3ListPed += ret
 				# second year predictor: 2-3
 				maxPrecision = self.pickMaxPrecision(s2List, precisionIndex)
 				ret = self.pickRecordsByCondiction(s2List, [precisionIndex, maxPrecision])
-				s2t3ListPredicted += ret
+				s2t3ListPed += ret
 
 	def pickMaxPrecision(self, tempList, precisionIndex):
 		precisionList = []
