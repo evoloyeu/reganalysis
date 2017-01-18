@@ -32,7 +32,7 @@ class myValidate(object):
 		r = csv.reader(open(self.rawReg), delimiter=',')
 		r.next()
 
-		f1courseList,s2courseList = [], []
+		f1courseList,s2courseList,t3courseList,f4courseList = [], [], [], []
 		for row in r:
 			course = row[3].replace(' ','')+row[4].replace(' ','')
 			if course not in f1courseList and row[4][0]=='1' and (course in self.techList):
@@ -41,13 +41,18 @@ class myValidate(object):
 			elif course not in s2courseList and row[4][0]=='2' and (course in self.techList):
 				s2courseList.append(course)
 				# print '2nd Yr Tech Course:', course
+			elif course not in t3courseList and row[4][0]=='3' and (course in self.techList):
+				t3courseList.append(course)
+			elif course not in f4courseList and row[4][0]=='4' and (course in self.techList):
+				f4courseList.append(course)
 
 			# if course == 'MATH133' or course == 'MATH110':
 			# 	print course
 
 		print '\nlen(f1courseList):', len(f1courseList), '\n', f1courseList
-
 		print '\nlen(s2courseList):', len(s2courseList), '\n', s2courseList
+		print '\nlen(t3courseList):', len(t3courseList), '\n', t3courseList
+		print '\nlen(f4courseList):', len(f4courseList), '\n', f4courseList
 
 	def validateID(self):
 		r = csv.reader(open(self.rawDeg), delimiter=',')

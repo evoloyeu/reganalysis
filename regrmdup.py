@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import csv, os, time, hashlib, shutil
+import csv, os, time, hashlib, shutil, xlsxwriter, copy as myCopy
 from pylab import *
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -14,16 +14,17 @@ class prepross(object):
 	def __init__(self, degRegFiles):
 		super(prepross, self).__init__()
 		self.trainYrsList = [['2010', '2011'], ['2010', '2011', '2012'], ['2010', '2011', '2012', '2013'], ['2010', '2011', '2012', '2013', '2014']]
-		self.thresholdList = [1,5,10,15,20]
+		# self.thresholdList = [1,5,10,15,20]
+		self.thresholdList = [1]
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
-		self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141', 'MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230', 'ALL']
+		self.predictorCourses = ['SINGLE', 'ALL']
 		# self.predictorCourses = ['ALL']
-		# self.predictorCourses = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
-		# self.predictorCourses = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
+		self.f1courseList = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
+		self.s2courseList = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
+
 		self.factors = ['PR', 'P', 'R']
-		# self.factors = ['R', 'P', 'PR']
 
 		# weights dictionary: key: the threshold; value: a dictionary with keys of train data length and value of weights
 		self.wdict = {	1:{2:1.3, 3:1.1, 4:1.1, 5:1.1},
@@ -45,6 +46,7 @@ class prepross(object):
 		self.allTechCrs = path+'techcourses/'+'technicalCourse.csv'
 		self.availableTechCrsList, self.techList = [],[]
 
+		self.timeDir = path+time.strftime('%Y%m%d')+'/'
 		# No specific predictor
 		if self.proPredictor == 'ALL':
 			if len(self.trainYrs) > 1:
@@ -52,32 +54,50 @@ class prepross(object):
 			else:
 				self.trainYrsText = str(self.trainYrs[0])
 
-			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+self.factor+'/'
-			self.dataDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor+'/'+self.trainYrsText+'/'+str(self.threshold)+'/'+'data/'
+			self.currDir = self.timeDir+self.trainYrsText+'/'+self.factor+'/'
+			self.dataDir = self.timeDir+self.trainYrsText+'/'+'data/'
+
+			self.linear_plots_ori = self.timeDir+self.trainYrsText+'/LPlots_ori/'
+			self.quadratic_plots_ori = self.timeDir+self.trainYrsText+'/QPlots_ori/'
+
+			self.boxplots = self.timeDir+self.trainYrsText+'/boxPlots/'
 		else:
-			self.currDir = path+time.strftime('%Y%m%d')+'/'+self.proPredictor.replace(' ','')+'/'+str(self.threshold)+'/'
-			self.dataDir = self.currDir+'data/'
+			self.currDir = self.timeDir+self.proPredictor.replace(' ','')+'/'
+			self.dataDir, self.rpDir4Single = self.currDir+'data/', self.currDir+'rp/'
+			self.linear_plots_ori, self.quadratic_plots_ori = self.timeDir+self.proPredictor+'/LPlots_ori/', self.timeDir+self.proPredictor+'/QPlots_ori/'
+
+			self.boxplots = self.timeDir+'boxPlots/'
+
+			self.mergeSingleL, self.mergeSingleQ = self.currDir+'T1/L/mergeSingleL.csv', self.currDir+'T1/Q/mergeSingleQ.csv'
 
 			self.meanPearson, self.meanPairs, self.f1s2CrsVnums, self.vnumMeans = self.dataDir+'meanPearsonCorr.csv', self.dataDir+'Train/MEANPAIRS_SAS.csv', self.dataDir+'Train/F1S2CRSVNUMS_SAS.csv', self.dataDir+'Train/VNUMSMEANS_SAS.csv'
-			self.meanPlot, self.meanTest = self.currDir+'meanPlots/', self.currDir+'meanTest/'
-			self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPredictedELCSV, self.meanPredictedEQCSV = self.meanTest+'PMean_L.csv', self.meanTest+'PMean_Q.csv', self.meanTest+'PMean_EL.csv', self.meanTest+'PMean_EQ.csv'
-			for item in [self.meanPlot, self.meanTest]:
+			self.meanPlot, self.meanTest = self.timeDir+'MEAN/meanPlots/', self.timeDir+'MEAN/meanTest/'
+			self.meanPredictedLCSV, self.meanPredictedQCSV, self.meanPrecisionL, self.meanPredictedELCSV, self.meanPredictedEQCSV, self.meanPrecisionQ = self.meanTest+'PMean_L.csv', self.meanTest+'PMean_Q.csv', self.meanTest+'PMean_PL.csv', self.meanTest+'PMean_EL.csv', self.meanTest+'PMean_EQ.csv', self.meanTest+'PMean_PQ.csv'
+			for item in [self.meanPlot, self.meanTest, self.rpDir4Single]:
 				if not os.path.exists(item):
 					os.makedirs(item)
 
-		[self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q, self.boxplots] = [self.dataDir+'LPlots_ori/', self.dataDir+'QPlots_ori/', self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/', self.currDir+'boxPlots/']
+		[self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.maerp3DDir, self.yrvsyr, self.yr1l, self.yr2l, self.yr1q, self.yr2q] = [self.currDir+'coefficient_ori/', self.currDir+'hist_ori/', self.currDir+'bars_ori/', self.currDir+'course_ori/', self.currDir+'pairs_hist/', path+'splits/', self.currDir+'3d/', self.currDir+'yrVSyr/', self.currDir+'Yr1L/', self.currDir+'Yr2L/', self.currDir+'Yr1Q/', self.currDir+'Yr2Q/']
 
-		pathBuilderList = [self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T3/L/', self.currDir+'T1/Q/', self.currDir+'T3/Q/', self.linear_plots_ori, self.quadratic_plots_ori, self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2q+'3/', self.yr2q+'4/', self.boxplots]
+		pathBuilderList = [self.linear_plots_ori, self.quadratic_plots_ori, self.currDir, self.dataDir, self.dataDir+'Test/', self.dataDir+'Train/', self.currDir+'T1/L/', self.currDir+'T1/Q/', self.coefficient_ori, self.hist_ori, self.bars_ori, self.course_ori, self.pairsHistDir, self.splitsDir, self.matrixDir, self.maerp3DDir+'L/',self.maerp3DDir+'Q/', self.yrvsyr, self.boxplots]
+
+		# filter the folders to create depending on the proPredictor and the year of predictor course
+		if self.proPredictor == 'ALL':
+			pathBuilderList += [self.currDir+'T3/L/', self.currDir+'T3/Q/', self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/', self.yr2l+'3/', self.yr2l+'4/', self.yr2q+'3/', self.yr2q+'4/']
+		else:
+			pathBuilderList += [self.yr1l+'2/', self.yr1l+'3/', self.yr1l+'4/', self.yr1q+'2/', self.yr1q+'3/', self.yr1q+'4/']
+			pathBuilderList += [self.yr2l+'3/', self.yr2l+'4/', self.yr2q+'3/', self.yr2q+'4/']
+
 		for item in pathBuilderList:
 			if not os.path.exists(item):
 				os.makedirs(item)
 
 		self.pairsFrequency, self.pearsoncorr = self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv'
 		if self.proPredictor == 'ALL':
-			self.degDataPath, self.regDataPath = self.splitsDir+'degtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'regtrain'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
+			self.degDataPath, self.regDataPath = self.splitsDir+'deg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'reg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
 			self.top1pFactors, self.top3pFactors = self.dataDir + 'T1F_P_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_P_' + self.trainYrsText +'.csv'
 			self.top1rFactors, self.top3rFactors = self.dataDir + 'T1F_R_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_R_' + self.trainYrsText +'.csv'
-			self.top1FactorsFile, self.top3FactorsFile = '', ''
+			self.top1FactorsFile, self.top3FactorsFile, self.weightPxyFile = '', '', ''
 
 			self.linearTop1Top3Stats, self.quadraticTop1Top3Stats = self.currDir+'LT1T3Stats_'+self.trainYrsText+'.csv', self.currDir+'QT1T3Stats_'+self.trainYrsText+'.csv'
 			self.linearQuadraticTop1Stats, self.linearQuadraticTop3Stats = self.currDir+'LQT1Stats_'+self.trainYrsText+'.csv', self.currDir+'LQT3Stats_'+self.trainYrsText+'.csv'
@@ -95,8 +115,10 @@ class prepross(object):
 		self.testFileList = [self.regDataPath]
 
 		if self.proPredictor == 'ALL':
+			# use all of the data as one of the test datasets
+			self.testFileList.append(self.rawReg)
 			# create year combined test data
-			combineYrsTestData = self.splitsDir+'regtest'+self.yearList[len(self.trainYrs)]+'-'+self.yearList[-1]+'.csv'
+			combineYrsTestData = self.splitsDir+'reg'+self.yearList[len(self.trainYrs)]+'-'+self.yearList[-1]+'.csv'
 			# self.comYrsTestHeader = ''
 			for yr in self.yearList:
 				if (yr not in self.trainYrs):
@@ -108,41 +130,43 @@ class prepross(object):
 				self.testFileList.append(combineYrsTestData)
 
 		# build test stats filenames and the predicting result and errors filenames
-		self.linearPredictResultsListTop1, self.linearPredictResultsAveErrTop1, self.quadrPredictResultsListTop1, self.quadrPredictResultsAveErrTop1 = [], [], [], []
+		self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1 = [], []
 
 		# this only works for use ALL predictors, not for a specific predictor
 		if self.proPredictor == 'ALL':
-			self.linearPredictResultsListTop3, self.linearPredictResultsAveErrTop3, self.quadrPredictResultsListTop3, self.quadrPredictResultsAveErrTop3 = [], [], [], []
+			self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3 = [], []
+			self.linearPredictResultsListALL, self.quadrPredictResultsListALL = [], []
 
 		for fname in self.testFileList:
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
-			self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/PGrades_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_LT1.csv')
-			self.linearPredictResultsAveErrTop1.append(self.currDir + 'T1/L/PAveErr_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_LT1.csv')
-			self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/PGrades_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_QT1.csv')
-			self.quadrPredictResultsAveErrTop1.append(self.currDir + 'T1/Q/PAveErr_' + filename + '_' + self.proPredictor + '_' + str(self.threshold) + '_QT1.csv')
-
 			if self.proPredictor == 'ALL':
-				self.linearPredictResultsListTop3.append(self.currDir + 'T3/L/PGrades_' + filename +'_LT3.csv')
-				self.linearPredictResultsAveErrTop3.append(self.currDir + 'T3/L/PAveErr_' + filename +'_LT3.csv')
-				self.quadrPredictResultsListTop3.append(self.currDir + 'T3/Q/PGrades_' + filename +'_QT3.csv')
-				self.quadrPredictResultsAveErrTop3.append(self.currDir + 'T3/Q/PAveErr_' + filename +'_QT3.csv')
+				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.factor + '_L1.csv')
+				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.factor + '_Q1.csv')
+				self.linearPredictResultsListALL.append(self.currDir + 'T1/L/' + filename + self.factor + 'L.csv')
+				self.quadrPredictResultsListALL.append(self.currDir + 'T1/Q/' + filename + self.factor + 'Q.csv')
+				self.linearPredictResultsListTop3.append(self.currDir + 'T3/L/' + filename +'_L3.csv')
+				self.quadrPredictResultsListTop3.append(self.currDir + 'T3/Q/' + filename +'_Q3.csv')
+			else:
+				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.proPredictor + '_L.csv')
+				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.proPredictor + '_Q.csv')
 
 			tmpList, prefix, testPath, yr = [], '', '',''
 			if (fname == self.regDataPath) or (combineYrsTestData == fname):
-				if fname == self.regDataPath:
-					if self.proPredictor == 'ALL':
-						testPath = self.dataDir +'Test/' + filename[8:17] + '/'
-					else:
-						testPath = self.dataDir +'Test/' + filename + '/'
+				if self.proPredictor == 'ALL':
+						testPath = self.dataDir +'Test/' + filename[3:12] + '/'
 				else:
-					testPath = self.dataDir +'Test/' + filename[7:16] + '/'
+					testPath = self.dataDir +'Test/' + filename + '/'
 
 				prefix = testPath + filename
 				self.fTestRegFileNameList.append([prefix + '_TTech.csv', prefix + '_Test.csv'])
 			else:
-				testPath = self.dataDir +'Test/' + filename[3:] + '/'
-				prefix = testPath + filename[0:3] + 'test' + filename[3:]
+				if (fname == self.rawReg):
+					testPath = self.dataDir +'Test/' + filename + '/'
+					prefix = testPath + filename
+				else:
+					testPath = self.dataDir +'Test/' + filename[3:] + '/'
+					prefix = testPath + filename[0:3] + 'test' + filename[3:]
 				self.fTestRegFileNameList.append([prefix + '_TTech.csv', prefix + '_Test.csv'])
 
 			if not os.path.exists(testPath):
@@ -155,7 +179,7 @@ class prepross(object):
 			# self.CRSPERSTU, self.STUREGISTERED, self.EMPTY, self.CRS_STU, self.CRS_STU_GRADE, self.STU_CRS
 
 		# REPL, NODUP, CRSPERSTU, STUREGISTERED, EMPTY, EMPTY_STU, EMPTY_CRS, CRS_STU, IDMAPPER
-		fileNameList = ['REPL_SAS.csv', 'NODUP_SAS.csv', 'TECH_NODUP_SAS.csv', 'CRSPERSTU_SAS.csv', 'STUREGISTERED_SAS.csv', 'EMPTY_SAS.csv', 'EMPTY_STU_SAS.csv', 'EMPTY_CRS_SAS.csv', 'CRS_STU_SAS.csv', 'CRS_STU_GRADE_SAS.csv', 'NODUP_REPL_SAS.csv', 'STU_CRS_SAS.csv', 'STU_CRS_GRADE_SAS.csv', 'CRS_MATRIX_SAS.csv', 'DISCARD_SAS.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv', 'CRS_PAIRS.csv']
+		fileNameList = ['REPL.csv', 'NODUP.csv', 'TECH_NODUP.csv', 'CRSPERSTU.csv', 'STUREGISTERED.csv', 'EMPTY.csv', 'EMPTY_STU.csv', 'EMPTY_CRS.csv', 'CRS_STU.csv', 'CRS_STU_GRADE.csv', 'NODUP_REPL.csv', 'STU_CRS.csv', 'STU_CRS_GRADE.csv', 'CRS_MATRIX.csv', 'DISCARD.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv', 'CRS_PAIRS.csv']
 		for x in xrange(0,len(fileNameList)):
 			fileNameList[x] = self.dataDir+'Train/'+fileNameList[x]
 
@@ -175,10 +199,17 @@ class prepross(object):
 		# predicting
 		predictors = self.predictorsDict[self.factor]
 		for x in xrange(0,len(self.fTestStatFileNameList)):
-			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1, predictors[0])
-			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2, predictors[0])
-			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop3[x], self.linearPredictResultsAveErrTop3[x], 1, predictors[1])
-			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop3[x], self.quadrPredictResultsAveErrTop3[x], 2, predictors[1])
+			# top1 prediction
+			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], 1, predictors[0])
+			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], 2, predictors[0])
+
+			# multiple predictors prediction
+			self.predictProcessMultiFactors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListALL[x], 1, self.pearsoncorr)
+			self.predictProcessMultiFactors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListALL[x], 2, self.pearsoncorr)
+
+			# top3 prediction
+			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop3[x], 1, predictors[1])
+			self.predictProcessTop3Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop3[x], 2, predictors[1])
 
 	def predicting4Specific(self):
 		# predition for meanPrediction
@@ -187,8 +218,8 @@ class prepross(object):
 		# predition for all test sets
 		self.testSetsStats()
 		for x in xrange(0,len(self.fTestStatFileNameList)):
-			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], self.linearPredictResultsAveErrTop1[x], 1, self.top1FactorsFile)
-			self.predictProcessTop1Factors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], self.quadrPredictResultsAveErrTop1[x], 2, self.top1FactorsFile)
+			self.predictProcessMultiFactors(self.fTestStatFileNameList[x][3], self.linearPredictResultsListTop1[x], 1, self.top1FactorsFile)
+			self.predictProcessMultiFactors(self.fTestStatFileNameList[x][3], self.quadrPredictResultsListTop1[x], 2, self.top1FactorsFile)
 
 	def prepare(self):
 		self.techCrs()
@@ -202,14 +233,13 @@ class prepross(object):
 		self.uniqueCourseList()
 		self.uniqueTechCrsList()
 
-		# self.cryptID()
 		self.techCrsHists()
 
 		# compute correlation coefficients and draw correlation plots
-		if self.proPredictor == 'ALL':
-			self.corrPlot(self.CRS_STU, self.pearsoncorr)
-		else:
-			self.corrPlotOneProPredictor(self.CRS_STU, self.pearsoncorr)
+		# if self.proPredictor == 'ALL':
+		self.corrPlot(self.CRS_STU, self.pearsoncorr)
+		# else:
+		# 	self.corrPlotOneProPredictor(self.CRS_STU, self.pearsoncorr)
 
 	def testSetsStats(self):
 		# compute the stats data for the test datasets
@@ -230,12 +260,14 @@ class prepross(object):
 		self.formulaV1Integrate(w1,w2)
 
 	def computeALL(self):
+		self.predictionPrecisionALLList = []
 		for yrList in self.trainYrsList:
 			for threshold in self.thresholdList:
 				self.isPrepared = False
 				for factor in self.factors:
 					self.threshold, self.trainYrs, self.factor = threshold, yrList, factor
 					self.statsPath()
+					self.predictionPrecisionALLList += myCopy.deepcopy(self.linearPredictResultsListTop1+self.quadrPredictResultsListTop1)
 
 					if not self.isPrepared:
 						self.prepare()
@@ -250,16 +282,18 @@ class prepross(object):
 						# self.rw,self.pw = rw, pw
 						# use factors of Points, coefficients
 						self.createPRFactors()
-						self.predictorsDict = {'PR': [self.top1FactorsFile, self.top3FactorsFile],'P': [self.top1pFactors, self.top3pFactors],'R': [self.top1rFactors, self.top3rFactors]}
+						self.predictorsDict = {'PR':[self.top1FactorsFile, self.top3FactorsFile],'P':[self.top1pFactors, self.top3pFactors],'R':[self.top1rFactors, self.top3rFactors]}
 
 					self.predictorsScatterPlots()
 					# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 					self.predicting4ALL()
+					self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL, self.factor)
+
 					# merge MAEs, Ranges
 					self.mergeMAEsRangesManager()
 
 					# plot yr vs yr scatter plots
-					self.gradePointsDistribution(self.predictorsDict[self.factor][0])
+					# self.gradePointsDistribution(self.predictorsDict[self.factor][0])
 
 					# # todo: stats
 					if self.errMerge:
@@ -268,19 +302,283 @@ class prepross(object):
 						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
 						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
 
-	def computeSpecific(self):
-		for threshold in self.thresholdList:
-			self.threshold = threshold
-			self.statsPath()
-			self.prepare()
-			self.f1s2YrTechYrCoursesMean(self.CRS_STU, self.STU_CRS)
-			self.predictorsScatterPlots()
-			self.predicting4Specific()
-			# plot yr vs yr scatter plots
-			self.gradePointsDistribution(self.top1FactorsFile)
+		self.mergePrecision4PedALL(self.predictionPrecisionALLList)
 
-			if self.errMerge:
-				self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+	def computeSpecific(self):
+		self.statsPath()
+		self.prepare()
+		self.f1s2YrTechYrCoursesMean(self.CRS_STU, self.STU_CRS)
+		self.predictorsScatterPlots()
+		self.predicting4Specific()
+		# plot yr vs yr scatter plots
+		# self.gradePointsDistribution(self.top1FactorsFile)
+		self.mergePrecision4ALL('SINGLE_MEAN', self.linearPredictResultsListTop1+self.quadrPredictResultsListTop1+[self.meanPrecisionL, self.meanPrecisionQ], '')
+
+		if self.errMerge:
+			self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+
+	def sortResultFiles(self, resultLists):
+		trainDict = {}
+		for fname in resultLists:
+			key = fname.split('/')[-5]
+			if key not in trainDict:
+				trainDict[key] = [fname]
+			else:
+				trainDict[key].append(fname)
+
+		return trainDict
+
+	def mergePrecision4PedALL(self, resultLists):
+		precisionXlsx = self.timeDir+'Ped_Precision.xlsx'
+		workbook = xlsxwriter.Workbook(precisionXlsx)
+		myformat = workbook.add_format({'align':'center_across'})
+		allList, head, pindex = [], '', -1
+		for key, sublist in self.sortResultFiles(resultLists).items():
+			dataset, recList, rowcnt = '', [], 0
+			for fname in sublist:
+				print fname
+				# dataset = fname.split('/')[-1].split('.')[0][3:-1]
+				r = csv.reader(open(fname), delimiter=',')
+				head = r.next()
+				for row in r:
+					if len(row) > 0:
+						dataset = row[0]
+						recList.append(row)
+						# print len(row), ': ', row
+					else:
+						break
+
+			print dataset
+
+			recList.sort(key=itemgetter(7,6,0,1,3,5), reverse=False)
+			allList += myCopy.deepcopy(recList)
+
+			worksheet = workbook.add_worksheet(dataset)
+			pindex = head.index('0~1.0')+1
+			ret = self.pickCourses(recList, pindex, head)
+			for row in ret:
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
+
+		# reset rowcnt
+		rowcnt = 0
+		worksheet = workbook.add_worksheet('ALLPed')
+		allList.sort(key=itemgetter(7,0,3,5), reverse=False)
+		ret = self.sortALLPed(allList, pindex, head)
+		for row in ret:
+			worksheet.write_row(rowcnt,0,row,myformat)
+			rowcnt+=1
+
+		# analyze courses' precision
+		keys, crsDict = [],{}
+		for row in allList:
+			# predicted course
+			key = row[6]+row[7]
+			if key not in crsDict:
+				keys.append(key)
+				crsDict[key]=[row]
+			else:
+				crsDict[key].append(row)
+
+		for key in keys:
+			# reset rowcnt
+			worksheet = workbook.add_worksheet(key)
+			ret = self.analyzePrecision4OneCourse(crsDict[key], head)
+			rowcnt = 0
+			for row in ret:
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
+
+	def analyzePrecision4OneCourse(self, crsList, head):
+		pointIndex,rIndex,PxyIndex,insIndex,accIndex=head.index('point#'),head.index('r'),head.index('Pxy'),head.index('instance'),head.index('0~1.0')+1
+		sameTrDict, sameTrKeys = {}, []
+		for x in crsList:
+			# training set
+			sameTrKey = x[0]
+			if sameTrKey not in sameTrDict:
+				sameTrKeys.append(sameTrKey)
+				sameTrDict[sameTrKey] = [x]
+			else:
+				sameTrDict[sameTrKey].append(x)
+
+		ret1, ret2 = [], []
+		for key in sameTrKeys:
+			# records from the same training set; key: training set
+			sameTrRecs, lList, qList = sameTrDict[key], [], []
+			for x in sameTrRecs:
+				if x[2] == 'L':
+					lList.append(x)
+				elif x[2] == 'Q':
+					qList.append(x)
+
+			# same Tr, same Test
+			# sameTrRecs.sort(key=itemgetter(2,1), reverse=False)
+			lList.sort(key=itemgetter(2,1), reverse=False), qList.sort(key=itemgetter(2,1), reverse=False)
+			ret1 += self.sameTrSameT(key, lList, 'L', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])+[['']]
+			ret1 += self.sameTrSameT(key, qList, 'Q', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])+[['']]
+
+			# same Tr, diff Test
+			# sameTrRecs.sort(key=itemgetter(3,2), reverse=False)
+			lList.sort(key=itemgetter(3,2), reverse=False), qList.sort(key=itemgetter(3,2), reverse=False)
+			ret2 += self.sameTrDiffT(key, lList, 'L', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])+[['']]
+			ret2 += self.sameTrDiffT(key, qList, 'Q', [pointIndex,rIndex,PxyIndex,insIndex,accIndex])+[['']]
+
+		return myCopy.deepcopy([['STrST']]+ret1+[[''],[''],[''],[''],['STrDT']]+ret2)
+
+	def sameTrDiffT(self, train, mylist, lq, indexList):
+		PList,PRList,RList = [],[],[]
+		headerPR,headerP,headerR = ['CRS', 'Tr', 'Type'],['CRS', 'Tr', 'Type'],['CRS', 'Tr', 'Type']
+		for x in mylist:
+			test = x[1].split('_')[0]
+			if len(test) == 0:
+				test = 'ALL'
+
+			if x[3] == 'P':
+				if test not in headerP:
+					headerP.append(test)
+				PList.append(x)
+			elif x[3] == 'PR':
+				if test not in headerPR:
+					headerPR.append(test)
+				PRList.append(x)
+			elif x[3] == 'R':
+				if test not in headerR:
+					headerR.append(test)
+				RList.append(x)
+
+		ret1 = self.sameTrDiffTFormation(train, headerP, PList, 'P', lq, indexList)
+		ret2 = self.sameTrDiffTFormation(train, headerPR, PRList, 'PR', lq, indexList)
+		ret3 = self.sameTrDiffTFormation(train, headerR, RList, 'R', lq, indexList)
+
+		return myCopy.deepcopy(ret2+ret1+ret3)
+
+	def sameTrDiffTFormation(self, train, header, mylist, factor, lq, indexList):
+		pointIndex, rIndex, PxyIndex, insIndex, accIndex = indexList
+		crs = mylist[0][6]+mylist[0][7]
+		Point, R, Pxy, ins, acc = [crs,train,factor+lq+'P'], [crs,train,factor+lq+'R'], [crs,train,factor+lq+'Pxy'], [crs,train,factor+lq+'ins'], [crs,train,factor+lq+'acc']
+
+		pl,rl,pxyl,il,al=[],[],[],[],[]
+		for x in xrange(0,len(header)-3):
+			for y in [pl,rl,pxyl,il,al]:
+				y.append(0)
+
+		for x in mylist:
+			test = x[1].split('_')[0]
+			if len(test) == 0:
+				test = 'ALL'
+
+			index = header.index(test)-3
+			pl[index], rl[index], pxyl[index], il[index], al[index] = x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+
+			# Point.append(x[pointIndex]),R.append(x[rIndex]),Pxy.append(x[PxyIndex]),ins.append(x[insIndex]),acc.append(x[accIndex])
+		print '\nsameTrDiffTFormation:'
+		print 'pl: ',pl,'\n','rl: ',rl,'\n','pxyl: ',pxyl,'\n','il: ',il,'\n','al: ',al,'\n',
+
+		return myCopy.deepcopy([header, acc+al, Point+pl, R+rl, Pxy+pxyl, ins+il])
+
+	def sameTrSameT(self, train, mylist, lq, indexList):
+		pointIndex,rIndex,PxyIndex,insIndex,accIndex = indexList
+		crs = mylist[0][6]+mylist[0][7]
+
+		PRQ_Point,PQ_Point,RQ_Point = [crs, train,'PR'+lq+'P'], [crs, train,'P'+lq+'P'], [crs, train,'R'+lq+'P']
+		PRQ_R,PQ_R,RQ_R = [crs, train,'PR'+lq+'R'], [crs, train,'P'+lq+'R'], [crs, train,'R'+lq+'R']
+		PRQ_Pxy,PQ_Pxy,RQ_Pxy = [crs, train,'PR'+lq+'Pxy'], [crs, train,'P'+lq+'Pxy'], [crs, train,'R'+lq+'Pxy']
+		PRQ_ins,PQ_ins,RQ_ins = [crs, train,'PR'+lq+'ins'], [crs, train,'P'+lq+'ins'], [crs, train,'R'+lq+'ins']
+		PRQ_acc,PQ_acc,RQ_acc = [crs, train,'PR'+lq+'acc'], [crs, train,'P'+lq+'acc'], [crs, train,'R'+lq+'acc']
+
+		p_pl,p_rl,p_pxyl,p_il,p_al, pr_pl,pr_rl,pr_pxyl,pr_il,pr_al, r_pl,r_rl,r_pxyl,r_il,r_al = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+
+		header = ['CRS', 'Tr', 'Type']
+		for x in mylist:
+			test = x[1].split('_')[0]
+			if len(test) == 0:
+				test = 'ALL'
+			if test not in header:
+				header.append(test)
+
+		# inital lists
+		for x in xrange(0,len(header)-3):
+			for y in [p_pl,p_rl,p_pxyl,p_il,p_al,pr_pl,pr_rl,pr_pxyl,pr_il,pr_al,r_pl,r_rl,r_pxyl,r_il,r_al]:
+				y.append(0)
+
+		for x in mylist:
+			test = x[1].split('_')[0]
+			if len(test) == 0:
+				test = 'ALL'
+
+			index = header.index(test)-3
+			if x[3] == 'P':
+				# PQ_Point.append(x[pointIndex]),PQ_R.append(x[rIndex]),PQ_Pxy.append(x[PxyIndex]),PQ_ins.append(x[insIndex]),PQ_acc.append(x[accIndex])
+				p_pl[index], p_rl[index], p_pxyl[index], p_il[index], p_al[index]=x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+			if x[3] == 'PR':
+				# PRQ_Point.append(x[pointIndex]),PRQ_R.append(x[rIndex]),PRQ_Pxy.append(x[PxyIndex]),PRQ_ins.append(x[insIndex]),PRQ_acc.append(x[accIndex])
+				pr_pl[index], pr_rl[index], pr_pxyl[index], pr_il[index], pr_al[index] =x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+			if x[3] == 'R':
+				# RQ_Point.append(x[pointIndex]),RQ_R.append(x[rIndex]),RQ_Pxy.append(x[PxyIndex]),RQ_ins.append(x[insIndex]),RQ_acc.append(x[accIndex])
+				r_pl[index], r_rl[index], r_pxyl[index], r_il[index], r_al[index]=x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+
+		print 'sameTrSameT: P --> \npoint: ',p_pl,'\nr: ',p_rl,'\npxy: ',p_pxyl,'\nins: ',p_il,'\nacc: ',p_al
+		print 'sameTrSameT: PR --> \nppoint: ',pr_pl,'\nr: ',pr_rl,'\npxy: ',pr_pxyl,'\nins: ',pr_il,'\nacc: ',pr_al
+		print 'sameTrSameT: R --> \npoint: ',r_pl,'\nr: ',r_rl,'\npxy: ',r_pxyl,'\nins: ',r_il,'\nacc: ',r_al
+
+		return myCopy.deepcopy([header, PRQ_acc+pr_al, PQ_acc+p_al, RQ_acc+r_al, header, PRQ_Point+pr_pl, PQ_Point+p_pl, RQ_Point+r_pl, header, PRQ_R+pr_rl, PQ_R+p_rl, RQ_R+r_rl, header, PRQ_Pxy+pr_pxyl, PQ_Pxy+p_pxyl, RQ_Pxy+r_pxyl, header, PRQ_ins+pr_il, PQ_ins+p_il, RQ_ins+r_il])
+
+	def sortALLPed(self, mylist, pindex, head):
+		keys, crsDict = [],{}
+		TiedL, SmallerL, BiggerL = [],[],[]
+		ret, diffList = [],[]
+		for row in mylist:
+			key = row[7]+row[6]
+			if key not in crsDict:
+				keys.append(key)
+				crsDict[key]=[row]
+			else:
+				crsDict[key].append(row)
+
+		for key in keys:
+			crsList = crsDict[key]
+			crsList.sort(key=itemgetter(2,1), reverse=False)
+			ret += [head]+crsList+[['']]
+			# Tied, Smaller, Bigger, crs, num = 0, 0, 0, crsList[0][5], crsList[0][6]
+
+		return ret
+
+	def pickCourses(self, mylist, pindex, head):
+		keys, crsDict = [],{}
+		TiedL, SmallerL, BiggerL = [],[],[]
+		ret, diffList = [],[]
+		for row in mylist:
+			key = row[7]+row[6]
+			if key not in crsDict:
+				keys.append(key)
+				crsDict[key]=[row]
+			else:
+				crsDict[key].append(row)
+
+		d2 = ['subj', 'num', 'Tied', 'Smaller', 'Bigger', 'Total']
+		for key in keys:
+			crsList = crsDict[key]
+			crsList.sort(key=itemgetter(7,6,0,1,3,5), reverse=False)
+			Tied, Smaller, Bigger, crs, num = 0, 0, 0, crsList[0][6], crsList[0][7]
+			for i in xrange(0,len(crsList)-1,2):
+				diff = float(crsList[i][pindex])-float(crsList[i+1][pindex])
+				if diff > 0:
+					crsList[i+1]+=['-']
+					Smaller += 1
+				elif diff < 0:
+					crsList[i+1]+=['+']
+					Bigger += 1
+				elif diff == 0:
+					crsList[i+1]+=['#']
+					Tied += 1
+
+			tsum = Tied+Smaller+Bigger
+			d1 = [crs, num, Tied, Smaller, Bigger, tsum, format(float(Tied*1.0/tsum), '.3f'), format(float(Smaller*1.0/tsum),'.3f'), format(float(Bigger*1.0/tsum), '.3f')]
+
+			ret += [head]+myCopy.deepcopy(crsList)+[[''],d2,d1,['']]
+			diffList += [d1]
+
+		return ret+[d2]+diffList
 
 	def misc(self):
 		self.coefficientHists(self.hist_ori, self.pearsoncorr)
@@ -586,29 +884,33 @@ class prepross(object):
 
 				if len(L) > 2:
 					result += [E,L,[]]
-					self.createBoxPlots(E, L)
+					# self.createBoxPlots(E, L)
 
 		return result
 
 	def createBoxPlots(self, edata, ldata):
+		# early course, late course
+		ecourse, lcourse = edata[0]+' '+edata[1], ldata[0]+' '+ldata[1]
+		figname = self.boxplots+lcourse+'/'+ecourse+ ' ' +lcourse+'.png'
+		# already exists, return it and do not re-create it
+		if os.path.exists(figname):
+			return
+		elif not os.path.exists(self.boxplots+lcourse):
+			os.makedirs(self.boxplots+lcourse)
+
 		fig = plt.figure()
 		# fig = plt.figure(1, figsize=(4, 6))
 		ax = plt.axes()
+		plt.ylim(0.0, 9.0)
 		bp = ax.boxplot([edata[2:], ldata[2:]])
-		# early course, late course
-		ecourse, lcourse = edata[0]+' '+edata[1], ldata[0]+' '+ldata[1]
 		ax.set_xticklabels([ecourse, lcourse])
 
-		if not os.path.exists(self.boxplots+lcourse):
-			os.makedirs(self.boxplots+lcourse)
-
 		minorLocator, majorLocator = MultipleLocator(0.1), MultipleLocator(0.5)
-		ax.yaxis.set_minor_locator(minorLocator)
-		ax.yaxis.set_major_locator(majorLocator)
+		ax.yaxis.set_minor_locator(minorLocator), ax.yaxis.set_major_locator(majorLocator)
 		plt.grid(True)
 		# plt.show()
 
-		fig.savefig(self.boxplots+lcourse+'/'+ecourse+ ' ' +lcourse+'.png', bbox_inches='tight')
+		fig.savefig(figname, bbox_inches='tight')
 		plt.close(fig)
 
 	def techCoursePicker(self, regfile, techcourses):
@@ -640,40 +942,33 @@ class prepross(object):
 		crsVnumDict = {}
 		# form crsDict: key:subj+cnum; value:course record for all student graduated from 2010 to 2015
 		w = csv.writer(open(self.f1s2CrsVnums, 'w'))
-		# predictorYr: 1 or 2 (first/second year technical course)
-		predictorYr = self.proPredictor.split(' ')[1][0]
 
 		crsDict = {}
 		for row in r1:
 			yr, key = row[1][0], row[0]+row[1]
-			crsDict[key] = row
+			crsDict[key], vnums = row, []
 
 			if yr == '1':
 				f1CrsList.append(key)
 				# for each 1st year technical course, to find all students who took this 1st year course
-				if predictorYr == '1':
-					vnums = []
-					for x in xrange(2,len(row)):
-						if len(row[x]) > 0:
-							vnums.append(vnumList[x-2])
-					# crs: the key, subj+cnum; vnums:all vnums who took course crs
-					crsVnumDict[key] = vnums
-					w.writerow([key]+vnums)
+				for x in xrange(2,len(row)):
+					if len(row[x]) > 0:
+						vnums.append(vnumList[x-2])
 			if yr == '2':
 				s2CrsList.append(key)
-				# for each 2nd year technical course, to find all students who took this 1st year course
-				if predictorYr == '2':
-					vnums = []
-					for x in xrange(2,len(row)):
-						if len(row[x]) > 0:
-							vnums.append(vnumList[x-2])
-					# crs: the key, subj+cnum; vnums:all vnums who took course crs
-					crsVnumDict[key] = vnums
-					w.writerow([key]+vnums)
+				# for each 2nd year technical course, to find all students who took this 2nd year course
+				for x in xrange(2,len(row)):
+					if len(row[x]) > 0:
+						vnums.append(vnumList[x-2])
 			if yr == '3':
 				t3CrsList.append(key)
 			if yr == '4':
 				f4CrsList.append(key)
+
+			if len(vnums) > 0:
+				# crs: the key, subj+cnum; vnums:all vnums who took course crs
+				crsVnumDict[key] = vnums
+				w.writerow([key]+vnums)
 
 		# form vnumDict: key:vnum; value: one student's courses' record for all possible technical courses
 		# calculate the average of 2nd/3rd/4th yr courses for each vnum
@@ -701,7 +996,7 @@ class prepross(object):
 		w1, w2 = csv.writer(open(self.meanPairs, 'w')), csv.writer(open(self.meanPearson, 'w'))
 		w2.writerow(['F1S2CRS', 'YR', 'R', '#points', 'slope', 'intercept', 'a', 'b', 'c'])
 		for crs in crsVnumDict:
-			vnums, course = crsVnumDict[crs], crsDict[crs]
+			vnums, course, yr = crsVnumDict[crs], crsDict[crs], crsDict[crs][1][0]
 			crsPoints, vnums2Means, vnumt3Means, vnumf4Means = [], [], [], []
 			for vnum in vnums:
 				index = vnumList.index(vnum)
@@ -710,14 +1005,14 @@ class prepross(object):
 				vnumt3Means.append(float(vnumMeanDict[vnum][2]))
 				vnumf4Means.append(float(vnumMeanDict[vnum][3]))
 
-			if predictorYr == '1':
+			if yr == '1':
 				self.f1PointLaterMeanScatter(crs+' Grade Points', '2nd Year Courses Mean', crs+' vs Mean of 2nd Year Courses Grade Points', crsPoints, vnums2Means, self.meanPlot+crs+' 2nd.png')
 
 			self.f1PointLaterMeanScatter(crs+' Grade Points', '3rd Year Courses Mean', crs+' vs Mean of 3rd Year Courses Grade Points', crsPoints, vnumt3Means, self.meanPlot+crs+' 3rd.png')
 			self.f1PointLaterMeanScatter(crs+' Grade Points', '4th Year Courses Mean', crs+' vs Mean of 4th Year Courses Grade Points', crsPoints, vnumf4Means, self.meanPlot+crs+' 4th.png')
 
 			# compute Pearson correlation coefficients
-			if predictorYr == '1':
+			if yr == '1':
 				slope, intercept, r_value, p_value, std_err = linregress(crsPoints, vnums2Means)
 				a,b,c = np.polyfit(crsPoints, vnums2Means, 2)
 				w2.writerow([crs, '2', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
@@ -731,7 +1026,7 @@ class prepross(object):
 			w2.writerow([crs, '4', format(r_value, '.4f'), len(crsPoints), format(slope, '.4f'), format(intercept, '.4f'), format(a, '.4f'), format(b, '.4f'), format(c, '.4f')])
 
 			# write a Mean Pairs
-			if predictorYr == '1':
+			if yr == '1':
 				w1.writerows([[crs]+crsPoints, ['2']+vnums2Means, ['3']+vnumt3Means, ['4']+vnumf4Means])
 			else:
 				w1.writerows([[crs]+crsPoints, ['3']+vnumt3Means, ['4']+vnumf4Means])
@@ -770,32 +1065,117 @@ class prepross(object):
 
 		print '\npredictorsDict:\n', predictorsDict, '\n'
 
-		# predictorYr: 1 or 2 (first/second year technical course)
-		predictorYr = self.proPredictor.split(' ')[1][0]
 		# todo: prediction process
 		w1, w2 = csv.writer(open(self.meanPredictedLCSV, 'w')), csv.writer(open(self.meanPredictedQCSV, 'w'))
+
+		s2LmeanPrecisionList, t3LmeanPrecisionList, f4LmeanPrecisionList = [], [], []
+		s2QmeanPrecisionList, t3QmeanPrecisionList, f4QmeanPrecisionList = [], [], []
+
 		for crs in pointMeansDict:
 			crsPoints, mean2, mean3, mean4, predictor2, predictor3, predictor4 = [], [], [], [], [], [], []
-			if predictorYr == '1':
+			if len(pointMeansDict[crs]) == 4:
 				crsPoints, mean2, mean3, mean4 = pointMeansDict[crs]
 				predictor2, predictor3, predictor4 = predictorsDict[crs]
-			else:
+			elif len(pointMeansDict[crs]) == 3:
 				crsPoints, mean3, mean4 = pointMeansDict[crs]
 				predictor3, predictor4 = predictorsDict[crs]
 
-			if (len(crsPoints) - 1) >= self.threshold:
-				if predictorYr == '1':
-					[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean2, predictor2)
-					w1.writerows([points, means, ['2']+lMeanList, lErrList])
-					w2.writerows([points, means, ['2']+qMeanList, qErrList])
+			if len(pointMeansDict[crs]) == 4:
+				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean2, predictor2)
+				w1.writerows([points, means, ['2']+lMeanList, lErrList])
+				w2.writerows([points, means, ['2']+qMeanList, qErrList])
+				# collect predictors and the mean error to compute the precision for linear and quadratic
+				s2LmeanPrecisionList.append([points[0], '2nd']+predictor2[2:4]+lErrList[1:])
+				s2QmeanPrecisionList.append([points[0], '2nd']+predictor2[2:4]+qErrList[1:])
 
-				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean3, predictor3)
-				w1.writerows([points, means, ['3']+lMeanList, lErrList])
-				w2.writerows([points, means, ['3']+qMeanList, qErrList])
+			[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean3, predictor3)
+			w1.writerows([points, means, ['3']+lMeanList, lErrList])
+			w2.writerows([points, means, ['3']+qMeanList, qErrList])
+			# collect predictors and the mean error to compute the precision for linear and quadratic
+			t3LmeanPrecisionList.append([points[0], '3rd']+predictor3[2:4]+lErrList[1:])
+			t3QmeanPrecisionList.append([points[0], '3rd']+predictor3[2:4]+qErrList[1:])
 
-				[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean4, predictor4)
-				w1.writerows([points, means, ['4']+lMeanList, lErrList])
-				w2.writerows([points, means, ['4']+qMeanList, qErrList])
+			[points, means, lMeanList, qMeanList, lErrList, qErrList] = self.computeLQErr(crsPoints, mean4, predictor4)
+			w1.writerows([points, means, ['4']+lMeanList, lErrList])
+			w2.writerows([points, means, ['4']+qMeanList, qErrList])
+			# collect predictors and the mean error to compute the precision for linear and quadratic
+			f4LmeanPrecisionList.append([points[0], '4th']+predictor4[2:4]+lErrList[1:])
+			f4QmeanPrecisionList.append([points[0], '4th']+predictor4[2:4]+qErrList[1:])
+
+		# self.meanPrecisionL, self.meanPrecisionQ
+		w1, w2 = csv.writer(open(self.meanPrecisionL, 'w')), csv.writer(open(self.meanPrecisionQ, 'w'))
+		# compute the precision
+		header = ['CRS','YR','r','P','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
+		precisionsL = self.computePrecisionForMeanPrediction(s2LmeanPrecisionList+t3LmeanPrecisionList+f4LmeanPrecisionList)
+		precisionsQ = self.computePrecisionForMeanPrediction(s2QmeanPrecisionList+t3QmeanPrecisionList+f4QmeanPrecisionList)
+
+		for key, values in self.sortMeanPredictionByIndex(precisionsL, 1).items():
+			values.sort(key=itemgetter(10), reverse=True)
+			w1.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(precisionsL, 0).items():
+			values.sort(key=itemgetter(10), reverse=True)
+			w1.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(precisionsQ, 1).items():
+			values.sort(key=itemgetter(10), reverse=True)
+			w2.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(precisionsQ, 0).items():
+			values.sort(key=itemgetter(10), reverse=True)
+			w2.writerows([header]+values+[''])
+
+		header = ['CRS','YR','r','P']
+		for key, values in self.sortMeanPredictionByIndex(s2LmeanPrecisionList+t3LmeanPrecisionList+f4LmeanPrecisionList, 1).items():
+			w1.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(s2LmeanPrecisionList+t3LmeanPrecisionList+f4LmeanPrecisionList, 0).items():
+			w1.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(s2QmeanPrecisionList+t3QmeanPrecisionList+f4QmeanPrecisionList, 1).items():
+			w2.writerows([header]+values+[''])
+
+		for key, values in self.sortMeanPredictionByIndex(s2QmeanPrecisionList+t3QmeanPrecisionList+f4QmeanPrecisionList, 0).items():
+			w2.writerows([header]+values+[''])
+
+		# w1.writerows([header]+s2LmeanPrecisionList+['']+[header]+t3LmeanPrecisionList+['']+[header]+f4LmeanPrecisionList)
+		# w2.writerows([header]+s2QmeanPrecisionList+['']+[header]+t3QmeanPrecisionList+['']+[header]+f4QmeanPrecisionList)
+
+	def computePrecisionForMeanPrediction(self, errRecList):
+		# error range: '0~0.5','0.5~1.0','1.0~1.5','gt1.5'
+		# header = ['CRS','YR','r','P','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']		
+		# by defaut, the precisionList is ordered by YR
+		precisionList = []
+		for errRec in errRecList:
+			# instance = len(errRec[4:])
+			rec, errorList = errRec[:4]+[len(errRec[4:])], errRec[4:]
+
+			le_05 = be_05_10 = be_10_15 = gt15 = 0
+			for err in errorList:
+				if abs(float(err)) <= 0.5:
+					le_05 += 1
+				elif abs(float(err)) <= 1.0:
+					be_05_10 += 1
+				elif abs(float(err)) <= 1.5:
+					be_10_15 += 1
+				else:
+					gt15 += 1
+
+			instance = le_05+be_05_10+be_10_15+gt15
+			rec += [le_05, float(format(le_05*100.0/instance, '.4')), be_05_10, float(format(be_05_10*100.0/instance, '.4')), le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), be_10_15, float(format(be_10_15*100.0/instance, '.4')), gt15, float(format(gt15*100.0/instance, '.4'))]
+			precisionList.append(rec)
+
+		return precisionList
+
+	def sortMeanPredictionByIndex(self, dataList, sortIndex):
+		dataListDict = {}
+		for rec in dataList:
+			if rec[sortIndex] not in dataListDict:
+				dataListDict[rec[sortIndex]] = [rec]
+			else:
+				dataListDict[rec[sortIndex]].append(rec)
+
+		return dataListDict
 
 	def computeLQErr(self, crsPoints, means, predictor):
 		# Linear: k*x+b; Quadratic:a*x^2+b*x+c
@@ -815,6 +1195,9 @@ class prepross(object):
 		return [crsPoints, means, lMeanList, qMeanList, lErrList, qErrList]
 
 	def f1PointLaterMeanScatter(self, xtitle, ytitle, title, xdata, ydata, figName):
+		if os.path.exists(figName):
+			return
+
 		fig = plt.figure()
 		x = np.array(xdata)
 		y = np.array(ydata)
@@ -922,15 +1305,15 @@ class prepross(object):
 			matrix.append(row)
 
 		w = csv.writer(open(corr, 'w'))
-		w.writerow(['xsubCode', 'xnum', 'ysubCode', 'ynum', 'coefficient', '#points', 'pValue', 'stderr', 'slope', 'intercept', 'a', 'b', 'c', 'R^2', 'xmin', 'xmax'])
+		w.writerow(['xsubCode','xnum','ysubCode','ynum','coefficient','#points','pValue','stderr','slope','intercept','a','b','c','R^2','xmin','xmax'])
 		wnan = csv.writer(open(self.nancsv, 'w'))
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
 		nocorrlst = self.dataDir+'nocorr/no_corr_list.csv'
 		nocommstulst = self.dataDir+'nocomstu/nocomstu_list.csv'
-		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
+		wnocorrlst, wnocommstulst, nocomList, noCorrListTable, corrList = '', '', [], [], []
 
-		rlist, plist = [],[]
+		rpSinglelist = []
 		for x in xrange(0,len(matrix)):
 			# course is a row with all marks
 			course = matrix[x]
@@ -940,7 +1323,7 @@ class prepross(object):
 			for y in xrange(0,len(matrix)):
 				newCourse = matrix[y]
 				newYr = newCourse[1][0]
-				if int(yr) < int(newYr) and int(yr) < 3:
+				if (int(yr) < int(newYr)) and (int(yr) < 3):
 					cnt += 1
 					xaxis, yaxis = course[0]+' '+course[1]+' Grades', newCourse[0]+' '+newCourse[1]+' Grades'
 
@@ -951,32 +1334,34 @@ class prepross(object):
 						for index in xrange(2, len(course)):
 							ix, iy = course[index], newCourse[index]
 							if ix.isdigit() and iy.isdigit():
-								xdata.append(float(ix))
-								ydata.append(float(iy))
+								xdata.append(float(ix)), ydata.append(float(iy))
 
 						if len(xdata) == 0:
 							cnt += 1
-							nocommstuList.append(newCourse)
-							nocomList.append([course[0]+' '+course[1], newCourse[0]+' '+newCourse[1]])
-							print 'cnt:',cnt,'no common students course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
+							nocommstuList.append(newCourse), nocomList.append([course[0]+' '+course[1], newCourse[0]+' '+newCourse[1]])
+							if self.proPredictor == 'ALL':
+								print 'cnt:',cnt,'no common students course pair, len:',len(ydata),course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:',self.trainYrsText
+							else:
+								print 'cnt:',cnt,'no common students course pair, len:',len(ydata),course[0],course[1],'vs',newCourse[0],newCourse[1]
 							continue
 
-					if len(xdata) < self.threshold:
-						cnt += 1
-						print 'cnt:',cnt,'less than threshold course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
-						continue
+					# if len(xdata) < self.threshold:
+					# 	cnt += 1
+					# 	print 'cnt:',cnt,'less than threshold course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
+					# 	continue
 
 					(r, p) = pearsonr(xdata, ydata)
 					if str(r) == 'nan':
 						noCorrList.append(newCourse)
 						cnt += 1
-						print 'cnt:',cnt,'no Pearson r course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
-						wnan.writerow([course[0]+course[1],newCourse[0]+newCourse[1],'len:',len(ydata)])
-						wnan.writerow([course[0]+course[1]]+xdata)
-						wnan.writerow([newCourse[0]+newCourse[1]]+ydata)
-						wnan.writerow([])
+						if self.proPredictor == 'ALL':
+							print 'cnt:',cnt,'no Pearson r course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText
+						else:
+							print 'cnt:',cnt,'no Pearson r course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1]
+						wnan.writerows([[course[0]+course[1],newCourse[0]+newCourse[1],'len:',len(ydata)]]+[[course[0]+course[1]]+xdata]+[[newCourse[0]+newCourse[1]]+ydata]+[])
 						continue
 
+					self.createBoxPlots([course[0], course[1]]+xdata, [newCourse[0], newCourse[1]]+ydata)
 					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
 					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
@@ -988,10 +1373,17 @@ class prepross(object):
 
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
-					w.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
-					rlist.append(r_value)
-					plist.append(len(ydata))
-					print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope, 'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
+					# if self.proPredictor == 'ALL':
+					corrList.append([course[0],course[1],newCourse[0],newCourse[1],r,len(ydata),p_value,std_err,slope,intercept,a,b,c,float(format(r*r, '.4f')),min(xdata),max(xdata)])
+					# else:
+						# corrList.append([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+
+					rpSinglelist.append([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata)])
+
+					if self.proPredictor == 'ALL':
+						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope, 'trainYrs:', self.trainYrsText
+					else:
+						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir+'nocorr/'):
@@ -1010,12 +1402,12 @@ class prepross(object):
 				noCorrList.insert(0, course)
 				if wnocorrlst == '':
 					wnocorrlst = csv.writer(open(nocorrlst, 'w'))
-				wnocorrlst.writerows(noCorrList)
+				wnocorrlst.writerows(noCorrList+[])
 				
-				wnocorrlst.writerow([])
+				# wnocorrlst.writerow([])
 				lst.sort(key=itemgetter(4), reverse=True)
-				wnocorrlst.writerows(lst)
-				wnocorrlst.writerow([])
+				wnocorrlst.writerows(lst+[])
+				# wnocorrlst.writerow([])
 
 				noCorrListTable.append(['Course_1', 'Course_2', '#Student'])
 				[noCorrListTable.append([item[0]+' '+item[1], item[2]+' '+item[3], item[4]]) for item in lst]
@@ -1030,8 +1422,8 @@ class prepross(object):
 
 				if wnocommstulst == '':
 					wnocommstulst = csv.writer(open(nocommstulst, 'w'))
-				wnocommstulst.writerows(nocommstuList)
-				wnocommstulst.writerow([])
+				wnocommstulst.writerows(nocommstuList+[])
+				# wnocommstulst.writerow([])
 
 				wnocommstulst.writerow(['COURSE_1', 'COURSE_2'])
 				wnocommstulst.writerow([course[0]+course[1], nocommstuList[1][0]+nocommstuList[1][1]])
@@ -1039,7 +1431,36 @@ class prepross(object):
 					wnocommstulst.writerow(['', nocommstuList[indx][0]+nocommstuList[indx][1]])
 				wnocommstulst.writerow([])
 
-		self.coefficientPointsPlot(rlist, plist)
+		# plot scatter graphs of r vs p for ALL and SINGLE
+		if self.proPredictor == 'ALL':
+			rlist, plist = [], []
+			for rec in rpSinglelist:
+				rlist.append(rec[4]), plist.append(rec[5])
+
+			self.coefficientPointsPlot(rlist, plist, self.trainYrsText, self.currDir+self.factor+'_RvsP.png')
+		else:
+			rpSinglelist.sort(key=itemgetter(0,1), reverse=False)
+			predictorDict = {}
+			for rec in rpSinglelist:
+				key = rec[0]+rec[1]
+				if key not in predictorDict:
+					predictorDict[key] = [rec]
+				else:
+					predictorDict[key].append(rec)
+
+			for key in predictorDict:
+				rlist, plist = [], []
+				for rec in predictorDict[key]:
+					rlist.append(rec[4]), plist.append(rec[5])
+
+				self.coefficientPointsPlot(rlist, plist, key, self.rpDir4Single+key+'_RvsP.png')
+
+		# sort r records
+		flist = [x for x in corrList if x[1][0] == '1']
+		slist = [x for x in corrList if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		w.writerows(flist+slist)
 
 		if len(nocorrDict) > 0:
 			nocorr = self.dataDir+'nocorr/no_corr_list_fre.csv'
@@ -1090,9 +1511,8 @@ class prepross(object):
 		wnan = csv.writer(open(self.nancsv, 'w'))
 
 		cnt, nocorrDict, nocommstuDict = 0, {}, {}
-		nocorrlst = self.dataDir+'nocorr/no_corr_list.csv'
-		nocommstulst = self.dataDir+'nocomstu/nocomstu_list.csv'
-		wnocorrlst, wnocommstulst, nocomList, noCorrListTable = '', '', [], []
+		nocorrlst, nocommstulst = self.dataDir+'nocorr/no_corr_list.csv', self.dataDir+'nocomstu/nocomstu_list.csv'
+		wnocorrlst, wnocommstulst, nocomList, noCorrListTable, corrList = '', '', [], [], []
 
 		rlist, plist = [],[]
 		for x in xrange(0,len(matrix)):
@@ -1116,8 +1536,7 @@ class prepross(object):
 
 				if len(xdata) == 0:
 					cnt += 1
-					nocommstuList.append(newCourse)
-					nocomList.append([proPredictorCourse[0]+' '+proPredictorCourse[1], newCourse[0]+' '+newCourse[1]])
+					nocommstuList.append(newCourse), nocomList.append([proPredictorCourse[0]+' '+proPredictorCourse[1], newCourse[0]+' '+newCourse[1]])
 					print 'cnt:',cnt,'no common students course pair,', 'len:', len(ydata), proPredictorCourse[0],proPredictorCourse[1],'vs',newCourse[0],newCourse[1],'Predictor:', self.proPredictor, 'Thresh:', self.threshold
 					continue
 
@@ -1131,12 +1550,10 @@ class prepross(object):
 					noCorrList.append(newCourse)
 					cnt += 1
 					print 'cnt:',cnt,'no Pearson r course pair,', 'len:', len(ydata), proPredictorCourse[0],proPredictorCourse[1],'vs',newCourse[0],newCourse[1],'Predictor:', self.proPredictor, 'Thresh:', self.threshold
-					wnan.writerow([proPredictorCourse[0]+proPredictorCourse[1],newCourse[0]+newCourse[1],'len:',len(ydata)])
-					wnan.writerow([proPredictorCourse[0]+proPredictorCourse[1]]+xdata)
-					wnan.writerow([newCourse[0]+newCourse[1]]+ydata)
-					wnan.writerow([])
+					wnan.writerows([[proPredictorCourse[0]+proPredictorCourse[1],newCourse[0]+newCourse[1],'len:',len(ydata)]]+[[proPredictorCourse[0]+proPredictorCourse[1]]+xdata]+[[newCourse[0]+newCourse[1]]+ydata]+[])
 					continue
 
+				self.createBoxPlots([proPredictorCourse[0], proPredictorCourse[1]]+xdata, [newCourse[0], newCourse[1]]+ydata)
 				# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 				# format the parameters precision
 				slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
@@ -1148,7 +1565,9 @@ class prepross(object):
 
 				slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
-				w.writerow([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+				# w.writerow([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, r*r, min(xdata), max(xdata)])
+				corrList.append([proPredictorCourse[0], proPredictorCourse[1], newCourse[0], newCourse[1], r, len(ydata), 0, p_value, std_err, slope, intercept, a, b, c, float(format(r*r, '.4f')), min(xdata), max(xdata)])
+
 				rlist.append(r_value)
 				plist.append(len(ydata))
 				print 'cnt:', cnt, proPredictorCourse[0], proPredictorCourse[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope, 'Predictor:', self.proPredictor, 'Thresh:', self.threshold
@@ -1201,6 +1620,13 @@ class prepross(object):
 
 		self.coefficientPointsPlot(rlist, plist)
 
+		# sort r records
+		flist = [x for x in corrList if x[1][0] == '1']
+		slist = [x for x in corrList if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		w.writerows(flist+slist)
+
 		if len(nocorrDict) > 0:
 			nocorr = self.dataDir+'nocorr/no_corr_list_fre.csv'
 			wnocorr = csv.writer(open(nocorr, 'w'))
@@ -1233,7 +1659,10 @@ class prepross(object):
 				if (indx < len(nocomList)-1) and (nocomList[indx][0] != nocomList[indx+1][0]):
 					isHeader = True
 
-	def coefficientPointsPlot(self, rlist, plist):
+	def coefficientPointsPlot(self, rlist, plist, title, fname):
+		if os.path.exists(fname):
+			return
+
 		fig = plt.figure()
 		xarray, yarray = np.array(plist), np.array(rlist)
 		plt.plot(xarray, yarray, '.', c='r')
@@ -1248,22 +1677,31 @@ class prepross(object):
 
 		plt.xlabel('Number of sample points')
 		plt.ylabel('Pearson Coefficient')
+		plt.title('Pearson Coefficient vs Number of sample points \nusing '+title)
 
-		if self.proPredictor == 'ALL':
-			plt.title('Pearson Coefficient vs Number of sample points \nfrom '+self.trainYrsText)
-		else:
-			plt.title('Pearson Coefficient vs Number of sample points \nusing predictor '+self.proPredictor)
 		plt.grid(True)
 
-		figName = self.currDir + 'RvsP.png'
-		fig.savefig(figName)
+		# figName = self.currDir+fname+'_RvsP.png'
+		fig.savefig(fname)
 		plt.close(fig)
 
 	def regressionPlot(self, xdata, ydata, r_value, power, xaxis, yaxis, plotDir, points):
-		fig = plt.figure()
 		xarray, yarray = np.array(xdata), np.array(ydata)
 		z = np.polyfit(xarray, yarray, power)
 		p = np.poly1d(z)
+
+		subj, num = xaxis.split(' ')[:2]
+		subjNew, numNew = yaxis.split(' ')[:2]
+		# create Predicting course folder
+		folder = plotDir + subjNew + numNew
+		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + ' ' + str(points) + '.png'
+
+		if os.path.exists(figName):
+			return z
+		elif not os.path.exists(folder):
+			os.makedirs(folder)
+
+		fig = plt.figure()
 
 		if power == 1:
 			slope, intercept = z
@@ -1355,15 +1793,6 @@ class prepross(object):
 		plt.ylim(0,9)
 		plt.grid(True)
 
-		subj, num = xaxis.split(' ')[:2]
-		subjNew, numNew = yaxis.split(' ')[:2]
-
-		# create Predicting course folder
-		folder = plotDir + subjNew + numNew
-		if not os.path.exists(folder):
-			os.makedirs(folder)
-
-		figName = folder + '/' + subj + num + ' ' + subjNew + numNew + ' ' + str(r_value) + ' ' + str(points) + '.png'
 		fig.savefig(figName)
 		plt.close(fig)
 
@@ -1681,9 +2110,9 @@ class prepross(object):
 		plt.close(fig)
 
 	def pairs(self):
-		proPredictorSubj = proPredictorNum = ''
-		if not (self.proPredictor == 'ALL'):
-			proPredictorSubj, proPredictorNum = self.proPredictor.split(' ')
+		# proPredictorSubj = proPredictorNum = ''
+		# if not (self.proPredictor == 'ALL'):
+		# 	proPredictorSubj, proPredictorNum = self.proPredictor.split(' ')
 
 		reader = csv.reader(open(self.CRS_STU), delimiter = ',')
 		reader.next()
@@ -1691,30 +2120,30 @@ class prepross(object):
 		matrix, proPredictor = [],''
 		for row in reader:
 			matrix.append(row)
-			if (proPredictorSubj == row[0].replace(' ','')) and (proPredictorNum == row[1]):
-				proPredictor = row
+			# if (proPredictorSubj == row[0].replace(' ','')) and (proPredictorNum == row[1]):
+			# 	proPredictor = row
 
 		w = csv.writer(open(self.pairsFrequency, 'w'))
 		w.writerow(['xcode', 'xnum', 'ycode', 'ynum', 'pairs'])
 
-		if self.proPredictor == 'ALL':
-			for x in matrix:
-				for y in matrix:
-					if int(x[1][0]) < int(y[1][0]) and int(x[1][0]) < 3:
-						cnt = 0
-						for index in xrange(2,len(x)):
-							if x[index].isdigit() and y[index].isdigit():
-								cnt = cnt + 1
-						# print x[0], ' ', x[1], ' vs ', y[0], ' ', y[1], ' cnt: ', cnt
-						w.writerow([x[0], x[1], y[0], y[1], cnt])
-		else:
-			for x in matrix:
-				if int(x[1][0]) > int(proPredictorNum[0]):
+		# if self.proPredictor == 'ALL':
+		for x in matrix:
+			for y in matrix:
+				if (int(x[1][0]) < int(y[1][0])) and (int(x[1][0]) < 3):
 					cnt = 0
 					for index in xrange(2,len(x)):
-						if x[index].isdigit() and proPredictor[index].isdigit():
+						if x[index].isdigit() and y[index].isdigit():
 							cnt = cnt + 1
-					w.writerow([proPredictor[0], proPredictor[1], x[0], x[1], cnt])
+					# print x[0], ' ', x[1], ' vs ', y[0], ' ', y[1], ' cnt: ', cnt
+					w.writerow([x[0], x[1], y[0], y[1], cnt])
+		# else:
+		# 	for x in matrix:
+		# 		if int(x[1][0]) > int(proPredictorNum[0]):
+		# 			cnt = 0
+		# 			for index in xrange(2,len(x)):
+		# 				if x[index].isdigit() and proPredictor[index].isdigit():
+		# 					cnt = cnt + 1
+		# 			w.writerow([proPredictor[0], proPredictor[1], x[0], x[1], cnt])
 
 	def pairsHist(self, interval):
 		if not os.path.exists(self.pairsHistDir):
@@ -1874,8 +2303,8 @@ class prepross(object):
 
 		rows.sort(key=itemgetter(2,3,4,5), reverse=True)
 
-		fV1Reulsts = self.dataDir + 'fv1_' + str(w1) + '_' + str(w2) +'.csv'
-		writer = csv.writer(open(fV1Reulsts, 'w'))
+		self.weightPxyFile = self.dataDir + 'fv1_' + str(w1) + '_' + str(w2) +'.csv'
+		writer = csv.writer(open(self.weightPxyFile, 'w'))
 		# build the self.predictorFile
 		self.top1FactorsFile = self.dataDir + 'T1F_' + str(w1) + '_' + str(w2) + '_' + self.trainYrsText +'.csv'
 		factorWriter = csv.writer(open(self.top1FactorsFile, 'w'))
@@ -1886,7 +2315,7 @@ class prepross(object):
 		factorWriter.writerow(header)
 		factorTop3Writer.writerow(header)
 
-		ylist, rlist, plist = [], [], []
+		ylist, rlist, plist, t1Lists = [], [], [], []
 		for x in xrange(0,len(rows)):
 			ylist.append(rows[x])
 			rlist.append(abs(float(rows[x][4])))
@@ -1898,7 +2327,8 @@ class prepross(object):
 					ylist, top1List, top3List = self.PxyPredictors(ylist, rlist, plist, w1, w2)
 					writer.writerows(ylist)
 					writer.writerow([])
-					factorWriter.writerows(top1List)
+					# factorWriter.writerows(top1List)
+					t1Lists += top1List
 					factorTop3Writer.writerows(top3List)
 
 					ylist, rlist, plist = [], [], []
@@ -1907,10 +2337,18 @@ class prepross(object):
 			writer.writerow(header)
 			ylist, top1List, top3List = self.PxyPredictors(ylist, rlist, plist, w1, w2)
 			writer.writerows(ylist)
-			factorWriter.writerows(top1List)
+			# factorWriter.writerows(top1List)
+			t1Lists += top1List
 			factorTop3Writer.writerows(top3List)
 
 			ylist, rlist, plist = [], [], []
+
+		# sort r records
+		flist = [x for x in t1Lists if x[1][0] == '1']
+		slist = [x for x in t1Lists if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		factorWriter.writerows(flist+slist)
 
 	def PxyPredictors(self, ylist, rlist, plist, w1, w2):
 		pxyArr, top1List, top3List = [], [], []
@@ -1919,7 +2357,7 @@ class prepross(object):
 			norm_p = float(sublist[5])/float(max(plist))
 			pxy = w1*norm_r + w2*norm_p
 
-			pxy = float(format(pxy, '.6f'))
+			pxy = float(format(pxy, '.4f'))
 			pxyArr.append(pxy)
 			sublist.insert(6, pxy)
 
@@ -2065,6 +2503,7 @@ class prepross(object):
 		for sublist in ylist:
 			r, p, maxr, maxp = float(sublist[4]), float(sublist[5]), float(max(rlist)), float(max(plist))
 			for x in xrange(0,len(w1list)):
+				pxy = ''
 				if r < 0:
 					pxy = w1list[x]*r*(-1.0)/maxr + w2list[x]*p/maxp
 				else:
@@ -2074,7 +2513,7 @@ class prepross(object):
 
 		return ylist
 
-	def predictProcessTop3Factors(self, testReg, predictResults, aveErrResults, power, predictorsFile):
+	def predictProcessTop3Factors(self, testReg, predictResults, power, predictorsFile):
 		# build equation/predictor dict; predictorDict = [key1:[rRec1, rRec2, rRec3, ...], key2:[], key3:[],...]
 		r1 = csv.reader(open(predictorsFile), delimiter=',')
 		header1, predictorDict, predictingList = r1.next(), {}, []
@@ -2338,7 +2777,29 @@ class prepross(object):
 		else:
 			return []
 
-	def predictProcessTop1Factors(self, testReg, predictResults, aveErrResults, power, predictorsFile):
+	def precision4Ped(self, errRangeStdErrList, dataset):
+		precisionList = []
+		for errRec in errRangeStdErrList:
+			rec, errorList = [self.trainYrsText, dataset, dataset[-1], self.factor]+errRec[:6]+[errRec[18],errRec[14]], errRec[20:]
+			le_05 = be_05_10 = be_10_15 = gt15 = 0
+			for err in errorList:
+				if abs(float(err)) <= 0.5:
+					le_05 += 1
+				elif abs(float(err)) <= 1.0:
+					be_05_10 += 1
+				elif abs(float(err)) <= 1.5:
+					be_10_15 += 1
+				else:
+					gt15 += 1
+
+			instance = le_05+be_05_10+be_10_15+gt15
+			rec += [le_05, float(format(le_05*100.0/instance, '.4')), be_05_10, float(format(be_05_10*100.0/instance, '.4')), le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), be_10_15, float(format(be_10_15*100.0/instance, '.4')), gt15, float(format(gt15*100.0/instance, '.4'))]
+			precisionList.append(rec)
+
+		return precisionList
+
+	def predictProcessTop1Factors(self, testReg, predictResults, power, predictorsFile):
+		# this prediction process only works for Top1 ALL
 		# build equation/predictor dict
 		r1 = csv.reader(open(predictorsFile), delimiter=',')
 		header1, predictorDict = r1.next(), {}
@@ -2367,25 +2828,16 @@ class prepross(object):
 				for x in predictors:
 					testXKey = x[0]+x[1]
 					if testXKey in testRegDict:
-						minList.append(x[15])
-						maxList.append(x[16])
-						testXs.append(testRegDict[testXKey])
+						minList.append(x[15]), maxList.append(x[16]), testXs.append(testRegDict[testXKey])
 
 				# have located the predictable course pairs stored in pairsList
 				pairsList = self.gradePairs(testY, testXs, minList, maxList)
 				if len(pairsList) > 0:
 					predictingList.append(pairsList)
 
-		# predict
 		writer = csv.writer(open(predictResults, 'w'))
-		# errw = csv.writer(open(aveErrResults, 'w'))
-		# errw.writerow(['aveErr', 'r', '#point'])
-		# [errorave, coefficient, pointFreq]
-		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList, pairRangeList = [], [], [], [], [], [], [], []
-		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
-		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
-		errRangeStdErrList.append(header)
 
+		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList, pairRangeList, ppedRec = [], [], [], [], [], [], [], [], []
 		for pairsList in predictingList:
 			for pairs in pairsList:
 				[xgrades, ygrades] = pairs
@@ -2393,19 +2845,18 @@ class prepross(object):
 				key = ygrades[0] + ygrades[1]
 				predictors = predictorDict[key]
 				# linear: y = slope * x + intercept;	quadratic: y = ax^2+bx+c
-				slope = intercept = coefficient = pointFreq = xSubj = xNum = ySubj = yNum = 0
+				slope = intercept = coefficient = pointFreq = xSubj = xNum = ySubj = yNum = Pxy = 0
 				for predictor in predictors:
 					xcourse, predictorCourse = xgrades[0] + xgrades[1], predictor[0] + predictor[1]
 					if xcourse == predictorCourse:
 						# !!!caution: for the index
 						# xSubj,xNum,ySubj,yNum, coefficient,pointFreq = predictor[0], predictor[1], predictor[2], predictor[3], predictor[4], predictor[5]
 						# slope,intercept,a,b,c = predictor[9], predictor[10], predictor[11], predictor[12], predictor[13]
-						xSubj,xNum,ySubj,yNum, coefficient,pointFreq, slope,intercept,a,b,c = predictor[:6]+predictor[9:14]
+						xSubj,xNum,ySubj,yNum,coefficient,pointFreq,Pxy,slope,intercept,a,b,c = predictor[:7]+predictor[9:14]
 						# slope,intercept,a,b,c = predictor[9:14]
-						pointsList.append(float(pointFreq))
-						rList.append(float(coefficient))
+						pointsList.append(float(pointFreq)), rList.append(float(coefficient))
 						# compute errors: aesum: absolute err sum; aepsum: absolute err percent sum
-						errorList, absErrPerList, aesum, aepsum = [], [], 0, 0
+						errorList, absErrPerList, aesum, aepsum, mseSum = [], [], 0, 0, 0
 						# compute predicting grade of testY using the equation located above
 						predictGrades = [ygrades[0], ygrades[1]]
 						for index in xrange(2, len(xgrades)):
@@ -2422,6 +2873,9 @@ class prepross(object):
 							# calculate predicting err
 							error = actualGrade-grade
 
+							# sum the mse
+							mseSum += np.power(error, 2)
+
 							errorList.append(error)
 							aesum += abs(error)
 
@@ -2434,6 +2888,10 @@ class prepross(object):
 							aepsum += absErrPer
 							absErrPerList.append(str(format(absErrPer*100, '.2f'))+'%')
 
+						# compute mse
+						mse = mseSum/(len(xgrades)-2)
+						rmse = format(np.sqrt(mse), '.2f')
+
 						mae = format(aesum/len(errorList), '.2f')
 						aveAbsErrList.append(float(mae))
 
@@ -2441,90 +2899,488 @@ class prepross(object):
 						mapeList.append(float(mape))
 
 						errArr = np.array(errorList)
-						errorave = format(np.average(errArr), '.2f')
-						errStd = format(np.std(errArr), '.2f')
+						errorave, errStd = format(np.average(errArr), '.2f'), format(np.std(errArr), '.2f')
 
 						gradesArr = np.array(predictGrades[2:])
-						mean = format(np.average(gradesArr), '.2f')
-						std = format(np.std(gradesArr), '.2f')
+						mean, std = format(np.average(gradesArr), '.2f'), format(np.std(gradesArr), '.2f')
 
 						# compute the real grades' mean and std
 						# print 'ygrades[2:]: ', ygrades[2:]
 						realGrades = np.array([float(grade) for grade in ygrades[2:]])
-						rMean = format(np.average(realGrades), '.2f')
-						rStd = format(np.std(realGrades), '.2f')
+						rMean, rStd = format(np.average(realGrades), '.2f'), format(np.std(realGrades), '.2f')
 
-						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList)]
+						tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList), Pxy, rmse]
 						errRangeStdErrList.append(tempList+errorList)
 
-						realEstPairList.append(ygrades)
-						realEstPairList.append(predictGrades)
+						realEstPairList.append(ygrades), realEstPairList.append(predictGrades)
 
-						actualGradesSorted = np.sort(ygrades[2:])
-						predictedGradesSorted = np.sort(predictGrades[2:])
+						actualGradesSorted, predictedGradesSorted = np.sort(ygrades[2:]), np.sort(predictGrades[2:])
 						pairRangeList.append([xgrades[0], xgrades[1], ygrades[0], ygrades[1], actualGradesSorted[0], actualGradesSorted[-1], predictedGradesSorted[0], predictedGradesSorted[-1]])
 
-						xgrades.insert(0, 'predictor')
-						ygrades.insert(0, 'real')
-						predictGrades.insert(0, 'predicting')				
-						
-						for x in xrange(0,2):
-							errorList.insert(x, '')
-							absErrPerList.insert(x, '')
+						xgrades.insert(0, 'predictor'), ygrades.insert(0, 'real'), predictGrades.insert(0, 'predicting')
 
-						errorList.insert(2, 'Err:')
-						absErrPerList.insert(2, 'AbsErrPer:%')
+						errorList = ['', '', 'Err']+errorList
+						absErrPerList = ['', '', 'AbsErrPer:%']+absErrPerList
 
 						# appendix = ['point#', pointFreq, 'Coefficient:', coefficient, 'average error:', errorave]
 						appendix = [ 'mean Err:', errorave, 'mea:', mae, 'mape:', mape]
 
-						if not self.errMerge:
-							writer.writerows([xgrades, ygrades, predictGrades, errorList])
+						ppedRec += [myCopy.deepcopy(xgrades), myCopy.deepcopy(ygrades), myCopy.deepcopy(predictGrades), myCopy.deepcopy(errorList)]
+						# if not self.errMerge:
+							# writer.writerows([xgrades, ygrades, predictGrades, errorList])
 							# writer.writerows([xgrades, ygrades, predictGrades, errorList, absErrPerList, appendix])
 						# errw.writerow([errorave, coefficient, pointFreq])
 						AERPList.append([errorave, coefficient, pointFreq])
 
 						# print xgrades, '\n', ygrades, '\n', predictGrades, '\n', errorList, '\n', absErrPerList, '\n'
 
-		writer.writerow([])
-		writer.writerows(errRangeStdErrList)
-		writer.writerow([])
+		# write precision
+		header = ['TrainSet','TestSet','LQ','Factor','xSubj','xNum','ySubj','yNum','point#','r','Pxy','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
+		dataset = predictResults.split('/')[-1].split('.')[0][3:-1]
+		precisionList = self.precision4Ped(errRangeStdErrList, dataset)
+		precisionList.sort(key=itemgetter(7,0,3,5), reverse=False)
+		writer.writerows([header]+precisionList)
+
+		# write predictor-predicted course lists
+		if not self.errMerge:
+			writer.writerows(['']+ppedRec)
+
+		# pick the 1st year predictors and 2nd year predictors
+		# sort errRangeStdErrList
+		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
+		header = ['xSubj','xNum','ySubj','yNum','point#','r','mean','std','errStd','rMean','rStd','ME','MAE','MAPE','instance','minErr','maxErr','interval','Pxy','RMSE']
+		flist = [x for x in errRangeStdErrList if x[1][0] == '1']
+		slist = [x for x in errRangeStdErrList if x[1][0] == '2']
+		flist.sort(key=itemgetter(3), reverse=False)
+		slist.sort(key=itemgetter(3), reverse=False)
+		writer.writerows(['']+[header]+flist+slist+[''])
+
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
 		# build the header-format table and sort by predictor, then predicted course
-		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'rMean', 'std', 'rStd', 'mean diff', 'std diff', 'MAE', 'insOneCrs', 'minErr', 'maxErr', 'interval']
-		writer.writerow(header)
-		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]]+item[14:18] for item in errRangeStdErrList[1:] ]
+		header = ['xSubj','xNum','ySubj','yNum','point#','r','mean','rMean','std','rStd','mean diff','std diff','MAE','instance','minErr','maxErr','interval','Pxy','RMSE']
+		# writer.writerow(header)
+		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]]+item[14:20] for item in errRangeStdErrList ]
 
 		# pick the 1st year predictors and 2nd year predictors
 		flist = [x for x in tmp if x[1][0] == '1']
 		slist = [x for x in tmp if x[1][0] == '2']
 		flist.sort(key=itemgetter(3), reverse=False)
 		slist.sort(key=itemgetter(3), reverse=False)
-		writer.writerows(flist+[header]+slist)
-		writer.writerow([])
+		writer.writerows([header]+flist+[header]+slist+[''])
 
 		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'rMin', 'rMax', 'pMin', 'pMax', 'rInterval', 'pInterval', 'abs diff']
-		writer.writerow(header)
+		# writer.writerow(header)
 		tmp = [pairRangeList[x]+[float(pairRangeList[x][5])-float(pairRangeList[x][4]), float(pairRangeList[x][7])-float(pairRangeList[x][6]), abs((float(pairRangeList[x][5])-float(pairRangeList[x][4]))-(float(pairRangeList[x][7])-float(pairRangeList[x][6])))] for x in xrange(0, len(pairRangeList))]
 		# sort by predictor, then predicted course
 		flist = [x for x in tmp if x[1][0] == '1']
 		slist = [x for x in tmp if x[1][0] == '2']
 		flist.sort(key=itemgetter(3), reverse=False)
 		slist.sort(key=itemgetter(3), reverse=False)
-		writer.writerows(flist+[header]+slist)
+		writer.writerows([header]+flist+[header]+slist)
 
 		# add real vs estimated grade pairs
-		writer.writerow([])
-		writer.writerows(realEstPairList)
+		writer.writerows(['']+realEstPairList)
 
 		# format maeList to plot the graphs
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'MAE']
 		maeList = [ item[:6]+[item[12]] for item in errRangeStdErrList[1:] ]
-		self.plotPredictionMAEFigures(testReg, power, maeList)
+		self.plotPredictionMAEFigures(testReg, power, maeList, '')
 
-	def plotPredictionMAEFigures(self, testReg, power, maeList):
+	def predictProcessMultiFactors(self, testReg, predictResults, power, predictorsFile):
+		# build equation/predictor dict
+		r1 = csv.reader(open(predictorsFile), delimiter=',')
+		header1, predictorDict = r1.next(), {}
+		for row in r1:
+			# key: the predicting course; value of key: row of predictor & predicting course
+			key = row[2]+row[3]
+			if key not in predictorDict:
+				predictorDict[key] = [row]
+			else:
+				predictorDict[key].append(row)
+
+		# test data reg file: build test reg dict
+		r2 = csv.reader(open(testReg), delimiter=',')
+		header2, testRegDict = r2.next(), {}
+		for row in r2:
+			# key: course code(subject code and course number); value of key: course record
+			key = row[0]+row[1]
+			if key not in testRegDict:
+				testRegDict[key] = row
+
+		# search predictable courses; keys: the predicting courses
+		predictingList = []
+		for key in predictorDict:
+			if key in testRegDict:
+				crsY, predictors = testRegDict[key], predictorDict[key]
+				for x in predictors:
+					crsXKey = x[0]+x[1]
+					if crsXKey in testRegDict:
+						crsX = testRegDict[crsXKey]
+						if len(crsX) == len(crsY):
+							xgrades, ygrades = [], []
+							for index in xrange(2,len(crsY)):
+								if (crsX[index].isdigit()) and (crsY[index].isdigit()):
+									xgrades.append(crsX[index]), ygrades.append(crsY[index])
+							if (len(xgrades) > 0) and (len(xgrades) == len(ygrades)):
+								predictingList.append([crsX[:2]+xgrades, crsY[:2]+ygrades])
+
+		AERPList, errRangeStdErrList, pointsList, rList, aveAbsErrList, mapeList, realEstPairList, pairRangeList = [], [], [], [], [], [], [], []
+		# dict for predictor_predicting_records
+		predictorPredictingRecDict, ppRecDict = {}, []
+		for pairs in predictingList:
+			xgrades, ygrades = pairs
+			# locate predicting equation; key: predicting course
+			key = ygrades[0] + ygrades[1]
+			predictors = predictorDict[key]
+			# linear: y = slope * x + intercept;	quadratic: y = ax^2+bx+c
+			# slope = intercept = coefficient = pointFreq = xSubj = xNum = ySubj = yNum = Pxy = 0
+			for predictor in predictors:
+				xcourse, predictorCourse = xgrades[0]+xgrades[1], predictor[0]+predictor[1]
+				if xcourse == predictorCourse:
+					# !!!caution: for the index
+					xSubj,xNum,ySubj,yNum,coefficient,pointFreq,slope,intercept,a,b,c = predictor[:6]+predictor[8:13]
+					pointsList.append(float(pointFreq)), rList.append(float(coefficient))
+					# compute errors: aesum: absolute err sum; aepsum: absolute err percent sum
+					errorList, absErrPerList, aesum, aepsum, mseSum = [], [], 0, 0, 0
+					# compute predicting grade of testY using the equation located above
+					predictGrades = [ygrades[0], ygrades[1]]
+					for index in xrange(2, len(xgrades)):
+						x, grade = xgrades[index], 0
+						if power == 1:
+							grade = float(slope)*float(x)+float(intercept)
+						if power == 2:
+							grade = float(a)*pow(float(x), 2)+float(b)*float(x)+float(c)
+
+						grade = float(format(grade, '.1f'))
+						predictGrades.append(grade)
+						# fetch the actual grade from ygrades list
+						actualGrade = float(ygrades[index])
+						# calculate predicting err
+						error = actualGrade-grade
+
+						# sum the mse
+						mseSum += np.power(error, 2)
+
+						errorList.append(error)
+						aesum += abs(error)
+
+						absErrPer = 0 
+						if actualGrade == 0:
+							absErrPer = abs(error)/1.0
+						else:
+							absErrPer = abs(error)/actualGrade
+
+						aepsum += absErrPer
+						absErrPerList.append(str(format(absErrPer*100, '.2f'))+'%')
+
+					# compute mse
+					mse = mseSum/(len(xgrades)-2)
+					rmse = format(np.sqrt(mse), '.2f')
+
+					mae = format(aesum/len(errorList), '.2f')
+					aveAbsErrList.append(float(mae))
+
+					mape = format(aepsum/len(errorList), '.2f')
+					mapeList.append(float(mape))
+
+					errArr = np.array(errorList)
+					errorave, errStd = format(np.average(errArr), '.2f'), format(np.std(errArr), '.2f')
+
+					gradesArr = np.array(predictGrades[2:])
+					mean, std = format(np.average(gradesArr), '.2f'), format(np.std(gradesArr), '.2f')
+
+					# compute the real grades' mean and std
+					realGrades = np.array([float(grade) for grade in ygrades[2:]])
+					rMean, rStd = format(np.average(realGrades), '.2f'), format(np.std(realGrades), '.2f')
+
+					tempList = [xSubj,xNum,ySubj,yNum,pointFreq,coefficient,mean,std,errStd,rMean,rStd,errorave,mae,mape,len(errorList),min(errorList),max(errorList), max(errorList)-min(errorList), rmse]
+
+					errRangeStdErrList.append(tempList+errorList)
+
+					realEstPairList.append(ygrades), realEstPairList.append(predictGrades)
+
+					actualGradesSorted, predictedGradesSorted = np.sort(ygrades[2:]), np.sort(predictGrades[2:])
+					pairRangeList.append([xgrades[0], xgrades[1], ygrades[0], ygrades[1], actualGradesSorted[0], actualGradesSorted[-1], predictedGradesSorted[0], predictedGradesSorted[-1]])
+
+					xgrades.insert(0, 'predictor'), ygrades.insert(0, 'real'), predictGrades.insert(0, 'predicting')
+
+					errorList = ['', '', 'Err']+errorList
+					absErrPerList = ['', '', 'AbsErrPer:%']+absErrPerList
+
+					# appendix = ['point#', pointFreq, 'Coefficient:', coefficient, 'average error:', errorave]
+					appendix = [ 'mean Err:', errorave, 'mea:', mae, 'mape:', mape]
+
+					ppRecDict += [xgrades, ygrades, predictGrades, errorList]
+					AERPList.append([errorave, coefficient, pointFreq])
+
+					if (predictor[0]+predictor[1]) not in predictorPredictingRecDict:
+						predictorPredictingRecDict[predictor[0]+predictor[1]] = [[xgrades, ygrades, predictGrades, errorList]]
+					else:
+						predictorPredictingRecDict[predictor[0]+predictor[1]].append([xgrades, ygrades, predictGrades, errorList])
+
+		# =================================================================== #
+		writer = csv.writer(open(predictResults, 'w'))
+		# if not self.errMerge:
+		# 	writer.writerows(ppRecDict)
+		# =================================================================== #
+		# sort predictorPredictingRecDict
+		# writer.writerow([''])
+		# for key in predictorPredictingRecDict:
+			# for triple in predictorPredictingRecDict[key]:
+				# writer.writerows(triple)
+			# separate each predictor predicting records
+			# writer.writerow([''])
+		# =================================================================== #
+		header = ['xSubj','xNum','ySubj','yNum','point#','r','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
+		# insert Pxy
+		topPrecisions, precisions = '', ''
+		if (self.proPredictor == 'ALL') and (self.factor == 'PR'):
+			# writer.writerows(self.insertPxy(self.predictionPrecision(errRangeStdErrList, header)))
+			precisions = self.insertPxy(self.predictionPrecision(errRangeStdErrList, header))
+			topPrecisions = self.pickTopPrecision(precisions)
+		else:
+			precisions = self.predictionPrecision(errRangeStdErrList, header)
+			topPrecisions = self.pickTopPrecision(precisions)
+			# writer.writerows(self.predictionPrecision(errRangeStdErrList, header))
+
+		writer.writerows(topPrecisions+precisions)
+		# =================================================================== #
+		# [xsubj, xNum, ySubj, yNum, sample Point#, r, std, mean of err, mean absolute err, test instance#, minErr, maxErr, internal]
+		header = ['xSubj','xNum','ySubj','yNum','point#','r','mean','std','errStd','rMean','rStd','ME','MAE','MAPE','instance','minErr','maxErr','interval','RMSE']
+		# create errRangeStdErrList dict by predictors and predicting courses, respectively
+		# insert Pxy
+		if (self.proPredictor == 'ALL') and (self.factor == 'PR'):
+			writer.writerows(self.insertPxy(self.sortPredictionResults(errRangeStdErrList, header)))
+		else:
+			writer.writerows(self.sortPredictionResults(errRangeStdErrList, header))
+		# =================================================================== #
+		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'mean', 'std', 'errStd', 'rMean', 'rStd','ME', 'MAE', 'MAPE', 'instance', 'minErr', 'maxErr', 'interval']
+		# build the header-format table and sort by predictor, then predicted course
+		header = ['xSubj','xNum','ySubj','yNum','point#','r','mean','rMean','std','rStd','mean diff','std diff','MAE','instance','minErr','maxErr','interval','RMSE']
+		# writer.writerow(header)
+		tmp = [ item[:7]+[item[9], item[7], item[10], float(item[6])-float(item[9]), float(item[7])-float(item[10]), item[12]]+item[14:19] for item in errRangeStdErrList ]
+		# writer.writerows(self.sortPredictionResults(tmp, header))
+		# =================================================================== #
+		header = ['xSubj', 'xNum', 'ySubj', 'yNum', 'rMin', 'rMax', 'pMin', 'pMax', 'rInterval', 'pInterval', 'abs diff']
+		# writer.writerow(header)
+		tmp = [pairRangeList[x]+[float(pairRangeList[x][5])-float(pairRangeList[x][4]), float(pairRangeList[x][7])-float(pairRangeList[x][6]), abs((float(pairRangeList[x][5])-float(pairRangeList[x][4]))-(float(pairRangeList[x][7])-float(pairRangeList[x][6])))] for x in xrange(0, len(pairRangeList))]
+		# writer.writerows(self.sortPredictionResults(tmp, header))
+		# =================================================================== #
+		# add real vs estimated grade pairs
+		# writer.writerows(['']+realEstPairList)
+		# =================================================================== #
+		# format maeList to plot the graphs
+		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'MAE']
+		maeList = [ item[:6]+[item[12]] for item in errRangeStdErrList[1:] ]
+		if self.proPredictor == 'ALL':
+			self.plotPredictionMAEFigures(testReg, power, maeList, '')
+		elif self.proPredictor == 'SINGLE':
+			predictorsDict = {}
+			for rec in maeList:
+				predictor = rec[0]+' '+rec[1]
+				# create predictorsDict
+				if predictor not in predictorsDict:
+					predictorsDict[predictor] = [rec]
+				else:
+					predictorsDict[predictor].append(rec)
+
+			for predictor in predictorsDict:
+				sub_maeList = predictorsDict[predictor]
+				self.plotPredictionMAEFigures(testReg, power, sub_maeList, predictor)
+
+	def pickTopPrecision(self, datasets):
+		header = ''
+		f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor = [], [], []
+		f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted = [], [], []
+		tempList, precisionIndex = [], ''
+		for rec in datasets:
+			if len(rec) > 0:
+				if rec[0] == 'xSubj':
+					header, precisionIndex = rec, rec.index('0~1.0')
+				else:
+					tempList.append(rec)
+			else:
+				self.pickTopPrecision4S2T3(precisionIndex+1, tempList, f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted)
+				tempList = []
+
+		if len(tempList) > 0:
+			self.pickTopPrecision4S2T3(precisionIndex+1, tempList, f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted)
+
+		for x in [f1s2ListPredictor, f1t3ListPredictor, s2t3ListPredictor, f1s2ListPredicted, f1t3ListPredicted, s2t3ListPredicted]:
+			x.sort(key=itemgetter(precisionIndex+1), reverse=True)
+
+		return [['f1s2P'], [''], header]+f1s2ListPredictor+[[''],['f1t3P'], [''], header]+f1t3ListPredictor+[[''],['s2t3P'], [''], header]+s2t3ListPredictor+[[''],['f1s2Ped'], [''], header]+f1s2ListPredicted+[[''],['f1t3Ped'], [''], header]+f1t3ListPredicted+[[''],['s2t3Ped'], [''], header]+s2t3ListPredicted+['']
+
+	def pickTopPrecision4S2T3(self, precisionIndex, tempList, f1s2ListP, f1t3ListP, s2t3ListP, f1s2ListPed, f1t3ListPed, s2t3ListPed):
+		xyr, yyr = tempList[0][1][0], tempList[0][3][0]
+		if yyr == '4':
+			return
+
+		maxPrecision = self.pickMaxPrecision(tempList, precisionIndex)
+
+		freqx = Counter(item[0]+item[1] for item in tempList)
+		freqy = Counter(item[2]+item[3] for item in tempList)
+
+		# for predictor
+		if len(freqx) == 1:
+			# first year predictors
+			if xyr == '1':
+				# second year predicted courses
+				if yyr == '2':
+					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
+					f1s2ListP += ret
+				# third year predicted courses
+				else:
+					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
+					f1t3ListP += ret
+			# second year predictors
+			else:
+				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
+				s2t3ListP += ret
+		# for predicted course
+		elif len(freqy) == 1:
+			# second year predicted courses: 1-2
+			if yyr == '2':
+				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
+				f1s2ListPed += ret
+			# third year predicted courses
+			else:
+				f1List, s2List = [], []
+				for x in tempList:
+					if x[1][0] == '1':
+						f1List.append(x)
+					else:
+						s2List.append(x)
+				# first year predictor: 1-3
+				maxPrecision = self.pickMaxPrecision(f1List, precisionIndex)
+				ret = self.pickRecordsByCondiction(f1List, [precisionIndex, maxPrecision])
+				f1t3ListPed += ret
+				# second year predictor: 2-3
+				maxPrecision = self.pickMaxPrecision(s2List, precisionIndex)
+				ret = self.pickRecordsByCondiction(s2List, [precisionIndex, maxPrecision])
+				s2t3ListPed += ret
+
+	def pickMaxPrecision(self, tempList, precisionIndex):
+		precisionList = []
+		[precisionList.append(float(x[precisionIndex])) for x in tempList]
+		maxPrecision = max(precisionList)
+		precisionList.sort(reverse=True)
+		if maxPrecision == float(100):
+			freq = Counter(item for item in precisionList)
+			if len(freq) > 1:
+				maxPrecision = precisionList[freq[maxPrecision]]
+
+		return maxPrecision
+
+	def pickRecordsByCondiction(self, datasets, condition):
+		ret = []
+		[precisionIndex, maxp] = condition
+		for x in datasets:
+			if float(x[precisionIndex]) >= float(maxp):
+				ret.append(x)
+
+		return ret
+
+	def insertPxy(self, resultsData):
+		r = csv.reader(open(self.weightPxyFile), delimiter=',')
+		pxyPredictedCrsDict = {}
+		for rec in r:
+			if (len(rec) > 0) and (rec[0] != 'xsubCode'):
+				key = rec[2]+rec[3]
+				if key not in pxyPredictedCrsDict:
+					pxyPredictedCrsDict[key] = [[rec[0], rec[1], rec[6]]]
+				else:
+					pxyPredictedCrsDict[key].append([rec[0], rec[1], rec[6]])
+
+		ret = []
+		for record in resultsData:
+			rec = myCopy.deepcopy(record)
+			if len(rec) > 0:
+				if (rec[0] != 'xSubj'):
+					key = rec[2]+rec[3]
+					for predictor in pxyPredictedCrsDict[key]:
+						if (rec[0]+rec[1]) == (predictor[0]+predictor[1]):
+							rec.insert(6, predictor[2])
+				elif (rec[0] == 'xSubj'):
+					rec.insert(6, 'Pxy')
+
+			ret.append(rec)
+
+		return ret
+
+	def sortPredictionResults(self, resultsData, header):
+		predictorsDict, predictingDict = {}, {}
+		for rec in resultsData:
+			predictor, predicting = rec[0]+rec[1], rec[2]+rec[3]
+			# create predictorsDict
+			if predictor not in predictorsDict:
+				predictorsDict[predictor] = [rec]
+			else:
+				predictorsDict[predictor].append(rec)
+
+			# create predicting
+			if predicting not in predictingDict:
+				predictingDict[predicting] = [rec]
+			else:
+				predictingDict[predicting].append(rec)
+
+		ret = []
+		# write predictorsDict
+		for key in predictorsDict:
+			recs = predictorsDict[key]
+			for key, items in self.partitionCoursesByYear(recs):
+				# print items
+				# sort by precision
+				items.sort(key=itemgetter(12), reverse=True)
+				# writer.writerows([header]+recs+[''])
+				ret+=[header]+items+['']
+		# write predictingDict
+		for key in predictingDict:
+			recs = predictingDict[key]
+			recs.sort(key=itemgetter(12), reverse=True)
+			# writer.writerows([header]+recs+[''])
+			ret+=[header]+recs+['']
+
+		return ret
+
+	def predictionPrecision(self, errRecList, header):
+		# error range: '0~0.5','0.5~1.0','1.0~1.5','gt1.5'
+		precisionList = []
+		for errRec in errRecList:
+			rec, errorList = errRec[:6]+[errRec[14]], errRec[19:]
+			le_05 = be_05_10 = be_10_15 = gt15 = 0
+			for err in errorList:
+				if abs(float(err)) <= 0.5:
+					le_05 += 1
+				elif abs(float(err)) <= 1.0:
+					be_05_10 += 1
+				elif abs(float(err)) <= 1.5:
+					be_10_15 += 1
+				else:
+					gt15 += 1
+
+			instance = le_05+be_05_10+be_10_15+gt15
+			rec += [le_05, float(format(le_05*100.0/instance, '.4')), be_05_10, float(format(be_05_10*100.0/instance, '.4')), le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), be_10_15, float(format(be_10_15*100.0/instance, '.4')), gt15, float(format(gt15*100.0/instance, '.4'))]
+			precisionList.append(rec)
+
+		return self.sortPredictionResults(precisionList, header)
+
+	def partitionCoursesByYear(self, dataList):
+		yrCrsDict = {}
+		for data in dataList:
+			key = data[3][0]
+			if key not in yrCrsDict:
+				yrCrsDict[key]=[data]
+			else:
+				yrCrsDict[key].append(data)
+
+		return yrCrsDict.items()
+
+	def plotPredictionMAEFigures(self, testReg, power, maeList, predictor4Single):
 		# ['xSubj', 'xNum', 'ySubj', 'yNum', 'point#', 'r', 'MAE']
 		prefix, suffix = testReg.split('/')[-1].split('_')[0], ''
+		if self.proPredictor == 'SINGLE':
+			prefix = predictor4Single
 		if power == 1:
 			suffix, tSuffix = 'L', 'Linear'
 		elif power == 2:
@@ -2689,12 +3545,12 @@ class prepross(object):
 		for rec in dataList:
 			pointsList.append(int(rec[4])), rList.append(float(rec[5])), aveAbsErrList.append(float(rec[6]))
 		if len(pointsList) > 0:
-			figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'_'+combination+'.png'
-
-			title = 'Points vs r vs MAE: '+suffix+'\nPredictor:'+self.proPredictor+'; H:'+str(self.threshold)+'; '+combination
-			if self.proPredictor == 'ALL':
-				# title = 'Points vs r vs MAE: '+suffix+':'+prefix[3:]+' vs '+self.trainYrsText+'\n'+combination+'; H:'+str(self.threshold)+'; rw:'+str(self.rw)+', pw:'+str(self.pw)
-				title = 'Points vs r vs MAE: '+suffix+'; rw:'+str(self.rw)+', pw:'+str(self.pw)+'; H:'+str(self.threshold)+'\n'+prefix[3:]+' vs '+self.trainYrsText+'; '+combination
+			if self.proPredictor == 'SINGLE':
+				title = 'Points vs r vs MAE: '+suffix+'\nPredictor:'+prefix+'; '+combination
+				figName = self.maerp3DDir+suffix+'/'+prefix+'_rpMAE_'+suffix+'_'+combination+'.png'
+			elif self.proPredictor == 'ALL':
+				figName = self.maerp3DDir+suffix+'/'+prefix[3:]+'_rpMAE_'+suffix+'_'+combination+'.png'
+				title = 'Points vs r vs MAE: '+suffix+'; rw:'+str(self.rw)+', pw:'+str(self.pw)+'\n'+prefix[3:]+' vs '+self.trainYrsText+'; '+combination
 
 			self.maerp3DPlots(pointsList, rList, aveAbsErrList, figName, title)
 
@@ -2727,7 +3583,7 @@ class prepross(object):
 			xindex = testXs.index(x)
 			xmin, xmax = minList[xindex],maxList[xindex]
 			for index in xrange(2,len(testY)):
-				if (x[index].isdigit() and testY[index].isdigit()) and (float(x[index])>=float(xmin)) and (float(x[index])<=float(xmax)):
+				if (x[index].isdigit() and testY[index].isdigit()) and (float(x[index]) >= float(xmin)) and (float(x[index]) <= float(xmax)):
 					xgrades.append(x[index])
 					ygrades.append(testY[index])
 
@@ -2756,9 +3612,11 @@ class prepross(object):
 		return resultPairs
 
 	def errScatter(self, xtitle, ytitle, title, xdata, ydata, figName, xflag):
+		if os.path.exists(figName):
+			return
+
 		fig = plt.figure()
-		x = np.array(xdata)
-		y = np.array(ydata)
+		x, y = np.array(xdata), np.array(ydata)
 
 		z = np.polyfit(x, y, 1)
 		p = np.poly1d(z)
@@ -2781,13 +3639,11 @@ class prepross(object):
 
 		if xflag == 'R':
 			plt.xlim(-1.0, 1.0)
-			minorLocator = MultipleLocator(0.1)
-			majorLocator = MultipleLocator(0.1)
+			minorLocator, majorLocator = MultipleLocator(0.1), MultipleLocator(0.1)
 			plt.xticks(rotation=20, fontsize='medium')
 		if xflag == 'P':
 			plt.xlim(0, 120)
-			minorLocator = MultipleLocator(2)
-			majorLocator = MultipleLocator(10)
+			minorLocator, majorLocator = MultipleLocator(2), MultipleLocator(10)
 			plt.xticks(rotation=90, fontsize='small')
 
 		ax.xaxis.set_minor_locator(minorLocator)
@@ -2798,6 +3654,9 @@ class prepross(object):
 		plt.close(fig)
 
 	def maerp3DPlots(self, point, r, MAE, figName, title):
+		if os.path.exists(figName):
+			return
+
 		# plot 3D graph
 		fig = plt.figure()
 		ax = Axes3D(fig)
@@ -3028,7 +3887,7 @@ class prepross(object):
 			# PLOT 1ST_2ND YEAR VS 3rd_4TH
 			self.yrVSyrScatter(i1i3[0]+i1i4[0]+i2i3[0]+i2i4[0],i1i3[1]+i1i4[1]+i2i3[1]+i2i4[1],'1st & 2nd year courses vs 3rd & 4th year courses', '1st & 2nd year courses grades', '3rd & 4th year courses grades',self.yrvsyr+'ALL_i1_2i3_4.png')
 
-	def yrVSyrScatter(self,xdata,ydata,title,xlabel,ylabel,fname):
+	def yrVSyrScatter(self, xdata, ydata, title, xlabel, ylabel, fname):
 		fig = plt.figure()
 		x = np.array(xdata)
 		y = np.array(ydata)
@@ -3075,7 +3934,7 @@ class prepross(object):
 				rList.append(abs(predictor[4]))
 			for predictor in predictors:
 				pxy = abs(predictor[4])*predictor[5]/(max(rList)*max(pList))
-				predictor.insert(6, float(format(pxy, '.6')))
+				predictor.insert(6, float(format(pxy, '.4f')))
 			# build top1 pFactors: self.top1pFactors
 			top1pFactor = self.topFactors(predictors, 1, 5)
 			wTop1pF.writerows(top1pFactor)
@@ -3202,3 +4061,220 @@ class prepross(object):
 		destMAEs = self.currDir + 'T1/T1QM' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destRanges = self.currDir + 'T1/T1QR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destMAEs, destRanges)
+
+	def mergePrecision4ALL(self, trainYrsText, precisionListALL, factor):
+		precisionXlsx = self.timeDir+trainYrsText+'_'+factor+'_Precision.xlsx'
+		workbook = xlsxwriter.Workbook(precisionXlsx)
+		myformat = workbook.add_format({'align':'center_across'})
+		for p in precisionListALL:
+			filename = p.split('/')[-1].split('.')[0][3:]
+			print filename
+			worksheet = workbook.add_worksheet(filename)
+			rowcnt = 0
+			for row in csv.reader(open(p), delimiter=','):
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
+
+		ret, header = '', ''
+		if trainYrsText == 'SINGLE_MEAN':
+			ret, header = self.sortPredictorPrecisionsInDiffTestSet(precisionListALL[:2])
+		else:
+			ret, header = self.sortPredictorPrecisionsInDiffTestSet(precisionListALL)
+
+		# precision index
+		precisionIndex = header.index('0~1.0')+1
+
+		f1s2P,f1t3P,s2t3P,f1s2Ped,f1t3Ped,s2t3Ped = [],[],[],[],[],[]
+		keys = ret.keys()
+		for key in keys:
+			# f1s2P, f1t3P, s2t3P, f1s2Ped, f1t3Ped, s2t3Ped
+			f1s2P += ret[key]['f1s2P']
+			f1t3P += ret[key]['f1t3P']
+			s2t3P += ret[key]['s2t3P']
+			f1s2Ped += ret[key]['f1s2Ped']
+			f1t3Ped += ret[key]['f1t3Ped']
+			s2t3Ped += ret[key]['s2t3Ped']
+
+		summaryList = []
+		prefix = ['f1s2P', 'f1t3P', 's2t3P', 'f1s2Ped', 'f1t3Ped', 's2t3Ped']
+		worksheet = workbook.add_worksheet('PPed')
+		print 'PPed'
+		rowcnt, sortIndex = 0, 0
+		for mylist in [f1s2P,f1t3P,s2t3P,f1s2Ped,f1t3Ped,s2t3Ped]:
+			header[0]=prefix[sortIndex]
+			worksheet.write_row(rowcnt,0,header,myformat)
+			rowcnt+=1
+
+			Tied, Smaller, Bigger = 0, 0, 0
+			if sortIndex <= 2:
+				Tied, Smaller, Bigger = self.comparePrecisionInDiffDataset4EachCourse(mylist, 'P', precisionIndex)
+
+				mylist.sort(key=itemgetter(2,1,0), reverse=True)
+			else:
+				Tied, Smaller, Bigger = self.comparePrecisionInDiffDataset4EachCourse(mylist, 'Ped', precisionIndex)
+
+				mylist.sort(key=itemgetter(4,3,0), reverse=True)
+
+			tsum = Tied+Smaller+Bigger
+			summaryList.append([Tied, Smaller, Bigger, tsum, format(float(Tied*1.0/tsum), '.3f'), format(float(Smaller*1.0/tsum),'.3f'), format(float(Bigger*1.0/tsum), '.3f')])
+			summaryList[sortIndex].insert(0, prefix[sortIndex])
+
+			for row in mylist+[[''], ['Class', 'Tied', 'Smaller', 'Bigger', 'Total'], [prefix[sortIndex], Tied, Smaller, Bigger, tsum, format(float(Tied*1.0/tsum), '.3f'), format(float(Smaller*1.0/tsum),'.3f'), format(float(Bigger*1.0/tsum), '.3f')], ['']]:
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
+
+			# sortIndex = 0, 1, 2, sort for predictors; sortIndex = 3, 4, 5, sort for predicted courses
+			sortIndex += 1
+
+		summaryList.insert(3, ['Class', 'Tied', 'Smaller', 'Bigger', 'Total'])
+		summaryList.insert(3, [''])
+		summaryList.insert(0, ['Class', 'Tied', 'Smaller', 'Bigger', 'Total'])
+		for x in summaryList:
+			worksheet.write_row(rowcnt,0,x,myformat)
+			rowcnt+=1
+			print x
+
+		print '\n'
+
+	def comparePrecisionInDiffDataset4EachCourse(self, dataset, pped, precisionIndex):
+		Tied, Smaller, Bigger = 0, 0, 0
+		# pped: P: predictor; Ped: predicted courses
+		crsIndex, numIndex = -1, -1
+		if pped == 'P':
+			crsIndex, numIndex = 1, 2
+		elif pped == 'Ped':
+			crsIndex, numIndex = 3, 4
+		else:
+			return
+
+		crsDict = {}
+		for rec in dataset:
+			key = rec[crsIndex]+rec[numIndex]
+			if key not in crsDict:
+				crsDict[key] = [rec]
+			else:
+				crsDict[key].append(rec)
+
+		for key, v in crsDict.items():
+			v.sort(key=itemgetter(0), reverse=True)
+
+			pair = []
+			for x in xrange(0, len(v)-1):
+				q=v[x][0][-1]
+				# Q
+				if q == 'Q':
+					pair.append(v[x])
+				# L
+				else:
+					pair.append(v[x])
+					# pair found
+					if v[x+1][0][-1] == 'Q':
+						ret = self.precisionQLCmopare(pair, precisionIndex)
+						if ret[1] == '+':
+							Bigger += 1
+						elif ret[1] == '-':
+							Smaller += 1
+						elif ret[1] == '#':
+							Tied += 1
+						# ===============================
+						print ret[1]
+						for rec in ret[0]:
+							print rec
+						print '\n'
+						# ===============================
+						pair = []
+
+			pair.append(v[-1])
+			ret = self.precisionQLCmopare(pair, precisionIndex)
+			if ret[1] == '+':
+				Bigger += 1
+			elif ret[1] == '-':
+				Smaller += 1
+			elif ret[1] == '#':
+				Tied += 1
+
+			# ===============================
+			print ret[1]
+			for rec in ret[0]:
+				print rec
+			print '\n'
+			# ===============================
+
+		return [Tied, Smaller, Bigger]
+
+	def precisionQLCmopare(self, pair, precisionIndex):
+		setDict = {}
+		for x in pair:
+			# dataset in Q or L; key: L or Q
+			key = x[0][-1]
+			if key not in setDict:
+				setDict[key] = [x]
+			else:
+				setDict[key].append(x)
+
+		qMax, lMax = [], []
+		for k in ['Q', 'L']:
+			precisionList = []
+			for x in setDict[k]:
+				# remove duplicate precisions
+				if float(x[precisionIndex]) not in precisionList:
+					precisionList.append(float(x[precisionIndex]))
+
+			# descendingly order
+			precisionList.sort(reverse=True)
+			if k == 'Q':
+				[qMax.append(i) for i in precisionList]
+			else:
+				[lMax.append(i) for i in precisionList]
+
+		# q precision, l precision
+		qp, lp = '', ''
+		if len(qMax) > 1:
+			qp = qMax[1]
+		else:
+			qp = qMax[0]
+
+		if len(lMax) > 1:
+			lp = lMax[1]
+		else:
+			lp = lMax[0]
+
+		if qp > lp:
+			pair[-1] += ['+']
+			return [pair, '+']
+		elif qp < lp:
+			pair[-1] += ['-']
+			return [pair, '-']
+		else:
+			pair[-1] += ['#']
+			return [pair, '#']
+
+	def sortPredictorPrecisionsInDiffTestSet(self, precisionList):
+		# f1s2P, f1t3P, s2t3P, f1s2Ped, f1t3Ped, s2t3Ped
+		# datasetDict = {'2010': {'f1s2P': mylist, 'f1t3P': mylist, ......}}
+		datasetDict, header = {}, ''
+		for p in precisionList:
+			filename = p.split('/')[-1].split('.')[0][3:]
+			key, mydict = '', {}
+			for row in csv.reader(open(p), delimiter=','):
+				print row
+				if (len(row) == 1) and (row[0] != ''):
+					key = row[0]
+				elif len(row) > 1:
+					if (row[0] != 'xSubj'):
+						row.insert(0, filename)
+						if key not in mydict:
+							mydict[key] = [row]
+						else:
+							mydict[key].append(row)
+					else:
+						row.insert(0, '')
+						header = row
+				elif len(row) == 0:
+					print '========== ', key, ' =========='
+					if key == 's2t3Ped':
+						break
+
+			datasetDict[filename] = mydict
+
+		return [datasetDict, header]

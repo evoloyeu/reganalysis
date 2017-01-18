@@ -93,3 +93,7 @@ ENV/
 
 # Test
 test.py
+
+# csv
+*.csv
+*.xlsx
