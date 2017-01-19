@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-import csv, os, time, hashlib, shutil, xlsxwriter, copy as myCopy
+import csv, os, time, hashlib, shutil, xlsxwriter, copy as myCopy, matplotlib.pyplot as plt, numpy as np
 from pylab import *
-import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import MultipleLocator
 from scipy.stats import pearsonr, linregress
-import numpy as np
 from operator import itemgetter
 from collections import Counter
+# from matplotlib import rcParams
+# rcParams.update({'figure.autolayout': True})
 
 class prepross(object):
 	def __init__(self, degRegFiles):
@@ -509,19 +509,66 @@ class prepross(object):
 			index = header.index(test)-3
 			if x[3] == 'P':
 				# PQ_Point.append(x[pointIndex]),PQ_R.append(x[rIndex]),PQ_Pxy.append(x[PxyIndex]),PQ_ins.append(x[insIndex]),PQ_acc.append(x[accIndex])
-				p_pl[index], p_rl[index], p_pxyl[index], p_il[index], p_al[index]=x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+				p_pl[index], p_rl[index], p_pxyl[index], p_il[index], p_al[index]=int(x[pointIndex]), float(x[rIndex]), float(x[PxyIndex]), int(x[insIndex]), float(x[accIndex])
 			if x[3] == 'PR':
 				# PRQ_Point.append(x[pointIndex]),PRQ_R.append(x[rIndex]),PRQ_Pxy.append(x[PxyIndex]),PRQ_ins.append(x[insIndex]),PRQ_acc.append(x[accIndex])
-				pr_pl[index], pr_rl[index], pr_pxyl[index], pr_il[index], pr_al[index] =x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+				pr_pl[index], pr_rl[index], pr_pxyl[index], pr_il[index], pr_al[index] =int(x[pointIndex]), float(x[rIndex]), float(x[PxyIndex]), int(x[insIndex]), float(x[accIndex])
 			if x[3] == 'R':
 				# RQ_Point.append(x[pointIndex]),RQ_R.append(x[rIndex]),RQ_Pxy.append(x[PxyIndex]),RQ_ins.append(x[insIndex]),RQ_acc.append(x[accIndex])
-				r_pl[index], r_rl[index], r_pxyl[index], r_il[index], r_al[index]=x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+				r_pl[index], r_rl[index], r_pxyl[index], r_il[index], r_al[index]=int(x[pointIndex]), float(x[rIndex]), float(x[PxyIndex]), int(x[insIndex]), float(x[accIndex])
 
 		print 'sameTrSameT: P --> \npoint: ',p_pl,'\nr: ',p_rl,'\npxy: ',p_pxyl,'\nins: ',p_il,'\nacc: ',p_al
 		print 'sameTrSameT: PR --> \nppoint: ',pr_pl,'\nr: ',pr_rl,'\npxy: ',pr_pxyl,'\nins: ',pr_il,'\nacc: ',pr_al
 		print 'sameTrSameT: R --> \npoint: ',r_pl,'\nr: ',r_rl,'\npxy: ',r_pxyl,'\nins: ',r_il,'\nacc: ',r_al
 
+		self.plotSameTrSameT(train, lq, 'Accuracy', header[3:], ['P', 'Pxy', 'r'], [p_al, pr_al, r_al], crs)
+		self.plotSameTrSameT(train, lq, 'Points', header[3:], ['P', 'Pxy', 'r'], [p_pl, pr_pl, r_pl], crs)
+		self.plotSameTrSameT(train, lq, 'Coefficients', header[3:], ['P', 'Pxy', 'r'], [p_rl, pr_rl, r_rl], crs)
+		self.plotSameTrSameT(train, lq, 'Pxy', header[3:], ['P', 'Pxy', 'r'], [p_pxyl, pr_pxyl, r_pxyl], crs)
+		self.plotSameTrSameT(train, lq, 'Test Instances', header[3:], ['P', 'Pxy', 'r'], [p_il, pr_il, r_il], crs)
+
 		return myCopy.deepcopy([header, PRQ_acc+pr_al, PQ_acc+p_al, RQ_acc+r_al, header, PRQ_Point+pr_pl, PQ_Point+p_pl, RQ_Point+r_pl, header, PRQ_R+pr_rl, PQ_R+p_rl, RQ_R+r_rl, header, PRQ_Pxy+pr_pxyl, PQ_Pxy+p_pxyl, RQ_Pxy+r_pxyl, header, PRQ_ins+pr_il, PQ_ins+p_il, RQ_ins+r_il])
+
+	def plotSameTrSameT(self, Tr, lq, fType, xticks, legend, mylist, ped):
+		fig = plt.figure()
+		xlist = xrange(1, len(mylist[0])+1)
+
+		index, mycolor, shapes= 0, ['red', 'blue', 'cyan'], ['o', '*', '^']
+		for x in mylist:
+			plt.plot(xlist, x, shapes[index], c=mycolor[index], label=legend[index])
+			index+=1
+
+		ylist = []
+		for x in mylist:
+			ylist += x
+		ymax, xmax = ceil(max(ylist)), len(mylist[0])+1
+		plt.axis([0, xmax, 0, ymax])
+
+		plt.xticks(xlist, xticks, rotation='10')
+		plt.xlabel('Test Sets')
+		plt.ylabel(fType)
+		plt.title(ped+': Tr:'+Tr+', '+lq+', '+fType+' Comparison')
+		plt.grid(True)
+
+		ax = plt.subplot(111)
+		# Shrink current axis's height by 10% on the bottom
+		box = ax.get_position()
+		ax.set_position([box.x0, box.y0+box.height*0.1, box.width, box.height*0.9])
+		# Put a legend below current axis
+		ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13), fancybox=True, shadow=True, ncol=3, markerfirst=False, numpoints=3)
+
+		# expand figure bottom space
+		plt.gcf().subplots_adjust(bottom=0.19)
+
+		figDir = self.timeDir+'CRS_Com_Figures/'+ped+'/'
+		if not os.path.exists(figDir):
+			os.makedirs(figDir)
+
+		filename = figDir+ped+'_'+Tr+'_'+lq+'_'+fType+'.png'
+
+		# plt.show()
+		fig.savefig(filename)
+		plt.close(fig)
 
 	def sortALLPed(self, mylist, pindex, head):
 		keys, crsDict = [],{}
@@ -3211,7 +3258,7 @@ class prepross(object):
 
 		return [['f1s2P'], [''], header]+f1s2ListPredictor+[[''],['f1t3P'], [''], header]+f1t3ListPredictor+[[''],['s2t3P'], [''], header]+s2t3ListPredictor+[[''],['f1s2Ped'], [''], header]+f1s2ListPredicted+[[''],['f1t3Ped'], [''], header]+f1t3ListPredicted+[[''],['s2t3Ped'], [''], header]+s2t3ListPredicted+['']
 
-	def pickTopPrecision4S2T3(self, precisionIndex, tempList, f1s2ListP, f1t3ListP, s2t3ListP, f1s2ListPed, f1t3ListPed, s2t3ListPed):
+	def pickTopPrecision4S2T3(self, precisionIndex, tempList, f1s2P, f1t3P, s2t3P, f1s2Ped, f1t3Ped, s2t3Ped):
 		xyr, yyr = tempList[0][1][0], tempList[0][3][0]
 		if yyr == '4':
 			return
@@ -3228,21 +3275,21 @@ class prepross(object):
 				# second year predicted courses
 				if yyr == '2':
 					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-					f1s2ListP += ret
+					f1s2P += ret
 				# third year predicted courses
 				else:
 					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-					f1t3ListP += ret
+					f1t3P += ret
 			# second year predictors
 			else:
 				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-				s2t3ListP += ret
+				s2t3P += ret
 		# for predicted course
 		elif len(freqy) == 1:
 			# second year predicted courses: 1-2
 			if yyr == '2':
 				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-				f1s2ListPed += ret
+				f1s2Ped += ret
 			# third year predicted courses
 			else:
 				f1List, s2List = [], []
@@ -3254,11 +3301,11 @@ class prepross(object):
 				# first year predictor: 1-3
 				maxPrecision = self.pickMaxPrecision(f1List, precisionIndex)
 				ret = self.pickRecordsByCondiction(f1List, [precisionIndex, maxPrecision])
-				f1t3ListPed += ret
+				f1t3Ped += ret
 				# second year predictor: 2-3
 				maxPrecision = self.pickMaxPrecision(s2List, precisionIndex)
 				ret = self.pickRecordsByCondiction(s2List, [precisionIndex, maxPrecision])
-				s2t3ListPed += ret
+				s2t3Ped += ret
 
 	def pickMaxPrecision(self, tempList, precisionIndex):
 		precisionList = []
