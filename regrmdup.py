@@ -560,7 +560,7 @@ class prepross(object):
 		# expand figure bottom space
 		plt.gcf().subplots_adjust(bottom=0.19)
 
-		figDir = self.timeDir+'CRS_Com_Figures/'+ped+'/'+subfolder+'/'
+		figDir = self.timeDir+'CRS_Com_Figures/'+ped+'/'+subfolder+'/'+lq+'/'
 		if not os.path.exists(figDir):
 			os.makedirs(figDir)
 
