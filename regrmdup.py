@@ -478,7 +478,7 @@ class prepross(object):
 
 	def sameTrSameT(self, train, mylist, lq, indexList):
 		pointIndex,rIndex,PxyIndex,insIndex,accIndex = indexList
-		crs = mylist[0][6]+mylist[0][7]
+		crs, yr = mylist[0][6]+mylist[0][7], mylist[0][7][0]
 
 		PRQ_Point,PQ_Point,RQ_Point = [crs, train,'PR'+lq+'P'], [crs, train,'P'+lq+'P'], [crs, train,'R'+lq+'P']
 		PRQ_R,PQ_R,RQ_R = [crs, train,'PR'+lq+'R'], [crs, train,'P'+lq+'R'], [crs, train,'R'+lq+'R']
@@ -521,15 +521,15 @@ class prepross(object):
 		print 'sameTrSameT: PR --> \nppoint: ',pr_pl,'\nr: ',pr_rl,'\npxy: ',pr_pxyl,'\nins: ',pr_il,'\nacc: ',pr_al
 		print 'sameTrSameT: R --> \npoint: ',r_pl,'\nr: ',r_rl,'\npxy: ',r_pxyl,'\nins: ',r_il,'\nacc: ',r_al
 
-		self.plotSameTrSameT(train, lq, 'Accuracy', header[3:], ['P', 'Pxy', 'r'], [p_al, pr_al, r_al], crs, 'acc')
-		self.plotSameTrSameT(train, lq, 'Points', header[3:], ['P', 'Pxy', 'r'], [p_pl, pr_pl, r_pl], crs, 'points')
-		self.plotSameTrSameT(train, lq, 'Coefficients', header[3:], ['P', 'Pxy', 'r'], [p_rl, pr_rl, r_rl], crs, 'coe')
-		self.plotSameTrSameT(train, lq, 'Pxy', header[3:], ['P', 'Pxy', 'r'], [p_pxyl, pr_pxyl, r_pxyl], crs, 'Pxy')
-		self.plotSameTrSameT(train, lq, 'Test Instances', header[3:], ['P', 'Pxy', 'r'], [p_il, pr_il, r_il], crs, 'ins')
+		self.plotSameTrSameT(train, lq, 'Accuracy', header[3:], ['P', 'Pxy', 'r'], [p_al, pr_al, r_al], crs, yr, 'acc')
+		self.plotSameTrSameT(train, lq, 'Points', header[3:], ['P', 'Pxy', 'r'], [p_pl, pr_pl, r_pl], crs, yr, 'points')
+		self.plotSameTrSameT(train, lq, 'Coefficients', header[3:], ['P', 'Pxy', 'r'], [p_rl, pr_rl, r_rl], crs, yr, 'coe')
+		self.plotSameTrSameT(train, lq, 'Pxy', header[3:], ['P', 'Pxy', 'r'], [p_pxyl, pr_pxyl, r_pxyl], crs, yr, 'Pxy')
+		self.plotSameTrSameT(train, lq, 'Test Instances', header[3:], ['P', 'Pxy', 'r'], [p_il, pr_il, r_il], crs, yr, 'ins')
 
 		return myCopy.deepcopy([header, PRQ_acc+pr_al, PQ_acc+p_al, RQ_acc+r_al, header, PRQ_Point+pr_pl, PQ_Point+p_pl, RQ_Point+r_pl, header, PRQ_R+pr_rl, PQ_R+p_rl, RQ_R+r_rl, header, PRQ_Pxy+pr_pxyl, PQ_Pxy+p_pxyl, RQ_Pxy+r_pxyl, header, PRQ_ins+pr_il, PQ_ins+p_il, RQ_ins+r_il])
 
-	def plotSameTrSameT(self, Tr, lq, fType, xticks, legend, mylist, ped, subfolder):
+	def plotSameTrSameT(self, Tr, lq, fType, xticks, legend, mylist, ped, yr, subfolder):
 		fig = plt.figure()
 		xlist = xrange(1, len(mylist[0])+1)
 
@@ -560,7 +560,7 @@ class prepross(object):
 		# expand figure bottom space
 		plt.gcf().subplots_adjust(bottom=0.19)
 
-		figDir = self.timeDir+'CRS_Com_Figures/'+ped+'/'+subfolder+'/'+lq+'/'
+		figDir = self.timeDir+'CRS_Com_Figures/'+yr+'/'+ped+'/'+subfolder+'/'+lq+'/'
 		if not os.path.exists(figDir):
 			os.makedirs(figDir)
 
