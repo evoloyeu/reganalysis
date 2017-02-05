@@ -48,7 +48,10 @@ class myValidate(object):
 
 			# if course == 'MATH133' or course == 'MATH110':
 			# 	print course
-
+		f1courseList.sort(reverse=False)
+		s2courseList.sort(reverse=False)
+		t3courseList.sort(reverse=False)
+		f4courseList.sort(reverse=False)
 		print '\nlen(f1courseList):', len(f1courseList), '\n', f1courseList
 		print '\nlen(s2courseList):', len(s2courseList), '\n', s2courseList
 		print '\nlen(t3courseList):', len(t3courseList), '\n', t3courseList
