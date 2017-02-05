@@ -98,3 +98,10 @@ class myValidate(object):
 			print '\nlen(DegIDList):', len(DegIDList), '\tlen(Y):', len(DegIDList10)+len(DegIDList11)+len(DegIDList12)+len(DegIDList13)+len(DegIDList14)+len(DegIDList15)
 
 		print '\n10:', len(DegIDList10),'\n11:', len(DegIDList11), '\n12:', len(DegIDList12), '\n13:', len(DegIDList13), '\n14:', len(DegIDList14), '\n15:', len(DegIDList15), '\nTotal:', len(DegIDList10)+len(DegIDList11)+len(DegIDList12)+len(DegIDList13)+len(DegIDList14)+len(DegIDList15), '\n'
+
+		print 'rest IDs:'
+		cnt = 1
+		for x in DegIDList:
+			if x not in DegIDList10+DegIDList11+DegIDList12+DegIDList13+DegIDList14+DegIDList15:
+				print cnt, ': ', x
+				cnt += 1
