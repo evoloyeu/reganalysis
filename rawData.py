@@ -105,6 +105,8 @@ class splitRawData(object):
 		DegList10, DegList11, DegList12, DegList13, DegList14, DegList15 = [], [], [], [], [], []
 
 		for deg in degReader:
+			if deg[1] in ['V00202855', 'V00241653', 'V00682567']:
+				continue
 			# graduateYr,OFFICIAL_SNAPSHOT_IND = deg[9],deg[12]
 			if (deg[9] == '2010') and (not deg[9] in DegIDList10) and (deg[12]=='Y'):
 				DegList10.append(deg)

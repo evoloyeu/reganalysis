@@ -18,8 +18,9 @@ class myValidate(object):
 
 	def doBatch(self):
 		self.techCourseList()
-		self.validateID()
+		DegIDList = self.validateID()
 		self.list1st2ndYrCourses()
+		self.validateELEC199(DegIDList)
 
 	def techCourseList(self):
 		r = csv.reader(open(self.allTechCrs), delimiter=',')
@@ -67,6 +68,7 @@ class myValidate(object):
 		print '\nlen(f4courseList):', len(f4courseList), '\n', f4courseList
 
 	def validateID(self):
+		print 'validateID:'
 		r = csv.reader(open(self.rawDeg), delimiter=',')
 		r.next()
 
@@ -77,6 +79,9 @@ class myValidate(object):
 		for deg in r:
 			if deg[1] not in DegIDList:
 				DegIDList.append(deg[1])
+
+			if deg[1] in ['V00202855', 'V00241653', 'V00682567']:
+				continue
 
 			# graduateYr,OFFICIAL_SNAPSHOT_IND = deg[9],deg[12]
 			if (deg[9] == '2010') and (deg[12]=='Y'):
@@ -105,11 +110,11 @@ class myValidate(object):
 					DegIDList15.append(deg[1])
 
 		if len(DegIDList) == (len(DegIDList10)+len(DegIDList11)+len(DegIDList12)+len(DegIDList13)+len(DegIDList14)+len(DegIDList15)):
-			print '\nlen(DegIDList):', len(DegIDList)
+			print 'len(DegIDList):', len(DegIDList)
 		else:
-			print '\nlen(DegIDList):', len(DegIDList), '\tlen(Y):', len(DegIDList10)+len(DegIDList11)+len(DegIDList12)+len(DegIDList13)+len(DegIDList14)+len(DegIDList15)
+			print 'len(DegIDList):', len(DegIDList), '\tlen(Y):', len(DegIDList10)+len(DegIDList11)+len(DegIDList12)+len(DegIDList13)+len(DegIDList14)+len(DegIDList15)
 
-		print '\n10:', len(DegIDList10),'\n11:', len(DegIDList11), '\n12:', len(DegIDList12), '\n13:', len(DegIDList13), '\n14:', len(DegIDList14), '\n15:', len(DegIDList15), '\nTotal:', len(DegIDList10)+len(DegIDList11)+len(DegIDList12)+len(DegIDList13)+len(DegIDList14)+len(DegIDList15), '\n'
+		print '10:', len(DegIDList10),'\n11:', len(DegIDList11), '\n12:', len(DegIDList12), '\n13:', len(DegIDList13), '\n14:', len(DegIDList14), '\n15:', len(DegIDList15), '\nTotal:', len(DegIDList10)+len(DegIDList11)+len(DegIDList12)+len(DegIDList13)+len(DegIDList14)+len(DegIDList15), '\n'
 
 		print 'rest IDs:'
 		cnt = 1
@@ -117,3 +122,34 @@ class myValidate(object):
 			if x not in DegIDList10+DegIDList11+DegIDList12+DegIDList13+DegIDList14+DegIDList15:
 				print cnt, ': ', x
 				cnt += 1
+
+		return DegIDList10+DegIDList11+DegIDList12+DegIDList13+DegIDList14+DegIDList15
+
+	def validateELEC199(self, ids):
+		idDict = {}
+		r = csv.reader(open(self.rawReg), delimiter=',')
+		r.next()
+		for row in r:
+			if (row[3]+row[4]) == 'ELEC199':
+				if row[1] in ids:
+					if row[1] not in idDict:
+						idDict[row[1]] = [ [row[1], row[3], row[4], row[8]] ]
+					else:
+						idDict[row[1]].append([row[1], row[3], row[4], row[8]])
+
+		print '\nNo ELEC 199 IDs:'
+		for idx in ids:
+			if idx not in idDict.keys():
+				print idx
+
+		print 'IDs whose ELEC 199 with Null grade:'
+		for idx, elec199List in idDict.items():
+			nullGrade = 0
+			for elec199 in elec199List:
+				if len(elec199[3]) > 0:
+					nullGrade = 1
+
+			if nullGrade == 0:
+				print idx, elec199List
+
+		print 'len(ids):', len(ids), '\t', 'len(idDict):', len(idDict)
