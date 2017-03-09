@@ -47,10 +47,13 @@ class splitRawData(object):
 		DegIDList10, DegIDList11, DegIDList12, DegIDList13, DegIDList14, DegIDList15 = self.IDListGroup
 		regList10, regList11, regList12, regList13, regList14, regList15 = [], [], [], [], [], []
 		for row in r:
-			if (row[3]+row[4]) == 'MATH110':
+			crs = row[3].replace(' ','')+row[4].replace(' ','')
+			if (crs) == 'MATH110':
 				row[4] = '133'
-			if (row[3]+row[4]) == 'ENGR110':
+			if (crs) == 'ENGR110':
 				row[4] = '111'
+			if (crs) == 'ENGR141':
+				row[3] = 'MECH'
 
 			if (row[1] in DegIDList10):
 				regList10.append(row)

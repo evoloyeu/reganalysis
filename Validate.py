@@ -34,7 +34,16 @@ class myValidate(object):
 
 		f1courseList,s2courseList,t3courseList,f4courseList = [], [], [], []
 		for row in r:
+			crs = row[3].replace(' ','')+row[4].replace(' ','')
+			if (crs) == 'MATH110':
+				row[4] = '133'
+			if (crs) == 'ENGR110':
+				row[4] = '111'
+			if (crs) == 'ENGR141':
+				row[3] = 'MECH'
+
 			course = row[3].replace(' ','')+row[4].replace(' ','')
+
 			if course not in f1courseList and row[4][0]=='1' and (course in self.techList):
 				f1courseList.append(course)
 				# print '1st Yr Tech Course:', course

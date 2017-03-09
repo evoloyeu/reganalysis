@@ -861,8 +861,9 @@ class prepross(object):
 
 		# create STUREGISTERED
 		w = csv.writer(open(STUREGISTERED, 'w'))
-		w.writerow(['Course', '#Students'])
-		w.writerows([ [key, len(courseDict[key])] for key in courseDict ])
+		# w.writerow(['Course', '#Students'])
+		w.writerow(['subj', 'num', '#Stu', 'year'])
+		w.writerows([ [key.split(' ')[0], key.split(' ')[1], len(courseDict[key]), key.split(' ')[1][0]] for key in courseDict ])
 
 		# create CRS_STU, CRS_STU_GRADE
 		w1, w2 = csv.writer(open(CRS_STU, 'w')), csv.writer(open(CRS_STU_GRADE, 'w'))
