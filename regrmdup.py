@@ -141,8 +141,8 @@ class prepross(object):
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
 			if self.proPredictor == 'ALL':
-				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.factor + '_L1.csv')
-				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.factor + '_Q1.csv')
+				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.factor + '_L.csv')
+				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.factor + '_Q.csv')
 				self.linearPredictResultsListALL.append(self.currDir + 'T1/L/' + filename + self.factor + 'L.csv')
 				self.quadrPredictResultsListALL.append(self.currDir + 'T1/Q/' + filename + self.factor + 'Q.csv')
 				self.linearPredictResultsListTop3.append(self.currDir + 'T3/L/' + filename +'_L3.csv')
@@ -262,47 +262,114 @@ class prepross(object):
 	def computeALL(self):
 		self.predictionPrecisionALLList = []
 		for yrList in self.trainYrsList:
-			for threshold in self.thresholdList:
-				self.isPrepared = False
-				for factor in self.factors:
-					self.threshold, self.trainYrs, self.factor = threshold, yrList, factor
-					self.statsPath()
-					self.predictionPrecisionALLList += myCopy.deepcopy(self.linearPredictResultsListTop1+self.quadrPredictResultsListTop1)
+			self.threshold, self.isPrepared = 1, False
+			tripleFactorDict = {}
+			for factor in self.factors:
+				self.trainYrs, self.factor = yrList, factor
+				self.statsPath()
+				tripleFactorDict[factor] = {'L':self.linearPredictResultsListTop1, 'Q':self.quadrPredictResultsListTop1}
 
-					if not self.isPrepared:
-						self.prepare()
-						self.isPrepared = True
+				self.predictionPrecisionALLList += myCopy.deepcopy(self.linearPredictResultsListTop1+self.quadrPredictResultsListTop1)
 
-						self.testSetsStats()
-						# create predictors
-						self.testWeights()
-						self.rw, self.pw = self.wdict[self.threshold][len(self.trainYrs)], 1.0
-						# use factor Pxy
-						self.formulaV1(self.rw,self.pw)
-						# self.rw,self.pw = rw, pw
-						# use factors of Points, coefficients
-						self.createPRFactors()
-						self.predictorsDict = {'PR':[self.top1FactorsFile, self.top3FactorsFile],'P':[self.top1pFactors, self.top3pFactors],'R':[self.top1rFactors, self.top3rFactors]}
+				if not self.isPrepared:
+					self.prepare()
+					self.isPrepared = True
 
-					self.predictorsScatterPlots()
-					# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
-					self.predicting4ALL()
-					self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL, self.factor)
+					self.testSetsStats()
+					# create predictors
+					self.testWeights()
+					self.rw, self.pw = self.wdict[self.threshold][len(self.trainYrs)], 1.0
+					# use factor Pxy
+					self.formulaV1(self.rw,self.pw)
+					# self.rw,self.pw = rw, pw
+					# use factors of Points, coefficients
+					self.createPRFactors()
+					self.predictorsDict = {'PR':[self.top1FactorsFile, self.top3FactorsFile],'P':[self.top1pFactors, self.top3pFactors],'R':[self.top1rFactors, self.top3rFactors]}
 
-					# merge MAEs, Ranges
-					self.mergeMAEsRangesManager()
+				self.predictorsScatterPlots()
+				# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
+				self.predicting4ALL()
+				self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL, self.factor)
 
-					# plot yr vs yr scatter plots
-					# self.gradePointsDistribution(self.predictorsDict[self.factor][0])
+				# merge MAEs, Ranges
+				self.mergeMAEsRangesManager()
 
-					# # todo: stats
-					if self.errMerge:
-						self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
-						self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
-						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
-						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+				# plot yr vs yr scatter plots
+				# self.gradePointsDistribution(self.predictorsDict[self.factor][0])
 
+				# # todo: stats
+				if self.errMerge:
+					self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
+					self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
+					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+
+			self.tripleFactorGrouper(tripleFactorDict, self.trainYrsText)
 		self.mergePrecision4PedALL(self.predictionPrecisionALLList)
+
+	def tripleFactorGrouper(self, tripleFactorDict, trainYrsText):
+		precisionXlsx = self.timeDir+trainYrsText+'_Triple_Precision.xlsx'
+		workbook = xlsxwriter.Workbook(precisionXlsx)
+		myformat = workbook.add_format({'align':'center_across'})
+
+		PLList, PQList = tripleFactorDict['P']['L'], tripleFactorDict['P']['Q']
+		RLList, RQList = tripleFactorDict['R']['L'], tripleFactorDict['R']['Q']
+		PRLList, PRQList = tripleFactorDict['PR']['L'], tripleFactorDict['PR']['Q']
+		for fullname in PLList:
+			test, factor, regression = fullname.split('/')[-1].split('.')[0].split('_')
+			header , pairArrs = '', []
+			for filenamelist in [PLList, PQList, RLList, RQList, PRLList, PRQList]:
+				testResultFile = self.searchFromList(test, filenamelist)
+				if testResultFile != '':
+					header, resultList = self.readPrecision(testResultFile)
+					if len(resultList) > 0:
+						pairArrs+=resultList
+
+			predictedDict = {}
+			for pair in pairArrs:
+				key = pair[6]+pair[7]
+				if key not in predictedDict:
+					predictedDict[key] = [pair]
+				else:
+					predictedDict[key].append(pair)
+
+			worksheet, rowcnt = workbook.add_worksheet(test), 0
+			for key, items in predictedDict.items():
+				items.sort(key=itemgetter(6,7,2), reverse=False)
+				for row in [header]+items:
+					worksheet.write_row(rowcnt,0,row,myformat)
+					rowcnt+=1
+
+				items.sort(key=itemgetter(6,7,3), reverse=False)
+				for row in ['',header]+items+['']:
+					worksheet.write_row(rowcnt,0,row,myformat)
+					rowcnt+=1
+
+			pairArrs.sort(key=itemgetter(6,7,3), reverse=False)
+			for row in ['', '', header]+pairArrs:
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
+
+		print '==============================='
+
+	def readPrecision(self, filename):
+		r = csv.reader(open(filename), delimiter=',')
+		header = r.next()
+		ret = []
+		for row in r:
+			if len(row) == 0:
+				break
+			ret.append(row)
+
+		return [header, ret]
+
+	def searchFromList(self, keyword, src):
+		for x in src:
+			test, factor, regression = x.split('/')[-1].split('.')[0].split('_')
+			if keyword == test:
+				return x
+
+		return ''
 
 	def computeSpecific(self):
 		self.statsPath()
@@ -2984,7 +3051,7 @@ class prepross(object):
 
 		# write precision
 		header = ['TrainSet','TestSet','LQ','Factor','xSubj','xNum','ySubj','yNum','point#','r','Pxy','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
-		dataset = predictResults.split('/')[-1].split('.')[0][3:-1]
+		dataset = predictResults.split('/')[-1].split('.')[0][3:]
 		precisionList = self.precision4Ped(errRangeStdErrList, dataset)
 		precisionList.sort(key=itemgetter(7,0,3,5), reverse=False)
 		writer.writerows([header]+precisionList)
