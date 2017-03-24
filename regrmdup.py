@@ -4160,7 +4160,6 @@ class prepross(object):
 			precisionList, MAEsList, RangesList, spaceIndex = [], [], [], 0
 			for row in r:
 				if spaceIndex > 3:
-					# r.close()
 					break
 				# precisions
 				if spaceIndex == 0:
@@ -4181,8 +4180,13 @@ class prepross(object):
 			else:
 				acronym = filename
 
-			precisionsW.writerows([[acronym]]+precisionList)
-			MAEsW.writerows([[acronym]]+MAEsList)
+			tmp1=precisionList[1:-1]
+			tmp1.sort(key=itemgetter(7,6,17), reverse=False)
+			tmp2=MAEsList[1:-1]
+			tmp2.sort(key=itemgetter(3,2,12), reverse=False)
+
+			precisionsW.writerows([[acronym]]+[precisionList[0]]+tmp1+[''])
+			MAEsW.writerows([[acronym]]+[MAEsList[0]]+tmp2+[''])
 			RangesW.writerows([[acronym]]+RangesList)
 
 	def mergeMAEsRangesManager(self):
