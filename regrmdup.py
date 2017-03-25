@@ -4180,14 +4180,32 @@ class prepross(object):
 			else:
 				acronym = filename
 
-			tmp1=precisionList[1:-1]
-			tmp1.sort(key=itemgetter(7,6,17), reverse=False)
-			tmp2=MAEsList[1:-1]
-			tmp2.sort(key=itemgetter(3,2,12), reverse=False)
+			head = precisionList[0]
+			s2list,t3list,f4list = self.splitByYear(precisionList[1:-1], [17,7,6], 7)
+			precisionsW.writerows([[acronym],head]+s2list+['',head]+t3list+['', head]+f4list+[''])
 
-			precisionsW.writerows([[acronym]]+[precisionList[0]]+tmp1+[''])
-			MAEsW.writerows([[acronym]]+[MAEsList[0]]+tmp2+[''])
+			head = MAEsList[0]
+			s2list,t3list,f4list = self.splitByYear(MAEsList[1:-1], [12,3,2], 3)
+			MAEsW.writerows([[acronym],head]+s2list+['',head]+t3list+['', head]+f4list+[''])
+
 			RangesW.writerows([[acronym]]+RangesList)
+
+	def splitByYear(self, src, orderSeqs, yearIndex):
+		s2list,t3list,f4list=[],[],[]
+		for row in src:
+			y = row[yearIndex][0]
+			if y=='2':
+				s2list.append(row)
+			if y=='3':
+				t3list.append(row)
+			if y=='4':
+				f4list.append(row)
+
+		s2list.sort(key=itemgetter(orderSeqs[0],orderSeqs[1],orderSeqs[2]), reverse=True)
+		t3list.sort(key=itemgetter(orderSeqs[0],orderSeqs[1],orderSeqs[2]), reverse=True)
+		f4list.sort(key=itemgetter(orderSeqs[0],orderSeqs[1],orderSeqs[2]), reverse=True)
+
+		return [s2list,t3list,f4list]
 
 	def mergeMAEsRangesManager(self):
 		# T1: Top 1; L: Linear; Q: Quadratic; M: MAEs; R: Grade Ranges; Acc: Precisions; str(len(self.trainYrs)): 2,3,4,5; self.factor: PR,P,R; str(self.threshold): 1,5,10
