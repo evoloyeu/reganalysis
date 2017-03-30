@@ -4,9 +4,9 @@ from matplotlib.ticker import MultipleLocator
 from operator import itemgetter
 from adjustText import adjust_text
 
-a, b='/Users/rexlei/Work/users/20170312/2010-2011/data/pearsonCorr.csv', '/Users/rexlei/Work/users/20170312/2010-2012/data/pearsonCorr.csv'
-c, d='/Users/rexlei/Work/users/20170312/2010-2013/data/pearsonCorr.csv', '/Users/rexlei/Work/users/20170312/2010-2014/data/pearsonCorr.csv'
-e, saveDir='/Users/rexlei/Work/users/20170312/SINGLE/data/pearsonCorr.csv', '/Users/rexlei/Work/users/20170312/RPFig/'
+a, b='/Users/rexlei/Work/users/20170324/2010-2011/data/pearsonCorr.csv', '/Users/rexlei/Work/users/20170324/2010-2012/data/pearsonCorr.csv'
+c, d='/Users/rexlei/Work/users/20170324/2010-2013/data/pearsonCorr.csv', '/Users/rexlei/Work/users/20170324/2010-2014/data/pearsonCorr.csv'
+e, saveDir='/Users/rexlei/Work/users/20170324/SINGLE/data/pearsonCorr.csv', '/Users/rexlei/Work/users/20170324/RPFig/'
 
 def plotPearsonRP(xdata, ydata, trSets, xlabel, ylabel, title, figName):
 	# fig = plt.figure()

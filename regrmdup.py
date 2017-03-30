@@ -263,7 +263,7 @@ class prepross(object):
 		self.predictionPrecisionALLList = []
 		for yrList in self.trainYrsList:
 			self.threshold, self.isPrepared = 1, False
-			tripleFactorDict, MRMergeList = {}, []
+			tripleFactorDict, MRMergeList, accRetList, maeRetList = {}, [], [], []
 			for factor in self.factors:
 				self.trainYrs, self.factor = yrList, factor
 				self.statsPath()
@@ -292,7 +292,10 @@ class prepross(object):
 				self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL, self.factor)
 
 				# merge MAEs, Ranges
-				MRMergeList += self.mergeMAEsRangesManager()
+				MRFiles, accRets, maeRets = self.mergeMAEsRangesManager()
+				MRMergeList+=MRFiles
+				accRetList+=accRets
+				maeRetList+=maeRets
 
 				# plot yr vs yr scatter plots
 				# self.gradePointsDistribution(self.predictorsDict[self.factor][0])
@@ -305,15 +308,27 @@ class prepross(object):
 					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
 
 			self.tripleFactorGrouper(tripleFactorDict, self.trainYrsText)
-			self.mrMerger(MRMergeList, self.trainYrsText)
+			self.mrMerger(MRMergeList, accRetList, maeRetList, self.trainYrsText)
 		self.mergePrecision4PedALL(self.predictionPrecisionALLList)
 
-	def mrMerger(self, srcList, trainYrsText):
+	def mrMerger(self, fileList, accRetList, maeRetList, trainYrsText):
 		mrXlsx = self.timeDir+trainYrsText+'_MRMerger.xlsx'
 		workbook = xlsxwriter.Workbook(mrXlsx)
 		myformat = workbook.add_format({'align':'center_across'})
 
-		for item in srcList:
+		worksheet, rowcnt = workbook.add_worksheet('AccTable'), 0
+		for row in accRetList:
+			worksheet.write_row(rowcnt,0,row,myformat)
+			print row
+			rowcnt+=1
+
+		worksheet, rowcnt = workbook.add_worksheet('MAETable'), 0
+		for row in maeRetList:
+			worksheet.write_row(rowcnt,0,row,myformat)
+			print row
+			rowcnt+=1
+
+		for item in fileList:
 			r = csv.reader(open(item), delimiter=',')
 			sheetName = item.split('/')[-1].split('.')[0]
 			worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
@@ -4147,10 +4162,11 @@ class prepross(object):
 
 		return results
 
-	def mergeMAEsRanges(self, srcList, destAccs, destMAEs, destRanges):
+	def mergeMAEsRanges(self, srcList, destAccs, destMAEs, destRanges, regression):
 		# srcList: self.linearPredictResultsListTop1 or self.quadrPredictResultsListTop1
 		# destMAEs: merged MAEs for all test sets for the training set and the threshold
 		# destRanges: merged Ranges for all test sets for the training set and the threshold
+		accRet, maeRet = [], []
 		precisionsW = csv.writer(open(destAccs, 'w'))
 		MAEsW = csv.writer(open(destMAEs, 'w'))
 		RangesW = csv.writer(open(destRanges, 'w'))
@@ -4181,48 +4197,64 @@ class prepross(object):
 				acronym = filename
 
 			head = precisionList[0]
-			s2list,t3list,f4list = self.splitByYear(precisionList[1:-1], [17,7,6], 7)
+			s2list,t3list,f4list,s2extreme,t3extreme,f4extreme = self.splitByYear(precisionList[1:-1], [7,6,17], 7, 17)
 			precisionsW.writerows([[acronym],head]+s2list+['',head]+t3list+['', head]+f4list+[''])
+			accRet.append([self.trainYrsText, acronym, self.factor, regression, '2']+s2extreme)
+			accRet.append([self.trainYrsText, acronym, self.factor, regression, '3']+t3extreme)
+			accRet.append([self.trainYrsText, acronym, self.factor, regression, '4']+f4extreme)
 
 			head = MAEsList[0]
-			s2list,t3list,f4list = self.splitByYear(MAEsList[1:-1], [12,3,2], 3)
+			s2list,t3list,f4list,s2extreme,t3extreme,f4extreme = self.splitByYear(MAEsList[1:-1], [3,2,12], 3, 12)
 			MAEsW.writerows([[acronym],head]+s2list+['',head]+t3list+['', head]+f4list+[''])
+			maeRet.append([self.trainYrsText, acronym, self.factor, regression, '2']+s2extreme)
+			maeRet.append([self.trainYrsText, acronym, self.factor, regression, '3']+t3extreme)
+			maeRet.append([self.trainYrsText, acronym, self.factor, regression, '4']+f4extreme)
 
 			RangesW.writerows([[acronym]]+RangesList)
 
-	def splitByYear(self, src, orderSeqs, yearIndex):
+		return [accRet, maeRet]
+
+	def splitByYear(self, src, orderSeqs, yearIndex, Acc_MAE_index):
 		s2list,t3list,f4list=[],[],[]
+		s2,t3,f4=[],[],[]
 		for row in src:
 			y = row[yearIndex][0]
 			if y=='2':
 				s2list.append(row)
+				s2.append(float(row[Acc_MAE_index]))
 			if y=='3':
 				t3list.append(row)
+				t3.append(float(row[Acc_MAE_index]))
 			if y=='4':
 				f4list.append(row)
+				f4.append(float(row[Acc_MAE_index]))
 
 		s2list.sort(key=itemgetter(orderSeqs[0],orderSeqs[1],orderSeqs[2]), reverse=True)
 		t3list.sort(key=itemgetter(orderSeqs[0],orderSeqs[1],orderSeqs[2]), reverse=True)
 		f4list.sort(key=itemgetter(orderSeqs[0],orderSeqs[1],orderSeqs[2]), reverse=True)
 
-		return [s2list,t3list,f4list]
+		return [s2list,t3list,f4list, [max(s2), min(s2)], [max(t3), min(t3)], [max(f4), min(f4)]]
 
 	def mergeMAEsRangesManager(self):
 		# T1: Top 1; L: Linear; Q: Quadratic; M: MAEs; R: Grade Ranges; Acc: Precisions; str(len(self.trainYrs)): 2,3,4,5; self.factor: PR,P,R; str(self.threshold): 1,5,10
-		ret = []
+		filesRet, accRets, maeRets = [], [], []
 		destAccs = self.currDir + 'T1/T1LAcc' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destMAEs = self.currDir + 'T1/T1LM' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destRanges = self.currDir + 'T1/T1LR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
-		self.mergeMAEsRanges(self.linearPredictResultsListTop1, destAccs, destMAEs, destRanges)
-		ret.append(destAccs), ret.append(destMAEs), ret.append(destRanges)
+		accRet, maeRet = self.mergeMAEsRanges(self.linearPredictResultsListTop1, destAccs, destMAEs, destRanges, 'L')
+		accRets+=accRet
+		maeRets+=maeRet
+		filesRet.append(destAccs), filesRet.append(destMAEs), filesRet.append(destRanges)
 
 		destAccs = self.currDir + 'T1/T1QAcc' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destMAEs = self.currDir + 'T1/T1QM' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destRanges = self.currDir + 'T1/T1QR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
-		self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destAccs, destMAEs, destRanges)
-		ret.append(destAccs), ret.append(destMAEs), ret.append(destRanges)
+		accRet, maeRet = self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destAccs, destMAEs, destRanges, 'Q')
+		accRets+=accRet
+		maeRets+=maeRet
+		filesRet.append(destAccs), filesRet.append(destMAEs), filesRet.append(destRanges)
 
-		return ret
+		return [filesRet, accRets, maeRets]
 
 	def mergePrecision4ALL(self, trainYrsText, precisionListALL, factor):
 		precisionXlsx = self.timeDir+trainYrsText+'_'+factor+'_Precision.xlsx'
