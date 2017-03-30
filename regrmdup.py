@@ -317,13 +317,13 @@ class prepross(object):
 		myformat = workbook.add_format({'align':'center_across'})
 
 		worksheet, rowcnt = workbook.add_worksheet('AccTable'), 0
-		for row in accRetList:
+		for row in [['Train', 'Test', 'Factor', 'Reg', 'Year', 'Max', 'Min']]+accRetList:
 			worksheet.write_row(rowcnt,0,row,myformat)
 			print row
 			rowcnt+=1
 
 		worksheet, rowcnt = workbook.add_worksheet('MAETable'), 0
-		for row in maeRetList:
+		for row in [['Train', 'Test', 'Factor', 'Reg', 'Year', 'Max', 'Min']]+maeRetList:
 			worksheet.write_row(rowcnt,0,row,myformat)
 			print row
 			rowcnt+=1
