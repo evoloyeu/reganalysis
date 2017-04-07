@@ -338,48 +338,86 @@ class prepross(object):
 
 	def tripleFactorGrouper(self, tripleFactorDict, trainYrsText):
 		precisionXlsx = self.timeDir+trainYrsText+'_Triple_Precision.xlsx'
+		MAEXlsx = self.timeDir+trainYrsText+'_Triple_MAE.xlsx'
+
 		workbook = xlsxwriter.Workbook(precisionXlsx)
+		MAEWorkbook = xlsxwriter.Workbook(MAEXlsx)
 		myformat = workbook.add_format({'align':'center_across'})
+		MAEmyformat = MAEWorkbook.add_format({'align':'center_across'})
 
 		PLList, PQList = tripleFactorDict['P']['L'], tripleFactorDict['P']['Q']
 		RLList, RQList = tripleFactorDict['R']['L'], tripleFactorDict['R']['Q']
 		PRLList, PRQList = tripleFactorDict['PR']['L'], tripleFactorDict['PR']['Q']
 		for fullname in PLList:
 			test, factor, regression = fullname.split('/')[-1].split('.')[0].split('_')
-			header , pairArrs = '', []
+			precisionHeader, pairArrs, MAEHeader, MAEPairArrs = '', [], '', []
 			for filenamelist in [PLList, PQList, RLList, RQList, PRLList, PRQList]:
-				testResultFile = self.searchFromList(test, filenamelist)
+				testResultFile = self.getTestFactorRegFromFileName(test, filenamelist)
 				if testResultFile != '':
-					header, resultList = self.readPrecision(testResultFile)
+					precisionHeader, resultList = self.readPrecision(testResultFile)
+					MAEHeader, MAEResultList = self.readMAE(testResultFile)
 					if len(resultList) > 0:
 						pairArrs+=resultList
+					if len(MAEResultList) > 0:
+						MAEPairArrs+=MAEResultList
 
-			predictedDict = {}
-			for pair in pairArrs:
-				key = pair[6]+pair[7]
-				if key not in predictedDict:
-					predictedDict[key] = [pair]
-				else:
-					predictedDict[key].append(pair)
+			self.writeWorkSheet(pairArrs, precisionHeader, workbook, test, myformat)
+			self.writeWorkSheet(MAEPairArrs, MAEHeader, MAEWorkbook, test, MAEmyformat)
 
-			worksheet, rowcnt = workbook.add_worksheet(test), 0
-			for key, items in predictedDict.items():
-				items.sort(key=itemgetter(6,7,2), reverse=False)
-				for row in [header]+items:
-					worksheet.write_row(rowcnt,0,row,myformat)
-					rowcnt+=1
+	def writeWorkSheet(self, pairArrs, header, workbook, sheetName, sheetFormat):
+		predictedDict = {}
+		for pair in pairArrs:
+			# key: predicted course
+			key = pair[6]+pair[7]
+			if key not in predictedDict:
+				predictedDict[key] = [pair]
+			else:
+				predictedDict[key].append(pair)
 
-				items.sort(key=itemgetter(6,7,3), reverse=False)
-				for row in ['',header]+items+['']:
-					worksheet.write_row(rowcnt,0,row,myformat)
-					rowcnt+=1
-
-			pairArrs.sort(key=itemgetter(6,7,3), reverse=False)
-			for row in ['', '', header]+pairArrs:
-				worksheet.write_row(rowcnt,0,row,myformat)
+		# add precision lists
+		worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
+		for key, items in predictedDict.items():
+			items.sort(key=itemgetter(6,7,2), reverse=False)
+			for row in [header]+items:
+				worksheet.write_row(rowcnt,0,row,sheetFormat)
 				rowcnt+=1
 
-		print '==============================='
+			items.sort(key=itemgetter(6,7,3), reverse=False)
+			for row in ['',header]+items+['']:
+				worksheet.write_row(rowcnt,0,row,sheetFormat)
+				rowcnt+=1
+
+		pairArrs.sort(key=itemgetter(6,7,3), reverse=False)
+		for row in ['', '', header]+pairArrs:
+			worksheet.write_row(rowcnt,0,row,sheetFormat)
+			rowcnt+=1
+
+	def readMAE(self, filename):
+		train = filename.split('/')[-5]
+		test, factor, regression = filename.split('/')[-1].split('.')[0].split('_')
+		r = csv.reader(open(filename), delimiter=',')
+		r.next()
+		ret = []
+		MAEStart = False
+		for row in r:
+			if (len(row) == 0) and (MAEStart):
+				MAEStart = False
+				break
+
+			if len(row) == 0:
+				MAEStart = True
+
+			if MAEStart:
+				if len(row) > 0:
+					print row
+					ret.append(row[:20])
+
+		header = ['TrainSet', 'TestSet', 'LQ', 'Factor'] + ret[0]
+		maeList = []
+		for x in ret[1:]:
+			maeList.append([train, test, factor, regression]+x)
+
+		return [header, maeList]
 
 	def readPrecision(self, filename):
 		r = csv.reader(open(filename), delimiter=',')
@@ -388,11 +426,13 @@ class prepross(object):
 		for row in r:
 			if len(row) == 0:
 				break
-			ret.append(row)
+
+			if len(row) > 0:
+				ret.append(row)
 
 		return [header, ret]
 
-	def searchFromList(self, keyword, src):
+	def getTestFactorRegFromFileName(self, keyword, src):
 		for x in src:
 			test, factor, regression = x.split('/')[-1].split('.')[0].split('_')
 			if keyword == test:
@@ -3086,8 +3126,8 @@ class prepross(object):
 		writer.writerows([header]+precisionList)
 
 		# write predictor-predicted course lists
-		if not self.errMerge:
-			writer.writerows(['']+ppedRec)
+		# if not self.errMerge:
+		# 	writer.writerows(['']+ppedRec)
 
 		# pick the 1st year predictors and 2nd year predictors
 		# sort errRangeStdErrList
