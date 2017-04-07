@@ -348,6 +348,7 @@ class prepross(object):
 		PLList, PQList = tripleFactorDict['P']['L'], tripleFactorDict['P']['Q']
 		RLList, RQList = tripleFactorDict['R']['L'], tripleFactorDict['R']['Q']
 		PRLList, PRQList = tripleFactorDict['PR']['L'], tripleFactorDict['PR']['Q']
+		MAE_In_All_Tests = []
 		for fullname in PLList:
 			test, factor, regression = fullname.split('/')[-1].split('.')[0].split('_')
 			precisionHeader, pairArrs, MAEHeader, MAEPairArrs = '', [], '', []
@@ -360,37 +361,63 @@ class prepross(object):
 						pairArrs+=resultList
 					if len(MAEResultList) > 0:
 						MAEPairArrs+=MAEResultList
+						MAE_In_All_Tests+=MAEResultList
 
 			self.writeWorkSheet(pairArrs, precisionHeader, workbook, test, myformat)
 			self.writeWorkSheet(MAEPairArrs, MAEHeader, MAEWorkbook, test, MAEmyformat)
 
+		self.writeWorkSheet(MAE_In_All_Tests, MAEHeader, MAEWorkbook, 'MAE', MAEmyformat)
+
 	def writeWorkSheet(self, pairArrs, header, workbook, sheetName, sheetFormat):
-		predictedDict = {}
-		for pair in pairArrs:
-			# key: predicted course
-			key = pair[6]+pair[7]
-			if key not in predictedDict:
-				predictedDict[key] = [pair]
-			else:
-				predictedDict[key].append(pair)
+		s2List,t3List,f4List = self.groupRecsByYear(pairArrs, 7)
 
-		# add precision lists
 		worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
-		for key, items in predictedDict.items():
-			items.sort(key=itemgetter(6,7,2), reverse=False)
-			for row in [header]+items:
-				worksheet.write_row(rowcnt,0,row,sheetFormat)
-				rowcnt+=1
 
-			items.sort(key=itemgetter(6,7,3), reverse=False)
-			for row in ['',header]+items+['']:
-				worksheet.write_row(rowcnt,0,row,sheetFormat)
-				rowcnt+=1
+		# order by factor
+		rowcnt = self.writeInOrder(s2List, 6, 7, 3, worksheet, 0, sheetFormat, header)
+		rowcnt = self.writeInOrder(t3List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
+		rowcnt = self.writeInOrder(f4List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
+		# order by regression
+		rowcnt = self.writeInOrder(s2List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
+		rowcnt = self.writeInOrder(t3List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
+		rowcnt = self.writeInOrder(f4List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
 
 		pairArrs.sort(key=itemgetter(6,7,3), reverse=False)
 		for row in ['', '', header]+pairArrs:
 			worksheet.write_row(rowcnt,0,row,sheetFormat)
 			rowcnt+=1
+
+	def writeInOrder(self, pairArrs, pedCrsIndex, pedNumIndex, sortIndex, worksheet, rowcnt, sheetFormat, header):
+		predictedDict, myrowcnt = {}, rowcnt
+		for pair in pairArrs:
+			# key: predicted course
+			key = pair[pedCrsIndex]+pair[pedNumIndex]
+			if key not in predictedDict:
+				predictedDict[key] = [pair]
+			else:
+				predictedDict[key].append(pair)
+
+		# keys = predictedDict.keys()
+
+		for key, items in predictedDict.items():
+			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex), reverse=False)
+			for row in [header]+items+['']:
+				worksheet.write_row(myrowcnt,0,row,sheetFormat)
+				myrowcnt+=1
+
+		return myrowcnt
+
+	def groupRecsByYear(self, arrs, pedIndex):
+		s2List,t3List,f4List = [],[],[]
+		for item in arrs:
+			if item[pedIndex][0]=='2':
+				s2List.append(item)
+			if item[pedIndex][0]=='3':
+				t3List.append(item)
+			if item[pedIndex][0]=='4':
+				f4List.append(item)
+
+		return [s2List,t3List,f4List]
 
 	def readMAE(self, filename):
 		train = filename.split('/')[-5]
