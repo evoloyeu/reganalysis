@@ -373,14 +373,14 @@ class prepross(object):
 
 		worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
 
-		# order by factor
-		rowcnt = self.writeInOrder(s2List, 6, 7, 3, worksheet, 0, sheetFormat, header)
-		rowcnt = self.writeInOrder(t3List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
-		rowcnt = self.writeInOrder(f4List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
 		# order by regression
 		rowcnt = self.writeInOrder(s2List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
 		rowcnt = self.writeInOrder(t3List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
 		rowcnt = self.writeInOrder(f4List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
+		# order by factor
+		rowcnt = self.writeInOrder(s2List, 6, 7, 3, worksheet, 0, sheetFormat, header)
+		rowcnt = self.writeInOrder(t3List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
+		rowcnt = self.writeInOrder(f4List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
 
 		pairArrs.sort(key=itemgetter(6,7,3), reverse=False)
 		for row in ['', '', header]+pairArrs:
@@ -442,7 +442,7 @@ class prepross(object):
 		header = ['TrainSet', 'TestSet', 'LQ', 'Factor'] + ret[0]
 		maeList = []
 		for x in ret[1:]:
-			maeList.append([train, test, factor, regression]+x)
+			maeList.append([train, test, regression, factor]+x)
 
 		return [header, maeList]
 
