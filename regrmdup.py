@@ -348,7 +348,7 @@ class prepross(object):
 		PLList, PQList = tripleFactorDict['P']['L'], tripleFactorDict['P']['Q']
 		RLList, RQList = tripleFactorDict['R']['L'], tripleFactorDict['R']['Q']
 		PRLList, PRQList = tripleFactorDict['PR']['L'], tripleFactorDict['PR']['Q']
-		MAE_In_All_Tests = []
+		acc_In_All_Tests, MAE_In_All_Tests = [], []
 		for fullname in PLList:
 			test, factor, regression = fullname.split('/')[-1].split('.')[0].split('_')
 			precisionHeader, pairArrs, MAEHeader, MAEPairArrs = '', [], '', []
@@ -359,6 +359,7 @@ class prepross(object):
 					MAEHeader, MAEResultList = self.readMAE(testResultFile)
 					if len(resultList) > 0:
 						pairArrs+=resultList
+						acc_In_All_Tests+=resultList
 					if len(MAEResultList) > 0:
 						MAEPairArrs+=MAEResultList
 						MAE_In_All_Tests+=MAEResultList
@@ -366,6 +367,7 @@ class prepross(object):
 			self.writeWorkSheet(pairArrs, precisionHeader, workbook, test, myformat)
 			self.writeWorkSheet(MAEPairArrs, MAEHeader, MAEWorkbook, test, MAEmyformat)
 
+		self.writeWorkSheet(acc_In_All_Tests, precisionHeader, workbook, 'Acc', myformat)
 		self.writeWorkSheet(MAE_In_All_Tests, MAEHeader, MAEWorkbook, 'MAE', MAEmyformat)
 
 	def writeWorkSheet(self, pairArrs, header, workbook, sheetName, sheetFormat):
@@ -374,11 +376,11 @@ class prepross(object):
 		worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
 
 		# order by regression
-		rowcnt = self.writeInOrder(s2List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
+		rowcnt = self.writeInOrder(s2List, 6, 7, 2, worksheet, 0, sheetFormat, header)
 		rowcnt = self.writeInOrder(t3List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
 		rowcnt = self.writeInOrder(f4List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
 		# order by factor
-		rowcnt = self.writeInOrder(s2List, 6, 7, 3, worksheet, 0, sheetFormat, header)
+		rowcnt = self.writeInOrder(s2List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
 		rowcnt = self.writeInOrder(t3List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
 		rowcnt = self.writeInOrder(f4List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
 
