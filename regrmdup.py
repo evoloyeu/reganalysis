@@ -367,8 +367,81 @@ class prepross(object):
 			self.writeWorkSheet(pairArrs, precisionHeader, workbook, test, myformat)
 			self.writeWorkSheet(MAEPairArrs, MAEHeader, MAEWorkbook, test, MAEmyformat)
 
-		self.writeWorkSheet(acc_In_All_Tests, precisionHeader, workbook, 'Acc', myformat)
-		self.writeWorkSheet(MAE_In_All_Tests, MAEHeader, MAEWorkbook, 'MAE', MAEmyformat)
+		self.writeWorkSheetMAE_ACC(acc_In_All_Tests, precisionHeader, 17, workbook, 'Acc', myformat)
+		self.writeWorkSheetMAE_ACC(MAE_In_All_Tests, MAEHeader, 16, MAEWorkbook, 'MAE', MAEmyformat)
+
+	def writeWorkSheetMAE_ACC(self, pairArrs, header, cmpIndex, workbook, sheetName, sheetFormat):
+		s2List,t3List,f4List = self.groupRecsByYear(pairArrs, 7)
+
+		worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
+		rowcnt = self.writeInOrderMAE_ACC(s2List, 6, 7, 2, 3, cmpIndex, worksheet, 0, sheetFormat, header)
+		rowcnt = self.writeInOrderMAE_ACC(t3List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header)
+		rowcnt = self.writeInOrderMAE_ACC(f4List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header)
+
+	def writeInOrderMAE_ACC(self, pairArrs, pedCrsIndex, pedNumIndex, sortIndex1, sortIndex2, cmpIndex, worksheet, rowcnt, sheetFormat, header):
+		predictedDict, myrowcnt = {}, rowcnt
+		for pair in pairArrs:
+			# key: predicted course
+			key = pair[pedCrsIndex]+pair[pedNumIndex]
+			if key not in predictedDict:
+				predictedDict[key] = [pair]
+			else:
+				predictedDict[key].append(pair)
+
+		for key, items in predictedDict.items():
+			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex1), reverse=False)
+			for row in [header]+items+['']:
+				worksheet.write_row(myrowcnt,0,row,sheetFormat)
+				myrowcnt+=1
+
+			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex2), reverse=False)
+			pList,rList,prList = self.groupRecsByFactor(items, 3)
+			for subitems in [pList,rList,prList]:
+				for row in [header]+subitems+['']:
+					worksheet.write_row(myrowcnt,0,row,sheetFormat)
+					myrowcnt+=1
+
+			pcmp = self.compareLQMAE_ACC(pList, cmpIndex)
+			rcmp = self.compareLQMAE_ACC(rList, cmpIndex)
+			prcmp = self.compareLQMAE_ACC(prList, cmpIndex)
+
+			for row in [['PL','PQ','RL','RQ','PRL','PRQ'], pcmp+rcmp+prcmp, '']:
+				worksheet.write_row(myrowcnt,0,row,sheetFormat)
+				myrowcnt+=1
+
+		return myrowcnt
+
+	def compareLQMAE_ACC(self, arrs, cmpIndex):
+		if len(arrs)%2!=0:
+			return [-1,-1]
+
+		lcnt, qcnt = 0, 0
+		for x in xrange(0,len(arrs), 2):
+			if float(arrs[x][cmpIndex])>float(arrs[x+1][cmpIndex]):
+				lcnt+=1
+			elif float(arrs[x][cmpIndex])==float(arrs[x+1][cmpIndex]):
+				qcnt+=1
+				lcnt+=1
+			else:
+				qcnt+=1
+
+		return [lcnt, qcnt]
+
+	def groupRecsByFactor(self, arrs, factorIndex):
+		pList,rList,prList = [],[],[]
+		for item in arrs:
+			if item[factorIndex]=='P':
+				pList.append(item)
+			if item[factorIndex]=='R':
+				rList.append(item)
+			if item[factorIndex]=='PR':
+				prList.append(item)
+
+		pList.sort(key=itemgetter(1), reverse=False)
+		rList.sort(key=itemgetter(1), reverse=False)
+		prList.sort(key=itemgetter(1), reverse=False)
+
+		return [pList,rList,prList]
 
 	def writeWorkSheet(self, pairArrs, header, workbook, sheetName, sheetFormat):
 		s2List,t3List,f4List = self.groupRecsByYear(pairArrs, 7)
@@ -398,8 +471,6 @@ class prepross(object):
 				predictedDict[key] = [pair]
 			else:
 				predictedDict[key].append(pair)
-
-		# keys = predictedDict.keys()
 
 		for key, items in predictedDict.items():
 			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex), reverse=False)
