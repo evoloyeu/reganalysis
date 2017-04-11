@@ -367,19 +367,32 @@ class prepross(object):
 			self.writeWorkSheet(pairArrs, precisionHeader, workbook, test, myformat)
 			self.writeWorkSheet(MAEPairArrs, MAEHeader, MAEWorkbook, test, MAEmyformat)
 
-		self.writeWorkSheetMAE_ACC(acc_In_All_Tests, precisionHeader, 17, workbook, 'Acc', myformat, 'ACC')
+		self.writeWorkSheetMAE_ACC(acc_In_All_Tests, precisionHeader, 17, workbook, 'ACC', myformat, 'ACC')
 		self.writeWorkSheetMAE_ACC(MAE_In_All_Tests, MAEHeader, 16, MAEWorkbook, 'MAE', MAEmyformat, 'MAE')
 
 	def writeWorkSheetMAE_ACC(self, pairArrs, header, cmpIndex, workbook, sheetName, sheetFormat, category):
 		s2List,t3List,f4List = self.groupRecsByYear(pairArrs, 7)
 
 		worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
-		rowcnt = self.writeInOrderMAE_ACC(s2List, 6, 7, 2, 3, cmpIndex, worksheet, 0, sheetFormat, header, category)
-		rowcnt = self.writeInOrderMAE_ACC(t3List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
-		rowcnt = self.writeInOrderMAE_ACC(f4List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+		rowcnt, cmpList2 = self.writeInOrderMAE_ACC(s2List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+		rowcnt, cmpList3 = self.writeInOrderMAE_ACC(t3List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+		rowcnt, cmpList4 = self.writeInOrderMAE_ACC(f4List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+
+		worksheet, rowcnt = workbook.add_worksheet(category+'_CMP'), 0
+		rowcnt = self.writeCmpSheet(cmpList2, worksheet, sheetFormat, rowcnt)
+		rowcnt = self.writeCmpSheet(cmpList3, worksheet, sheetFormat, rowcnt)
+		rowcnt = self.writeCmpSheet(cmpList4, worksheet, sheetFormat, rowcnt)
+
+	def writeCmpSheet(self, cmpList, worksheet, sheetFormat, rowcnt):
+		myrowcnt = rowcnt
+		for row in [['PedCrs','PL','PQ','RL','RQ','PRL','PRQ']]+cmpList+['']:
+			worksheet.write_row(myrowcnt,0,row,sheetFormat)
+			myrowcnt+=1
+
+		return myrowcnt
 
 	def writeInOrderMAE_ACC(self, pairArrs, pedCrsIndex, pedNumIndex, sortIndex1, sortIndex2, cmpIndex, worksheet, rowcnt, sheetFormat, header, category):
-		predictedDict, myrowcnt = {}, rowcnt
+		predictedDict, myrowcnt, cmpList = {}, rowcnt, []
 		for pair in pairArrs:
 			# key: predicted course
 			key = pair[pedCrsIndex]+pair[pedNumIndex]
@@ -405,11 +418,13 @@ class prepross(object):
 			rcmp = self.compareLQMAE_ACC(rList, cmpIndex, category)
 			prcmp = self.compareLQMAE_ACC(prList, cmpIndex, category)
 
+			cmpList.append([key]+pcmp+rcmp+prcmp)
+
 			for row in [['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp, '']:
 				worksheet.write_row(myrowcnt,0,row,sheetFormat)
 				myrowcnt+=1
 
-		return myrowcnt
+		return [myrowcnt, cmpList]
 
 	def compareLQMAE_ACC(self, arrs, cmpIndex, category):
 		if len(arrs)%2!=0:
