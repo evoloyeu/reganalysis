@@ -385,7 +385,7 @@ class prepross(object):
 
 	def writeCmpSheet(self, cmpList, worksheet, sheetFormat, rowcnt):
 		myrowcnt = rowcnt
-		for row in [['PedCrs','PL','PQ','RL','RQ','PRL','PRQ']]+cmpList+['']:
+		for row in cmpList+['']:
 			worksheet.write_row(myrowcnt,0,row,sheetFormat)
 			myrowcnt+=1
 
@@ -414,11 +414,13 @@ class prepross(object):
 					worksheet.write_row(myrowcnt,0,row,sheetFormat)
 					myrowcnt+=1
 
-			pcmp = self.compareLQMAE_ACC(pList, cmpIndex, category)
-			rcmp = self.compareLQMAE_ACC(rList, cmpIndex, category)
-			prcmp = self.compareLQMAE_ACC(prList, cmpIndex, category)
+			pcmp, pcmpList = self.compareLQMAE_ACC('P', pList, cmpIndex, category)
+			rcmp, rcmpList = self.compareLQMAE_ACC('R', rList, cmpIndex, category)
+			prcmp, prcmpList = self.compareLQMAE_ACC('PR', prList, cmpIndex, category)
 
-			cmpList.append([key]+pcmp+rcmp+prcmp)
+			# cmpList.append([[key]+pcmp+rcmp+prcmp]+['']+pcmpList+['']+rcmpList+['']+prcmpList)
+			for x in [['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp]+['']+pcmpList+['']+rcmpList+['']+prcmpList+['']:
+				cmpList.append(x)
 
 			for row in [['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp, '']:
 				worksheet.write_row(myrowcnt,0,row,sheetFormat)
@@ -426,12 +428,17 @@ class prepross(object):
 
 		return [myrowcnt, cmpList]
 
-	def compareLQMAE_ACC(self, arrs, cmpIndex, category):
+	def compareLQMAE_ACC(self, factor, arrs, cmpIndex, category):
 		if len(arrs)%2!=0:
-			return [-1,-1]
+			return [[-1],[-1]]
 
 		lcnt, qcnt = 0, 0
+		testList, L_MAE_ACC_List, diffList = [factor], ['L'], ['LQDiff']
 		for x in xrange(0,len(arrs), 2):
+			testList+=[arrs[x][1]]
+			L_MAE_ACC_List+=[arrs[x][cmpIndex]]
+			diffList+=[float(arrs[x][cmpIndex])-float(arrs[x+1][cmpIndex])]
+
 			if float(arrs[x][cmpIndex])>float(arrs[x+1][cmpIndex]):
 				lcnt+=1
 			elif float(arrs[x][cmpIndex])==float(arrs[x+1][cmpIndex]):
@@ -441,9 +448,9 @@ class prepross(object):
 				qcnt+=1
 
 		if category == 'MAE':
-			return [qcnt, lcnt]
+			return [[qcnt, lcnt], [testList, L_MAE_ACC_List, diffList]]
 		else:
-			return [lcnt, qcnt]
+			return [[lcnt, qcnt], [testList, L_MAE_ACC_List, diffList]]
 
 	def groupRecsByFactor(self, arrs, factorIndex):
 		pList,rList,prList = [],[],[]
