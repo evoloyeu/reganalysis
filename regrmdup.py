@@ -433,7 +433,7 @@ class prepross(object):
 		return [myrowcnt, cmpLQList, cmpFactorList]
 
 	def FactorCMP(self, pedCrs, arrDict, cmpIndex, regression):
-		testList, PR_MAE_ACC_List, PDiffList, RDiffList = [pedCrs, regression], [pedCrs, 'PR'], [pedCrs, 'PDiff'], [pedCrs, 'RDiff']
+		testList, PR_MAE_ACC_List, P_MAE_ACC_List, R_MAE_ACC_List, PDiffList, RDiffList = [pedCrs, regression], [pedCrs, 'PR'], [pedCrs, 'P'], [pedCrs, 'R'], [pedCrs, 'PDiff'], [pedCrs, 'RDiff']
 		for key, items in arrDict.items():
 			testList+=[key]
 			pr, p, r = '', '', ''
@@ -446,27 +446,31 @@ class prepross(object):
 					r=x
 
 			if pr != '':
-				PR_MAE_ACC_List+=[pr[cmpIndex]]
+				PR_MAE_ACC_List+=[float(pr[cmpIndex])]
 			else:
 				PR_MAE_ACC_List+=['']
 
 			if p!='':
+				P_MAE_ACC_List+=[float(p[cmpIndex])]
 				if pr != '':
 					PDiffList+=[float(pr[cmpIndex])-float(p[cmpIndex])]
 				else:
-					PDiffList+=[p[cmpIndex]]
+					PDiffList+=[float(p[cmpIndex])]
 			else:
+				P_MAE_ACC_List+=['']
 				PDiffList+=['']
 
 			if r!='':
+				R_MAE_ACC_List+=[float(r[cmpIndex])]
 				if pr != '':
 					RDiffList+=[float(pr[cmpIndex])-float(r[cmpIndex])]
 				else:
-					RDiffList+=[r[cmpIndex]]
+					RDiffList+=[float(r[cmpIndex])]
 			else:
+				R_MAE_ACC_List+=['']
 				RDiffList+=['']
 
-		return [testList, PR_MAE_ACC_List, PDiffList, RDiffList]
+		return [testList, PR_MAE_ACC_List, P_MAE_ACC_List, R_MAE_ACC_List, PDiffList, RDiffList]
 
 	def groupRecsByReg(self, arrs):
 		LList, QList = [], []
@@ -493,10 +497,11 @@ class prepross(object):
 			return [[-1],[-1]]
 
 		lcnt, qcnt = 0, 0
-		testList, L_MAE_ACC_List, diffList = [factor], ['L'], ['LQDiff']
+		testList, L_MAE_ACC_List, Q_MAE_ACC_List, diffList = [factor], ['L'], ['Q'], ['LQDiff']
 		for x in xrange(0,len(arrs), 2):
 			testList+=[arrs[x][1]]
-			L_MAE_ACC_List+=[arrs[x][cmpIndex]]
+			L_MAE_ACC_List+=[float(arrs[x][cmpIndex])]
+			Q_MAE_ACC_List+=[float(arrs[x+1][cmpIndex])]
 			diffList+=[float(arrs[x][cmpIndex])-float(arrs[x+1][cmpIndex])]
 
 			if float(arrs[x][cmpIndex])>float(arrs[x+1][cmpIndex]):
@@ -508,9 +513,9 @@ class prepross(object):
 				qcnt+=1
 
 		if category == 'MAE':
-			return [[qcnt, lcnt], [testList, L_MAE_ACC_List, diffList]]
+			return [[qcnt, lcnt], [testList, L_MAE_ACC_List, Q_MAE_ACC_List, diffList]]
 		else:
-			return [[lcnt, qcnt], [testList, L_MAE_ACC_List, diffList]]
+			return [[lcnt, qcnt], [testList, L_MAE_ACC_List, Q_MAE_ACC_List, diffList]]
 
 	def groupRecsByFactor(self, arrs, factorIndex):
 		pList,rList,prList = [],[],[]
