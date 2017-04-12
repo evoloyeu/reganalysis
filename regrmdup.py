@@ -374,16 +374,17 @@ class prepross(object):
 		s2List,t3List,f4List = self.groupRecsByYear(pairArrs, 7)
 
 		worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
-		rowcnt, cmpList2 = self.writeInOrderMAE_ACC(s2List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
-		rowcnt, cmpList3 = self.writeInOrderMAE_ACC(t3List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
-		rowcnt, cmpList4 = self.writeInOrderMAE_ACC(f4List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+		rowcnt, cmpList2, cmpFactorList2 = self.writeInOrderMAE_ACC(s2List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+		rowcnt, cmpList3, cmpFactorList3 = self.writeInOrderMAE_ACC(t3List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+		rowcnt, cmpList4, cmpFactorList4 = self.writeInOrderMAE_ACC(f4List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
 
-		worksheet, rowcnt = workbook.add_worksheet(category+'_CMP'), 0
-		rowcnt = self.writeCmpSheet(cmpList2, worksheet, sheetFormat, rowcnt)
-		rowcnt = self.writeCmpSheet(cmpList3, worksheet, sheetFormat, rowcnt)
-		rowcnt = self.writeCmpSheet(cmpList4, worksheet, sheetFormat, rowcnt)
+		worksheet, rowcnt = workbook.add_worksheet('LQ_CMP'), 0
+		rowcnt = self.writeSheet(cmpList2+['']+cmpList3+['']+cmpList4, worksheet, sheetFormat, rowcnt)
 
-	def writeCmpSheet(self, cmpList, worksheet, sheetFormat, rowcnt):
+		worksheet, rowcnt = workbook.add_worksheet('Factors_CMP'), 0
+		rowcnt = self.writeSheet(cmpFactorList2+['']+cmpFactorList3+['']+cmpFactorList4, worksheet, sheetFormat, rowcnt)
+
+	def writeSheet(self, cmpList, worksheet, sheetFormat, rowcnt):
 		myrowcnt = rowcnt
 		for row in cmpList+['']:
 			worksheet.write_row(myrowcnt,0,row,sheetFormat)
@@ -392,7 +393,7 @@ class prepross(object):
 		return myrowcnt
 
 	def writeInOrderMAE_ACC(self, pairArrs, pedCrsIndex, pedNumIndex, sortIndex1, sortIndex2, cmpIndex, worksheet, rowcnt, sheetFormat, header, category):
-		predictedDict, myrowcnt, cmpList = {}, rowcnt, []
+		predictedDict, myrowcnt, cmpLQList, cmpFactorList = {}, rowcnt, [], []
 		for pair in pairArrs:
 			# key: predicted course
 			key = pair[pedCrsIndex]+pair[pedNumIndex]
@@ -403,9 +404,14 @@ class prepross(object):
 
 		for key, items in predictedDict.items():
 			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex1), reverse=False)
+			LDict, QDict = self.groupRecsByReg(items)
 			for row in [header]+items+['']:
 				worksheet.write_row(myrowcnt,0,row,sheetFormat)
 				myrowcnt+=1
+
+			cmpLFactorList = self.FactorCMP(key, LDict, cmpIndex, 'L')
+			cmpQFactorList = self.FactorCMP(key, QDict, cmpIndex, 'Q')
+			cmpFactorList+=cmpLFactorList+['']+cmpQFactorList+['']
 
 			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex2), reverse=False)
 			pList,rList,prList = self.groupRecsByFactor(items, 3)
@@ -418,15 +424,69 @@ class prepross(object):
 			rcmp, rcmpList = self.compareLQMAE_ACC('R', rList, cmpIndex, category)
 			prcmp, prcmpList = self.compareLQMAE_ACC('PR', prList, cmpIndex, category)
 
-			# cmpList.append([[key]+pcmp+rcmp+prcmp]+['']+pcmpList+['']+rcmpList+['']+prcmpList)
-			for x in [['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp]+['']+pcmpList+['']+rcmpList+['']+prcmpList+['']:
-				cmpList.append(x)
+			cmpLQList+=[['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp]+['']+pcmpList+['']+rcmpList+['']+prcmpList+['']
 
 			for row in [['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp, '']:
 				worksheet.write_row(myrowcnt,0,row,sheetFormat)
 				myrowcnt+=1
 
-		return [myrowcnt, cmpList]
+		return [myrowcnt, cmpLQList, cmpFactorList]
+
+	def FactorCMP(self, pedCrs, arrDict, cmpIndex, regression):
+		testList, PR_MAE_ACC_List, PDiffList, RDiffList = [pedCrs, regression], [pedCrs, 'PR'], [pedCrs, 'PDiff'], [pedCrs, 'RDiff']
+		for key, items in arrDict.items():
+			testList+=[key]
+			pr, p, r = '', '', ''
+			for x in items:
+				if x[3]=='PR':
+					pr=x
+				if x[3]=='P':
+					p=x
+				if x[3]=='R':
+					r=x
+
+			if pr != '':
+				PR_MAE_ACC_List+=[pr[cmpIndex]]
+			else:
+				PR_MAE_ACC_List+=['']
+
+			if p!='':
+				if pr != '':
+					PDiffList+=[float(pr[cmpIndex])-float(p[cmpIndex])]
+				else:
+					PDiffList+=[p[cmpIndex]]
+			else:
+				PDiffList+=['']
+
+			if r!='':
+				if pr != '':
+					RDiffList+=[float(pr[cmpIndex])-float(r[cmpIndex])]
+				else:
+					RDiffList+=[r[cmpIndex]]
+			else:
+				RDiffList+=['']
+
+		return [testList, PR_MAE_ACC_List, PDiffList, RDiffList]
+
+	def groupRecsByReg(self, arrs):
+		LList, QList = [], []
+		for item in arrs:
+			if item[2] == 'L':
+				LList.append(item)
+			if item[2] == 'Q':
+				QList.append(item)
+
+		return [self.groupRecsByTest(LList), self.groupRecsByTest(QList)]
+
+	def groupRecsByTest(self, arrs):
+		testDict = {}
+		for item in arrs:
+			if item[1] not in testDict:
+				testDict[item[1]] = [item]
+			else:
+				testDict[item[1]].append(item)
+
+		return testDict
 
 	def compareLQMAE_ACC(self, factor, arrs, cmpIndex, category):
 		if len(arrs)%2!=0:
@@ -3086,10 +3146,10 @@ class prepross(object):
 		else:
 			return []
 
-	def precision4Ped(self, errRangeStdErrList, dataset):
+	def precision4Ped(self, errRangeStdErrList, testSet, regression):
 		precisionList = []
 		for errRec in errRangeStdErrList:
-			rec, errorList = [self.trainYrsText, dataset, dataset[-1], self.factor]+errRec[:6]+[errRec[18],errRec[14]], errRec[20:]
+			rec, errorList = [self.trainYrsText, testSet, regression, self.factor]+errRec[:6]+[errRec[18],errRec[14]], errRec[20:]
 			le_05 = be_05_10 = be_10_15 = gt15 = 0
 			for err in errorList:
 				if abs(float(err)) <= 0.5:
@@ -3245,8 +3305,8 @@ class prepross(object):
 
 		# write precision
 		header = ['TrainSet','TestSet','LQ','Factor','xSubj','xNum','ySubj','yNum','point#','r','Pxy','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
-		dataset = predictResults.split('/')[-1].split('.')[0][3:]
-		precisionList = self.precision4Ped(errRangeStdErrList, dataset)
+		testSet, factor, regression = predictResults.split('/')[-1].split('.')[0].split('_')
+		precisionList = self.precision4Ped(errRangeStdErrList, testSet, regression)
 		precisionList.sort(key=itemgetter(7,0,3,5), reverse=False)
 		writer.writerows([header]+precisionList)
 
