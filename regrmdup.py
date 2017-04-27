@@ -402,6 +402,7 @@ class prepross(object):
 			else:
 				predictedDict[key].append(pair)
 
+		cmpStats, pcmpStat, rcmpStat, prcmpStat = [], ['P', 0, 0, 0], ['R,', 0, 0, 0], ['PR', 0, 0, 0]
 		for key, items in predictedDict.items():
 			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex1), reverse=False)
 			LDict, QDict = self.groupRecsByReg(items)
@@ -425,12 +426,27 @@ class prepross(object):
 			prcmp, prcmpList = self.compareLQMAE_ACC('PR', prList, cmpIndex, category)
 
 			cmpLQList+=[['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp]+['']+pcmpList+['']+rcmpList+['']+prcmpList+['']
+			cmpStats+=[[key]+pcmp+rcmp+prcmp]
+			self.factorCmpStat(pcmpStat, pcmp)
+			self.factorCmpStat(rcmpStat, rcmp)
+			self.factorCmpStat(prcmpStat, prcmp)
 
 			for row in [['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp, '']:
 				worksheet.write_row(myrowcnt,0,row,sheetFormat)
 				myrowcnt+=1
 
-		return [myrowcnt, cmpLQList, cmpFactorList]
+		return [myrowcnt, cmpLQList+['', ['PedCrs','PL','PQ','RL','RQ','PRL','PRQ']]+cmpStats+['', ['Factor', 'Q>L', 'Q=L', 'Q<L']]+[pcmpStat, rcmpStat, prcmpStat, ''], cmpFactorList]
+
+	def factorCmpStat(self, src, cmpArr):
+		# L<Q
+		if cmpArr[0] < cmpArr[1]:
+			src[1]+=1
+		# L>Q
+		elif cmpArr[0] > cmpArr[1]:
+			src[3]+=1
+		# L=Q
+		else:
+			src[2]+=1
 
 	def FactorCMP(self, pedCrs, arrDict, cmpIndex, regression):
 		testList, PR_MAE_ACC_List, P_MAE_ACC_List, R_MAE_ACC_List, PDiffList, RDiffList = [pedCrs, regression], [pedCrs, 'PR'], [pedCrs, 'P'], [pedCrs, 'R'], [pedCrs, 'PDiff'], [pedCrs, 'RDiff']
