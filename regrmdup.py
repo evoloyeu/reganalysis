@@ -337,7 +337,7 @@ class prepross(object):
 				rowcnt+=1
 
 	def tripleFactorGrouper(self, tripleFactorDict, trainYrsText):
-		precisionXlsx = self.timeDir+trainYrsText+'_Triple_Precision.xlsx'
+		precisionXlsx = self.timeDir+trainYrsText+'_Triple_ACC.xlsx'
 		MAEXlsx = self.timeDir+trainYrsText+'_Triple_MAE.xlsx'
 
 		workbook = xlsxwriter.Workbook(precisionXlsx)
@@ -4598,7 +4598,7 @@ class prepross(object):
 		return [filesRet, accRets, maeRets]
 
 	def mergePrecision4ALL(self, trainYrsText, precisionListALL, factor):
-		precisionXlsx = self.timeDir+trainYrsText+'_'+factor+'_Precision.xlsx'
+		precisionXlsx = self.timeDir+trainYrsText+'_'+factor+'_ACC.xlsx'
 		workbook = xlsxwriter.Workbook(precisionXlsx)
 		myformat = workbook.add_format({'align':'center_across'})
 		for p in precisionListALL:
