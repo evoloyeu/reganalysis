@@ -309,7 +309,7 @@ class prepross(object):
 
 			self.tripleFactorGrouper(tripleFactorDict, self.trainYrsText)
 			self.mrMerger(MRMergeList, accRetList, maeRetList, self.trainYrsText)
-		self.mergePrecision4PedALL(self.predictionPrecisionALLList)
+		self.mergeACC_MAE_4PedALL(self.predictionPrecisionALLList)
 
 	def mrMerger(self, fileList, accRetList, maeRetList, trainYrsText):
 		mrXlsx = self.timeDir+trainYrsText+'_MRMerger.xlsx'
@@ -670,26 +670,26 @@ class prepross(object):
 
 		return trainDict
 
-	def mergePrecision4PedALL(self, resultLists):
-		precisionXlsx = self.timeDir+'Ped_Precision.xlsx'
+	def mergeACC_MAE_4PedALL(self, resultLists):
+		precisionXlsx = self.timeDir+'Ped_ACC.xlsx'
 		workbook = xlsxwriter.Workbook(precisionXlsx)
 		myformat = workbook.add_format({'align':'center_across'})
+
 		allList, head, pindex = [], '', -1
+		ALL_MAE_Recs, maeHead = [], ''
 		for key, sublist in self.sortResultFiles(resultLists).items():
 			dataset, recList, rowcnt = '', [], 0
 			for fname in sublist:
-				print fname
-				# dataset = fname.split('/')[-1].split('.')[0][3:-1]
-				r = csv.reader(open(fname), delimiter=',')
-				head = r.next()
-				for row in r:
-					if len(row) > 0:
-						dataset = row[0]
-						recList.append(row)
-						# print len(row), ': ', row
-					else:
-						break
+				# read acc
+				head, accRec = self.readPrecision(fname)
+				recList += accRec
+				# read MAEs
+				maeHead, maeRec = self.readMAE(fname)
+				ALL_MAE_Recs += maeRec
 
+				print fname
+
+			dataset = recList[0][0]
 			print dataset
 
 			recList.sort(key=itemgetter(7,6,0,1,3,5), reverse=False)
@@ -730,6 +730,46 @@ class prepross(object):
 			for row in ret:
 				worksheet.write_row(rowcnt,0,row,myformat)
 				rowcnt+=1
+
+		# write Ped_MAE
+		MAEXlsx = self.timeDir+'Ped_MAE.xlsx'
+		MAE_workbook = xlsxwriter.Workbook(MAEXlsx)
+		MAE_myformat = MAE_workbook.add_format({'align':'center_across'})
+
+		worksheet = MAE_workbook.add_worksheet('ALLMAEs')
+		ALL_MAE_Recs.sort(key=itemgetter(7,6,3,2,1), reverse=False)
+		self.writeSheet([maeHead]+ALL_MAE_Recs, worksheet, MAE_myformat, 0)
+		# write course sheet for MAE_workbook
+		keys, MAEDict = self.format_ALL_MAEs(ALL_MAE_Recs)
+		for key in keys:
+			print 'Write ALL_MAEs for:\t', key
+			predictedCrs_ALL_MAE_List = MAEDict[key]
+			predictedCrs_ALL_MAE_List.sort(key=itemgetter(7,6,3,2,1), reverse=False)
+			worksheet = MAE_workbook.add_worksheet(key)
+			self.writeSheet([maeHead]+predictedCrs_ALL_MAE_List, worksheet, MAE_myformat, 0)
+
+	def format_ALL_MAEs(self, ALL_MAE_Recs):
+		# sort by: yNum,ySubj,Factor,LQ,TestSet
+		ALL_MAE_Recs.sort(key=itemgetter(7,6,3,2,1), reverse=False)
+		# 2nd Year List, 3rd Year List, 4th Year List
+		s2ListCrsList,t3ListCrsList,f4ListCrsList = [], [], []
+		predictedCrsDict = {}
+		for row in ALL_MAE_Recs:
+			# key: predicted course
+			key = row[6]+row[7]
+			if key not in predictedCrsDict:
+				predictedCrsDict[key]=[row]
+			else:
+				predictedCrsDict[key].append(row)
+
+			if (row[7][0]=='2') and (key not in s2ListCrsList):
+				s2ListCrsList.append(key)
+			elif (row[7][0]=='3') and (key not in t3ListCrsList):
+				t3ListCrsList.append(key)
+			elif (row[7][0]=='4') and (key not in f4ListCrsList):
+				f4ListCrsList.append(key)
+
+		return [s2ListCrsList+t3ListCrsList+f4ListCrsList, predictedCrsDict]
 
 	def analyzePrecision4OneCourse(self, crsList, head):
 		pointIndex,rIndex,PxyIndex,insIndex,accIndex=head.index('point#'),head.index('r'),head.index('Pxy'),head.index('instance'),head.index('0~1.0')+1
