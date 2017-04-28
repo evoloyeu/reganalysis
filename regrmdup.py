@@ -739,14 +739,69 @@ class prepross(object):
 		worksheet = MAE_workbook.add_worksheet('ALLMAEs')
 		ALL_MAE_Recs.sort(key=itemgetter(7,6,3,2,1), reverse=False)
 		self.writeSheet([maeHead]+ALL_MAE_Recs, worksheet, MAE_myformat, 0)
+
 		# write course sheet for MAE_workbook
 		keys, MAEDict = self.format_ALL_MAEs(ALL_MAE_Recs)
 		for key in keys:
 			print 'Write ALL_MAEs for:\t', key
 			predictedCrs_ALL_MAE_List = MAEDict[key]
 			predictedCrs_ALL_MAE_List.sort(key=itemgetter(7,6,3,2,1), reverse=False)
+			ret = self.format_Ped_MAEs(predictedCrs_ALL_MAE_List, maeHead)
 			worksheet = MAE_workbook.add_worksheet(key)
-			self.writeSheet([maeHead]+predictedCrs_ALL_MAE_List, worksheet, MAE_myformat, 0)
+			self.writeSheet(ret, worksheet, MAE_myformat, 0)
+
+	def format_Ped_MAEs(self, predictedCrs_ALL_MAE_List, maeHead):
+		ret = []
+		pLList, rLList, prLList = [], [], []
+		pQList, rQList, prQList = [], [], []
+		for row in predictedCrs_ALL_MAE_List:
+			if row[3] == 'P':
+				if row[2] == 'L':
+					pLList.append(row)
+				elif row[2] == 'Q':
+					pQList.append(row)
+			elif row[3] == 'R':
+				if row[2] == 'L':
+					rLList.append(row)
+				elif row[2] == 'Q':
+					rQList.append(row)
+			elif row[3] == 'PR':
+				if row[2] == 'L':
+					prLList.append(row)
+				elif row[2] == 'Q':
+					prQList.append(row)
+
+		ret += self.Ped_MAEs_Spliter(pLList, maeHead)
+		ret += self.Ped_MAEs_Spliter(pQList, maeHead)
+		ret += self.Ped_MAEs_Spliter(rLList, maeHead)
+		ret += self.Ped_MAEs_Spliter(rQList, maeHead)
+		ret += self.Ped_MAEs_Spliter(prLList, maeHead)
+		ret += self.Ped_MAEs_Spliter(prQList, maeHead)
+
+		return ret
+
+	def Ped_MAEs_Spliter(self, myList, maeHead):
+		ret = []
+		keyList, mydict = [], {}
+		for row in myList:
+			# key: test set
+			key = row[1]
+			if key not in mydict:
+				mydict[key]=[row]
+			else:
+				mydict[key].append(row)
+
+			if key not in keyList:
+				keyList.append(key)
+
+		tmp = [maeHead]
+		for key in keyList:
+			if len(mydict[key]) > 1:
+				ret += [maeHead] + mydict[key] + ['']
+			else:
+				tmp += mydict[key]
+
+		return (ret + tmp + ['',''])
 
 	def format_ALL_MAEs(self, ALL_MAE_Recs):
 		# sort by: yNum,ySubj,Factor,LQ,TestSet
