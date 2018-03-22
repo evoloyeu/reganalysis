@@ -1835,7 +1835,11 @@ class prepross(object):
 					# 	print 'cnt:',cnt,'less than threshold course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
 					# 	continue
 
-					(r, p) = pearsonr(xdata, ydata)
+					# before computing the pearson correlation coefficient, normalize the dataset
+					xl = [i*1.0/sum(xdata) for i in xdata]
+					yl = [i*1.0/sum(ydata) for i in ydata]
+
+					(r, p) = pearsonr(xl, yl)
 					if str(r) == 'nan':
 						noCorrList.append(newCourse)
 						cnt += 1
@@ -1849,12 +1853,12 @@ class prepross(object):
 					self.createBoxPlots([course[0], course[1]]+xdata, [newCourse[0], newCourse[1]]+ydata)
 					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
-					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+					slope, intercept, r_value, p_value, std_err = linregress(xl, yl)
 					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 
 					# r_value = float(format(r, '.4f'))
-					slope, intercept = self.regressionPlot(xdata, ydata, r, 1, xaxis, yaxis, self.linear_plots_ori, len(ydata))
-					a,b,c = self.regressionPlot(xdata, ydata, r, 2, xaxis, yaxis, self.quadratic_plots_ori, len(ydata))
+					slope, intercept = self.regressionPlot(xl, yl, r, 1, xaxis, yaxis, self.linear_plots_ori, len(ydata))
+					a,b,c = self.regressionPlot(xl, yl, r, 2, xaxis, yaxis, self.quadratic_plots_ori, len(ydata))
 
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
