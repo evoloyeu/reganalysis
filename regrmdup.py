@@ -1840,6 +1840,7 @@ class prepross(object):
 					yl = [i*1.0/sum(ydata) for i in ydata]
 
 					(r, p) = pearsonr(xl, yl)
+					p = float(format(p, '.4f'))
 					if str(r) == 'nan':
 						noCorrList.append(newCourse)
 						cnt += 1
@@ -1870,9 +1871,9 @@ class prepross(object):
 					rpSinglelist.append([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata)])
 
 					if self.proPredictor == 'ALL':
-						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope, 'trainYrs:', self.trainYrsText
+						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'p_value:', p_value, 'p:', p, 'slope:', slope, 'trainYrs:', self.trainYrsText
 					else:
-						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope
+						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'p_value:', p_value, 'p:', p, 'slope:', slope
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir+'nocorr/'):
