@@ -4,7 +4,7 @@ import csv, os, time, hashlib, shutil, xlsxwriter, copy as myCopy, matplotlib.py
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import MultipleLocator
-from scipy.stats import pearsonr, linregress
+from scipy.stats import pearsonr, linregress, skew
 from operator import itemgetter
 from collections import Counter
 # from matplotlib import rcParams
@@ -19,7 +19,7 @@ class prepross(object):
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
-		self.predictorCourses = ['SINGLE', 'ALL']
+		self.predictorCourses = ['ALL', 'SINGLE']
 		# self.predictorCourses = ['ALL']
 		self.f1courseList = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
 		self.s2courseList = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
@@ -92,7 +92,7 @@ class prepross(object):
 			if not os.path.exists(item):
 				os.makedirs(item)
 
-		self.pairsFrequency, self.pearsoncorr = self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv'
+		self.pairsFrequency, self.pearsoncorr, self.skewness = self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv', self.dataDir+'skewness.csv'
 		if self.proPredictor == 'ALL':
 			self.degDataPath, self.regDataPath = self.splitsDir+'deg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'reg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
 			self.top1pFactors, self.top3pFactors = self.dataDir + 'T1F_P_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_P_' + self.trainYrsText +'.csv'
@@ -237,7 +237,7 @@ class prepross(object):
 
 		# compute correlation coefficients and draw correlation plots
 		# if self.proPredictor == 'ALL':
-		self.corrPlot(self.CRS_STU, self.pearsoncorr)
+		self.corrPlot(self.CRS_STU, self.pearsoncorr, self.skewness)
 		# else:
 		# 	self.corrPlotOneProPredictor(self.CRS_STU, self.pearsoncorr)
 
@@ -1781,13 +1781,17 @@ class prepross(object):
 		w = csv.writer(open(self.crsMatrix, 'w'))
 		w.writerows(matrix)
 
-	def corrPlot(self, source, corr):
+	def corrPlot(self, source, corr, skewness):
 		reader = csv.reader(open(source), delimiter=',')
 		header = reader.next()
 
 		matrix = []
 		for row in reader:
 			matrix.append(row)
+
+		wskew = csv.writer(open(skewness, 'w'))
+		skewHeader = ['subCode', 'Num', 'skew']
+		#wskew.writerow(skewHeader)
 
 		w = csv.writer(open(corr, 'w'))
 		w.writerow(['xsubCode','xnum','ysubCode','ynum','coefficient','#points','pValue','stderr','slope','intercept','a','b','c','R^2','xmin','xmax'])
@@ -1874,6 +1878,12 @@ class prepross(object):
 						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'p_value:', p_value, 'p:', p, 'slope:', slope, 'trainYrs:', self.trainYrsText
 					else:
 						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'p_value:', p_value, 'p:', p, 'slope:', slope
+
+					# write skew to csv
+					wskew.writerow(skewHeader)
+					wskew.writerow([course[0], course[1], skew(xdata, None, False)]+xdata)
+					wskew.writerow([newCourse[0], newCourse[1], skew(ydata, None, False)]+ydata)
+					wskew.writerow([''])
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir+'nocorr/'):
