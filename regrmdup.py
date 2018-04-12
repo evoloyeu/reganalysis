@@ -1790,8 +1790,8 @@ class prepross(object):
 			matrix.append(row)
 
 		wskew = csv.writer(open(skewness, 'w'))
-		skewHeader = ['subCode', 'Num', 'skew']
-		#wskew.writerow(skewHeader)
+		skewHeader = ['subCode1', 'Num1', 'subCode2', 'Num2', 'skew1', 'skew2', 'coefficient','#points','pValue','stderr','slope','intercept','a','b','c','R^2','xmin','xmax']
+		wskew.writerow(skewHeader)
 
 		w = csv.writer(open(corr, 'w'))
 		w.writerow(['xsubCode','xnum','ysubCode','ynum','coefficient','#points','pValue','stderr','slope','intercept','a','b','c','R^2','xmin','xmax'])
@@ -1880,10 +1880,7 @@ class prepross(object):
 						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'p_value:', p_value, 'p:', p, 'slope:', slope
 
 					# write skew to csv
-					wskew.writerow(skewHeader)
-					wskew.writerow([course[0], course[1], skew(xdata, None, False)]+xdata)
-					wskew.writerow([newCourse[0], newCourse[1], skew(ydata, None, False)]+ydata)
-					wskew.writerow([''])
+					wskew.writerow([course[0], course[1], newCourse[0], newCourse[1], skew(xdata, None, False), skew(ydata, None, False), r, len(ydata), p_value, std_err, slope, intercept, a, b, c, float(format(r*r, '.4f')), min(xdata), max(xdata)])
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir+'nocorr/'):
