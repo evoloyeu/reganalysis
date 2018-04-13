@@ -1882,7 +1882,8 @@ class prepross(object):
 						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'p_value:', p_value, 'p:', p, 'slope:', slope
 
 					# write skew to csv
-					wskew.writerow([course[0], course[1], newCourse[0], newCourse[1], skew(xdata, None, False), skew(ydata, None, False), r, len(ydata), p_value, std_err, slope, intercept, a, b, c, float(format(r*r, '.4f')), min(xdata), max(xdata)])
+					xskew, yskew  = float(format(skew(xdata, None, False), '.4f')), float(format(skew(ydata, None, False), '.4f'))
+					wskew.writerow([course[0], course[1], newCourse[0], newCourse[1], xskew, yskew, r, len(ydata), p_value, std_err, slope, intercept, a, b, c, float(format(r*r, '.4f')), min(xdata), max(xdata)])
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir+'nocorr/'):
