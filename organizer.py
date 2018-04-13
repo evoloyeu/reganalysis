@@ -155,6 +155,6 @@ def courseCountInYear(courseList):
 		if row[1][0] == '4':
 			y4+=1
 
-	return ['y1', y1, 'y2', y2, 'y3', y3, 'y4', y4]
+	return ['y1', y1, 'y2', y2, 'y3', y3, 'y4', y4, 'sum', y1+y2+y3+y4]
 
 # courseOrganizer(sys.argv[1])
