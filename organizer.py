@@ -17,12 +17,16 @@ def courseOrganizer(src):
 
 	if not (filenameWithoutExtension == 'skewness'):
 		return
-
+	# ==========================================================================================================================
+	# create Course2 Count sheet
+	# ==========================================================================================================================
 	r = csv.reader(open(src), delimiter=',')
 	# skip header
 	reservedList = []
 	course1List = {}
+	course1KeysList = []
 	course2List = {}
+	course2KeysList = []
 	header = r.next()
 	for row in r:
 		p_value = row[8]
@@ -34,12 +38,17 @@ def courseOrganizer(src):
 				course1List[course1].append(row)
 			else:
 				course1List[course1] = [row]
+				course1KeysList.append([row[0],row[1]])
 
 			if course2List.has_key(course2):
 				course2List[course2].append(row)
 			else:
 				course2List[course2] = [row]
+				course2KeysList.append([row[2],row[3]])
 
+	# ==========================================================================================================================
+	# create Course2 Count sheet
+	# ==========================================================================================================================
 	xlsx = path+'/'+filenameWithoutExtension+'.xlsx'
 	workbook = xlsxwriter.Workbook(xlsx)
 	myformat = workbook.add_format({'align':'center_across'})
@@ -50,7 +59,9 @@ def courseOrganizer(src):
 		worksheet.write_row(rowcnt,0,row,myformat)
 		# print row
 		rowcnt+=1
-
+	# ==========================================================================================================================
+	# create Course2 Count sheet
+	# ==========================================================================================================================
 	worksheet = workbook.add_worksheet('Sorted')
 	rowcnt = 0
 	reservedList.sort(key=itemgetter(3,2,7), reverse=False)	
@@ -59,31 +70,42 @@ def courseOrganizer(src):
 		# print row
 		rowcnt+=1
 
-	reservedList.sort(key=itemgetter(1,0,7), reverse=False)	
+	reservedList.sort(key=itemgetter(1,0,7), reverse=False)
 	for row in [header]+reservedList+['']:
 		worksheet.write_row(rowcnt,0,row,myformat)
 		# print row
 		rowcnt+=1
-
-	# print course1List
-
+	# ==========================================================================================================================
+	# create Course2 Count sheet
+	# ==========================================================================================================================
 	worksheet = workbook.add_worksheet('Course1 Lists')
 	rowcnt = 0
 	for key, v in course1List.items():
 		for row in [header]+v+['']:
 			worksheet.write_row(rowcnt,0,row,myformat)
 			rowcnt+=1
-
+	# ==========================================================================================================================
+	# create Course2 Count sheet
+	# ==========================================================================================================================
 	worksheet = workbook.add_worksheet('Course2 Lists')
 	rowcnt = 0
 	for key, v in course2List.items():
 		for row in [header]+v+['']:
 			worksheet.write_row(rowcnt,0,row,myformat)
 			rowcnt+=1
-
+	# ==========================================================================================================================
+	# create Course1 Count sheet
+	# ==========================================================================================================================
+	course1KeysList.sort(key=itemgetter(1), reverse=False)
 	worksheet = workbook.add_worksheet('Course1 Count')
-	worksheet.write_row(0,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
+	worksheet.write_row(0,0,courseCountInYear(course1KeysList),myformat)
 	rowcnt = 1
+	for row in course1KeysList:
+		worksheet.write_row(rowcnt,0,row,myformat)
+		rowcnt+=1
+
+	worksheet.write_row(rowcnt,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
+	rowcnt+=1
 	for k,v in course1List.items():
 		count = len(v)
 		c2List = []
@@ -95,10 +117,19 @@ def courseOrganizer(src):
 		for row in c2List[1:]:
 			worksheet.write_row(rowcnt,0,['','','']+row,myformat)
 			rowcnt+=1
-
+	# ==========================================================================================================================
+	# create Course2 Count sheet
+	# ==========================================================================================================================
+	course2KeysList.sort(key=itemgetter(1), reverse=False)
 	worksheet = workbook.add_worksheet('Course2 Count')
-	worksheet.write_row(0,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
+	worksheet.write_row(0,0,courseCountInYear(course2KeysList),myformat)
 	rowcnt = 1
+	for row in course2KeysList:
+		worksheet.write_row(rowcnt,0,row,myformat)
+		rowcnt+=1
+
+	worksheet.write_row(rowcnt,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
+	rowcnt+=1
 	for k,v in course2List.items():
 		count = len(v)
 		c1List = []
@@ -111,5 +142,19 @@ def courseOrganizer(src):
 			worksheet.write_row(rowcnt,0,['','','']+row,myformat)
 			rowcnt+=1
 
+
+def courseCountInYear(courseList):
+	y1,y2,y3,y4 = 0, 0, 0, 0
+	for row in courseList:
+		if row[1][0] == '1':
+			y1+=1
+		if row[1][0] == '2':
+			y2+=1
+		if row[1][0] == '3':
+			y3+=1
+		if row[1][0] == '4':
+			y4+=1
+
+	return ['y1', y1, 'y2', y2, 'y3', y3, 'y4', y4]
 
 # courseOrganizer(sys.argv[1])
