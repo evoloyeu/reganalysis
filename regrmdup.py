@@ -7,6 +7,7 @@ from matplotlib.ticker import MultipleLocator
 from scipy.stats import pearsonr, linregress, skew
 from operator import itemgetter
 from collections import Counter
+import organizer
 # from matplotlib import rcParams
 # rcParams.update({'figure.autolayout': True})
 
@@ -238,6 +239,7 @@ class prepross(object):
 		# compute correlation coefficients and draw correlation plots
 		# if self.proPredictor == 'ALL':
 		self.corrPlot(self.CRS_STU, self.pearsoncorr, self.skewness)
+		organizer.courseOrganizer(self.skewness)
 		# else:
 		# 	self.corrPlotOneProPredictor(self.CRS_STU, self.pearsoncorr)
 
