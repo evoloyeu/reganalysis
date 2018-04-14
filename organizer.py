@@ -98,15 +98,16 @@ def courseOrganizer(src):
 	# ==========================================================================================================================
 	course1KeysList.sort(key=itemgetter(1), reverse=False)
 	worksheet = workbook.add_worksheet('Course1 Count')
-	worksheet.write_row(0,0,courseCountInYear(course1KeysList),myformat)
+	worksheet.write_row(0,11,courseCountInYear(course1KeysList),myformat)
 	rowcnt = 1
 	for row in course1KeysList:
-		worksheet.write_row(rowcnt,0,row,myformat)
+		worksheet.write_row(rowcnt,11,row,myformat)
 		rowcnt+=1
 
-	worksheet.write_row(rowcnt,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
-	rowcnt+=1
+	rowcnt = 0
 	for k,v in course1List.items():
+		worksheet.write_row(rowcnt,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
+		rowcnt+=1
 		count = len(v)
 		c2List = []
 		for row in v:
@@ -122,15 +123,16 @@ def courseOrganizer(src):
 	# ==========================================================================================================================
 	course2KeysList.sort(key=itemgetter(1), reverse=False)
 	worksheet = workbook.add_worksheet('Course2 Count')
-	worksheet.write_row(0,0,courseCountInYear(course2KeysList),myformat)
+	worksheet.write_row(0,11,courseCountInYear(course2KeysList),myformat)
 	rowcnt = 1
 	for row in course2KeysList:
-		worksheet.write_row(rowcnt,0,row,myformat)
+		worksheet.write_row(rowcnt,11,row,myformat)
 		rowcnt+=1
 
-	worksheet.write_row(rowcnt,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
-	rowcnt+=1
+	rowcnt = 0
 	for k,v in course2List.items():
+		worksheet.write_row(rowcnt,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
+		rowcnt+=1
 		count = len(v)
 		c1List = []
 		for row in v:
@@ -142,6 +144,7 @@ def courseOrganizer(src):
 			worksheet.write_row(rowcnt,0,['','','']+row,myformat)
 			rowcnt+=1
 
+	print '============================================================Organizer DONE=============================================================='
 
 def courseCountInYear(courseList):
 	y1,y2,y3,y4 = 0, 0, 0, 0
