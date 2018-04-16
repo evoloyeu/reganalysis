@@ -106,7 +106,7 @@ def courseOrganizer(src):
 
 	rowcnt = 0
 	# for k,v in course1List.items():
-	for key in course2KeysList:
+	for key in course1KeysList:
 		v =course1List[key[0]+key[1]]
 		v.sort(key=itemgetter(2,3), reverse=False)
 		worksheet.write_row(rowcnt,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
