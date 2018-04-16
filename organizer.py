@@ -105,7 +105,10 @@ def courseOrganizer(src):
 		rowcnt+=1
 
 	rowcnt = 0
-	for k,v in course1List.items():
+	# for k,v in course1List.items():
+	for key in course2KeysList:
+		v =course1List[key[0]+key[1]]
+		v.sort(key=itemgetter(2,3), reverse=False)
 		worksheet.write_row(rowcnt,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
 		rowcnt+=1
 		count = len(v)
@@ -130,7 +133,10 @@ def courseOrganizer(src):
 		rowcnt+=1
 
 	rowcnt = 0
-	for k,v in course2List.items():
+	# for k,v in course2List.items():
+	for key in course2KeysList:
+		v =course2List[key[0]+key[1]]
+		v.sort(key=itemgetter(0,1), reverse=False)
 		worksheet.write_row(rowcnt,0,['count','subCode1','Num1','subCode2','Num2','coefficient','#points','pValue','stderr'],myformat)
 		rowcnt+=1
 		count = len(v)
