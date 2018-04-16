@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-import csv, os, time, hashlib, shutil, xlsxwriter, copy as myCopy
+import csv, os, time, hashlib, shutil, xlsxwriter, copy as myCopy, matplotlib.pyplot as plt, numpy as np
 from pylab import *
-import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import MultipleLocator
-from scipy.stats import pearsonr, linregress
-import numpy as np
+from scipy.stats import pearsonr, linregress, skew
 from operator import itemgetter
 from collections import Counter
+import organizer
+# from matplotlib import rcParams
+# rcParams.update({'figure.autolayout': True})
 
 class prepross(object):
 	def __init__(self, degRegFiles):
@@ -19,7 +20,7 @@ class prepross(object):
 		self.regFileList, self.degFileList, self.yearList, self.rawReg, self.rawDeg = degRegFiles
 
 		# define the predictor course: ALL: use common predictors based on the picking criteria
-		self.predictorCourses = ['SINGLE', 'ALL']
+		self.predictorCourses = ['ALL', 'SINGLE']
 		# self.predictorCourses = ['ALL']
 		self.f1courseList = ['CSC 110', 'MATH 100', 'MATH 133', 'MECH 141', 'PHYS 122', 'CHEM 150', 'ELEC 199', 'MATH 101', 'PHYS 125', 'CSC 160', 'CSC 115', 'CSC 111', 'ENGR 141']
 		self.s2courseList = ['MATH 200', 'ELEC 200', 'ELEC 216', 'ELEC 220', 'MATH 201', 'CENG 241', 'ELEC 250', 'ELEC 260', 'MECH 295', 'CENG 255', 'STAT 254', 'CSC 230']
@@ -92,7 +93,7 @@ class prepross(object):
 			if not os.path.exists(item):
 				os.makedirs(item)
 
-		self.pairsFrequency, self.pearsoncorr = self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv'
+		self.pairsFrequency, self.pearsoncorr, self.skewness = self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv', self.dataDir+'skewness.csv'
 		if self.proPredictor == 'ALL':
 			self.degDataPath, self.regDataPath = self.splitsDir+'deg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'reg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
 			self.top1pFactors, self.top3pFactors = self.dataDir + 'T1F_P_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_P_' + self.trainYrsText +'.csv'
@@ -141,8 +142,8 @@ class prepross(object):
 			filename = fname.split('/')[-1].split('.')[0]
 			# todo: optimize later
 			if self.proPredictor == 'ALL':
-				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.factor + '_L1.csv')
-				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.factor + '_Q1.csv')
+				self.linearPredictResultsListTop1.append(self.currDir + 'T1/L/' + filename + '_' + self.factor + '_L.csv')
+				self.quadrPredictResultsListTop1.append(self.currDir + 'T1/Q/' + filename + '_' + self.factor + '_Q.csv')
 				self.linearPredictResultsListALL.append(self.currDir + 'T1/L/' + filename + self.factor + 'L.csv')
 				self.quadrPredictResultsListALL.append(self.currDir + 'T1/Q/' + filename + self.factor + 'Q.csv')
 				self.linearPredictResultsListTop3.append(self.currDir + 'T3/L/' + filename +'_L3.csv')
@@ -237,7 +238,8 @@ class prepross(object):
 
 		# compute correlation coefficients and draw correlation plots
 		# if self.proPredictor == 'ALL':
-		self.corrPlot(self.CRS_STU, self.pearsoncorr)
+		self.corrPlot(self.CRS_STU, self.pearsoncorr, self.skewness)
+		organizer.courseOrganizer(self.skewness)
 		# else:
 		# 	self.corrPlotOneProPredictor(self.CRS_STU, self.pearsoncorr)
 
@@ -262,47 +264,389 @@ class prepross(object):
 	def computeALL(self):
 		self.predictionPrecisionALLList = []
 		for yrList in self.trainYrsList:
-			for threshold in self.thresholdList:
-				self.isPrepared = False
-				for factor in self.factors:
-					self.threshold, self.trainYrs, self.factor = threshold, yrList, factor
-					self.statsPath()
-					self.predictionPrecisionALLList += myCopy.deepcopy(self.linearPredictResultsListTop1+self.quadrPredictResultsListTop1)
+			self.threshold, self.isPrepared = 1, False
+			tripleFactorDict, MRMergeList, accRetList, maeRetList = {}, [], [], []
+			for factor in self.factors:
+				self.trainYrs, self.factor = yrList, factor
+				self.statsPath()
+				tripleFactorDict[factor] = {'L':self.linearPredictResultsListTop1, 'Q':self.quadrPredictResultsListTop1}
 
-					if not self.isPrepared:
-						self.prepare()
-						self.isPrepared = True
+				self.predictionPrecisionALLList += myCopy.deepcopy(self.linearPredictResultsListTop1+self.quadrPredictResultsListTop1)
 
-						self.testSetsStats()
-						# create predictors
-						self.testWeights()
-						self.rw, self.pw = self.wdict[self.threshold][len(self.trainYrs)], 1.0
-						# use factor Pxy
-						self.formulaV1(self.rw,self.pw)
-						# self.rw,self.pw = rw, pw
-						# use factors of Points, coefficients
-						self.createPRFactors()
-						self.predictorsDict = {'PR':[self.top1FactorsFile, self.top3FactorsFile],'P':[self.top1pFactors, self.top3pFactors],'R':[self.top1rFactors, self.top3rFactors]}
+				if not self.isPrepared:
+					self.prepare()
+					self.isPrepared = True
 
-					self.predictorsScatterPlots()
-					# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
-					self.predicting4ALL()
-					self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL, self.factor)
+					self.testSetsStats()
+					# create predictors
+					self.testWeights()
+					self.rw, self.pw = self.wdict[self.threshold][len(self.trainYrs)], 1.0
+					# use factor Pxy
+					self.formulaV1(self.rw,self.pw)
+					# self.rw,self.pw = rw, pw
+					# use factors of Points, coefficients
+					self.createPRFactors()
+					self.predictorsDict = {'PR':[self.top1FactorsFile, self.top3FactorsFile],'P':[self.top1pFactors, self.top3pFactors],'R':[self.top1rFactors, self.top3rFactors]}
 
-					# merge MAEs, Ranges
-					self.mergeMAEsRangesManager()
+				self.predictorsScatterPlots()
+				# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
+				self.predicting4ALL()
+				self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL, self.factor)
 
-					# plot yr vs yr scatter plots
-					# self.gradePointsDistribution(self.predictorsDict[self.factor][0])
+				# merge MAEs, Ranges
+				MRFiles, accRets, maeRets = self.mergeMAEsRangesManager()
+				MRMergeList+=MRFiles
+				accRetList+=accRets
+				maeRetList+=maeRets
 
-					# # todo: stats
-					if self.errMerge:
-						self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
-						self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
-						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
-						self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+				# plot yr vs yr scatter plots
+				# self.gradePointsDistribution(self.predictorsDict[self.factor][0])
 
-		self.mergePrecision4PedALL(self.predictionPrecisionALLList)
+				# # todo: stats
+				if self.errMerge:
+					self.errTop1Top3StatsMerger(self.linearTop1Top3Stats, self.linearPredictResultsListTop1, self.linearPredictResultsListTop3)
+					self.errTop1Top3StatsMerger(self.quadraticTop1Top3Stats, self.quadrPredictResultsListTop1, self.quadrPredictResultsListTop3)
+					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop1Stats, self.linearPredictResultsListTop1, self.quadrPredictResultsListTop1)
+					self.errLinearQuadraticStatsMerger(self.linearQuadraticTop3Stats, self.linearPredictResultsListTop3, self.quadrPredictResultsListTop3)
+
+			self.tripleFactorGrouper(tripleFactorDict, self.trainYrsText)
+			self.mrMerger(MRMergeList, accRetList, maeRetList, self.trainYrsText)
+		self.mergeACC_MAE_4PedALL(self.predictionPrecisionALLList)
+
+	def mrMerger(self, fileList, accRetList, maeRetList, trainYrsText):
+		mrXlsx = self.timeDir+trainYrsText+'_MRMerger.xlsx'
+		workbook = xlsxwriter.Workbook(mrXlsx)
+		myformat = workbook.add_format({'align':'center_across'})
+
+		worksheet, rowcnt = workbook.add_worksheet('AccTable'), 0
+		for row in [['Train', 'Test', 'Factor', 'Reg', 'Year', 'Max', 'Min']]+accRetList:
+			worksheet.write_row(rowcnt,0,row,myformat)
+			print row
+			rowcnt+=1
+
+		worksheet, rowcnt = workbook.add_worksheet('MAETable'), 0
+		for row in [['Train', 'Test', 'Factor', 'Reg', 'Year', 'Max', 'Min']]+maeRetList:
+			worksheet.write_row(rowcnt,0,row,myformat)
+			print row
+			rowcnt+=1
+
+		for item in fileList:
+			r = csv.reader(open(item), delimiter=',')
+			sheetName = item.split('/')[-1].split('.')[0]
+			worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
+			for row in r:
+				worksheet.write_row(rowcnt,0,row,myformat)
+				rowcnt+=1
+
+	def tripleFactorGrouper(self, tripleFactorDict, trainYrsText):
+		precisionXlsx = self.timeDir+trainYrsText+'_Triple_ACC.xlsx'
+		MAEXlsx = self.timeDir+trainYrsText+'_Triple_MAE.xlsx'
+
+		workbook = xlsxwriter.Workbook(precisionXlsx)
+		MAEWorkbook = xlsxwriter.Workbook(MAEXlsx)
+		myformat = workbook.add_format({'align':'center_across'})
+		MAEmyformat = MAEWorkbook.add_format({'align':'center_across'})
+
+		PLList, PQList = tripleFactorDict['P']['L'], tripleFactorDict['P']['Q']
+		RLList, RQList = tripleFactorDict['R']['L'], tripleFactorDict['R']['Q']
+		PRLList, PRQList = tripleFactorDict['PR']['L'], tripleFactorDict['PR']['Q']
+		acc_In_All_Tests, MAE_In_All_Tests = [], []
+		for fullname in PLList:
+			test, factor, regression = fullname.split('/')[-1].split('.')[0].split('_')
+			precisionHeader, pairArrs, MAEHeader, MAEPairArrs = '', [], '', []
+			for filenamelist in [PLList, PQList, RLList, RQList, PRLList, PRQList]:
+				testResultFile = self.getTestFactorRegFromFileName(test, filenamelist)
+				if testResultFile != '':
+					precisionHeader, resultList = self.readPrecision(testResultFile)
+					MAEHeader, MAEResultList = self.readMAE(testResultFile)
+					if len(resultList) > 0:
+						pairArrs+=resultList
+						acc_In_All_Tests+=resultList
+					if len(MAEResultList) > 0:
+						MAEPairArrs+=MAEResultList
+						MAE_In_All_Tests+=MAEResultList
+
+			self.writeWorkSheet(pairArrs, precisionHeader, workbook, test, myformat)
+			self.writeWorkSheet(MAEPairArrs, MAEHeader, MAEWorkbook, test, MAEmyformat)
+
+		self.writeWorkSheetMAE_ACC(acc_In_All_Tests, precisionHeader, 17, workbook, 'ACC', myformat, 'ACC')
+		self.writeWorkSheetMAE_ACC(MAE_In_All_Tests, MAEHeader, 16, MAEWorkbook, 'MAE', MAEmyformat, 'MAE')
+
+	def writeWorkSheetMAE_ACC(self, pairArrs, header, cmpIndex, workbook, sheetName, sheetFormat, category):
+		s2List,t3List,f4List = self.groupRecsByYear(pairArrs, 7)
+
+		worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
+		rowcnt, cmpList2, cmpFactorList2 = self.writeInOrderMAE_ACC(s2List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+		rowcnt, cmpList3, cmpFactorList3 = self.writeInOrderMAE_ACC(t3List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+		rowcnt, cmpList4, cmpFactorList4 = self.writeInOrderMAE_ACC(f4List, 6, 7, 2, 3, cmpIndex, worksheet, rowcnt, sheetFormat, header, category)
+
+		worksheet, rowcnt = workbook.add_worksheet('LQ_CMP'), 0
+		rowcnt = self.writeSheet(cmpList2+['']+cmpList3+['']+cmpList4, worksheet, sheetFormat, rowcnt)
+
+		worksheet, rowcnt = workbook.add_worksheet('Factors_CMP'), 0
+		rowcnt = self.writeSheet(cmpFactorList2+['']+cmpFactorList3+['']+cmpFactorList4, worksheet, sheetFormat, rowcnt)
+
+	def writeSheet(self, cmpList, worksheet, sheetFormat, rowcnt):
+		myrowcnt = rowcnt
+		for row in cmpList+['']:
+			worksheet.write_row(myrowcnt,0,row,sheetFormat)
+			myrowcnt+=1
+
+		return myrowcnt
+
+	def writeInOrderMAE_ACC(self, pairArrs, pedCrsIndex, pedNumIndex, sortIndex1, sortIndex2, cmpIndex, worksheet, rowcnt, sheetFormat, header, category):
+		predictedDict, myrowcnt, cmpLQList, cmpFactorList = {}, rowcnt, [], []
+		for pair in pairArrs:
+			# key: predicted course
+			key = pair[pedCrsIndex]+pair[pedNumIndex]
+			if key not in predictedDict:
+				predictedDict[key] = [pair]
+			else:
+				predictedDict[key].append(pair)
+
+		cmpStats, pcmpStat, rcmpStat, prcmpStat = [], ['P', 0, 0, 0], ['R,', 0, 0, 0], ['PR', 0, 0, 0]
+		for key, items in predictedDict.items():
+			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex1), reverse=False)
+			LDict, QDict = self.groupRecsByReg(items)
+			for row in [header]+items+['']:
+				worksheet.write_row(myrowcnt,0,row,sheetFormat)
+				myrowcnt+=1
+
+			cmpLFactorList = self.FactorCMP(key, LDict, cmpIndex, 'L')
+			cmpQFactorList = self.FactorCMP(key, QDict, cmpIndex, 'Q')
+			cmpFactorList+=cmpLFactorList+['']+cmpQFactorList+['']
+
+			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex2), reverse=False)
+			pList,rList,prList = self.groupRecsByFactor(items, 3)
+			for subitems in [pList,rList,prList]:
+				for row in [header]+subitems+['']:
+					worksheet.write_row(myrowcnt,0,row,sheetFormat)
+					myrowcnt+=1
+
+			pcmp, pcmpList = self.compareLQMAE_ACC('P', pList, cmpIndex, category)
+			rcmp, rcmpList = self.compareLQMAE_ACC('R', rList, cmpIndex, category)
+			prcmp, prcmpList = self.compareLQMAE_ACC('PR', prList, cmpIndex, category)
+
+			cmpLQList+=[['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp]+['']+pcmpList+['']+rcmpList+['']+prcmpList+['']
+			cmpStats+=[[key]+pcmp+rcmp+prcmp]
+			self.factorCmpStat(pcmpStat, pcmp)
+			self.factorCmpStat(rcmpStat, rcmp)
+			self.factorCmpStat(prcmpStat, prcmp)
+
+			for row in [['PedCrs','PL','PQ','RL','RQ','PRL','PRQ'], [key]+pcmp+rcmp+prcmp, '']:
+				worksheet.write_row(myrowcnt,0,row,sheetFormat)
+				myrowcnt+=1
+
+		return [myrowcnt, cmpLQList+['', ['PedCrs','PL','PQ','RL','RQ','PRL','PRQ']]+cmpStats+['', ['Factor', 'Q>L', 'Q=L', 'Q<L']]+[pcmpStat, rcmpStat, prcmpStat, ''], cmpFactorList]
+
+	def factorCmpStat(self, src, cmpArr):
+		# L<Q
+		if cmpArr[0] < cmpArr[1]:
+			src[1]+=1
+		# L>Q
+		elif cmpArr[0] > cmpArr[1]:
+			src[3]+=1
+		# L=Q
+		else:
+			src[2]+=1
+
+	def FactorCMP(self, pedCrs, arrDict, cmpIndex, regression):
+		testList, PR_MAE_ACC_List, P_MAE_ACC_List, R_MAE_ACC_List, PDiffList, RDiffList = [pedCrs, regression], [pedCrs, 'PR'], [pedCrs, 'P'], [pedCrs, 'R'], [pedCrs, 'PDiff'], [pedCrs, 'RDiff']
+		for key, items in arrDict.items():
+			testList+=[key]
+			pr, p, r = '', '', ''
+			for x in items:
+				if x[3]=='PR':
+					pr=x
+				if x[3]=='P':
+					p=x
+				if x[3]=='R':
+					r=x
+
+			if pr != '':
+				PR_MAE_ACC_List+=[float(pr[cmpIndex])]
+			else:
+				PR_MAE_ACC_List+=['']
+
+			if p!='':
+				P_MAE_ACC_List+=[float(p[cmpIndex])]
+				if pr != '':
+					PDiffList+=[float(pr[cmpIndex])-float(p[cmpIndex])]
+				else:
+					PDiffList+=[float(p[cmpIndex])]
+			else:
+				P_MAE_ACC_List+=['']
+				PDiffList+=['']
+
+			if r!='':
+				R_MAE_ACC_List+=[float(r[cmpIndex])]
+				if pr != '':
+					RDiffList+=[float(pr[cmpIndex])-float(r[cmpIndex])]
+				else:
+					RDiffList+=[float(r[cmpIndex])]
+			else:
+				R_MAE_ACC_List+=['']
+				RDiffList+=['']
+
+		return [testList, PR_MAE_ACC_List, P_MAE_ACC_List, R_MAE_ACC_List, PDiffList, RDiffList]
+
+	def groupRecsByReg(self, arrs):
+		LList, QList = [], []
+		for item in arrs:
+			if item[2] == 'L':
+				LList.append(item)
+			if item[2] == 'Q':
+				QList.append(item)
+
+		return [self.groupRecsByTest(LList), self.groupRecsByTest(QList)]
+
+	def groupRecsByTest(self, arrs):
+		testDict = {}
+		for item in arrs:
+			if item[1] not in testDict:
+				testDict[item[1]] = [item]
+			else:
+				testDict[item[1]].append(item)
+
+		return testDict
+
+	def compareLQMAE_ACC(self, factor, arrs, cmpIndex, category):
+		if len(arrs)%2!=0:
+			return [[-1],[-1]]
+
+		lcnt, qcnt = 0, 0
+		testList, L_MAE_ACC_List, Q_MAE_ACC_List, diffList = [factor], ['L'], ['Q'], ['LQDiff']
+		for x in xrange(0,len(arrs), 2):
+			testList+=[arrs[x][1]]
+			L_MAE_ACC_List+=[float(arrs[x][cmpIndex])]
+			Q_MAE_ACC_List+=[float(arrs[x+1][cmpIndex])]
+			diffList+=[float(arrs[x][cmpIndex])-float(arrs[x+1][cmpIndex])]
+
+			if float(arrs[x][cmpIndex])>float(arrs[x+1][cmpIndex]):
+				lcnt+=1
+			elif float(arrs[x][cmpIndex])==float(arrs[x+1][cmpIndex]):
+				qcnt+=1
+				lcnt+=1
+			else:
+				qcnt+=1
+
+		if category == 'MAE':
+			return [[qcnt, lcnt], [testList, L_MAE_ACC_List, Q_MAE_ACC_List, diffList]]
+		else:
+			return [[lcnt, qcnt], [testList, L_MAE_ACC_List, Q_MAE_ACC_List, diffList]]
+
+	def groupRecsByFactor(self, arrs, factorIndex):
+		pList,rList,prList = [],[],[]
+		for item in arrs:
+			if item[factorIndex]=='P':
+				pList.append(item)
+			if item[factorIndex]=='R':
+				rList.append(item)
+			if item[factorIndex]=='PR':
+				prList.append(item)
+
+		pList.sort(key=itemgetter(1), reverse=False)
+		rList.sort(key=itemgetter(1), reverse=False)
+		prList.sort(key=itemgetter(1), reverse=False)
+
+		return [pList,rList,prList]
+
+	def writeWorkSheet(self, pairArrs, header, workbook, sheetName, sheetFormat):
+		s2List,t3List,f4List = self.groupRecsByYear(pairArrs, 7)
+
+		worksheet, rowcnt = workbook.add_worksheet(sheetName), 0
+
+		# order by regression
+		rowcnt = self.writeInOrder(s2List, 6, 7, 2, worksheet, 0, sheetFormat, header)
+		rowcnt = self.writeInOrder(t3List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
+		rowcnt = self.writeInOrder(f4List, 6, 7, 2, worksheet, rowcnt, sheetFormat, header)
+		# order by factor
+		rowcnt = self.writeInOrder(s2List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
+		rowcnt = self.writeInOrder(t3List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
+		rowcnt = self.writeInOrder(f4List, 6, 7, 3, worksheet, rowcnt, sheetFormat, header)
+
+		pairArrs.sort(key=itemgetter(6,7,3), reverse=False)
+		for row in ['', '', header]+pairArrs:
+			worksheet.write_row(rowcnt,0,row,sheetFormat)
+			rowcnt+=1
+
+	def writeInOrder(self, pairArrs, pedCrsIndex, pedNumIndex, sortIndex, worksheet, rowcnt, sheetFormat, header):
+		predictedDict, myrowcnt = {}, rowcnt
+		for pair in pairArrs:
+			# key: predicted course
+			key = pair[pedCrsIndex]+pair[pedNumIndex]
+			if key not in predictedDict:
+				predictedDict[key] = [pair]
+			else:
+				predictedDict[key].append(pair)
+
+		for key, items in predictedDict.items():
+			items.sort(key=itemgetter(pedCrsIndex,pedNumIndex,sortIndex), reverse=False)
+			for row in [header]+items+['']:
+				worksheet.write_row(myrowcnt,0,row,sheetFormat)
+				myrowcnt+=1
+
+		return myrowcnt
+
+	def groupRecsByYear(self, arrs, pedIndex):
+		s2List,t3List,f4List = [],[],[]
+		for item in arrs:
+			if item[pedIndex][0]=='2':
+				s2List.append(item)
+			if item[pedIndex][0]=='3':
+				t3List.append(item)
+			if item[pedIndex][0]=='4':
+				f4List.append(item)
+
+		return [s2List,t3List,f4List]
+
+	def readMAE(self, filename):
+		train = filename.split('/')[-5]
+		test, factor, regression = filename.split('/')[-1].split('.')[0].split('_')
+		r = csv.reader(open(filename), delimiter=',')
+		r.next()
+		ret = []
+		MAEStart = False
+		for row in r:
+			if (len(row) == 0) and (MAEStart):
+				MAEStart = False
+				break
+
+			if len(row) == 0:
+				MAEStart = True
+
+			if MAEStart:
+				if len(row) > 0:
+					print row
+					ret.append(row[:20])
+
+		header = ['TrainSet', 'TestSet', 'LQ', 'Factor'] + ret[0]
+		maeList = []
+		for x in ret[1:]:
+			maeList.append([train, test, regression, factor]+x)
+
+		return [header, maeList]
+
+	def readPrecision(self, filename):
+		r = csv.reader(open(filename), delimiter=',')
+		header = r.next()
+		ret = []
+		for row in r:
+			if len(row) == 0:
+				break
+
+			if len(row) > 0:
+				ret.append(row)
+
+		return [header, ret]
+
+	def getTestFactorRegFromFileName(self, keyword, src):
+		for x in src:
+			test, factor, regression = x.split('/')[-1].split('.')[0].split('_')
+			if keyword == test:
+				return x
+
+		return ''
 
 	def computeSpecific(self):
 		self.statsPath()
@@ -328,26 +672,26 @@ class prepross(object):
 
 		return trainDict
 
-	def mergePrecision4PedALL(self, resultLists):
-		precisionXlsx = self.timeDir+'Ped_Precision.xlsx'
+	def mergeACC_MAE_4PedALL(self, resultLists):
+		precisionXlsx = self.timeDir+'Ped_ACC.xlsx'
 		workbook = xlsxwriter.Workbook(precisionXlsx)
 		myformat = workbook.add_format({'align':'center_across'})
+
 		allList, head, pindex = [], '', -1
+		ALL_MAE_Recs, maeHead = [], ''
 		for key, sublist in self.sortResultFiles(resultLists).items():
 			dataset, recList, rowcnt = '', [], 0
 			for fname in sublist:
-				print fname
-				# dataset = fname.split('/')[-1].split('.')[0][3:-1]
-				r = csv.reader(open(fname), delimiter=',')
-				head = r.next()
-				for row in r:
-					if len(row) > 0:
-						dataset = row[0]
-						recList.append(row)
-						# print len(row), ': ', row
-					else:
-						break
+				# read acc
+				head, accRec = self.readPrecision(fname)
+				recList += accRec
+				# read MAEs
+				maeHead, maeRec = self.readMAE(fname)
+				ALL_MAE_Recs += maeRec
 
+				print fname
+
+			dataset = recList[0][0]
 			print dataset
 
 			recList.sort(key=itemgetter(7,6,0,1,3,5), reverse=False)
@@ -388,6 +732,101 @@ class prepross(object):
 			for row in ret:
 				worksheet.write_row(rowcnt,0,row,myformat)
 				rowcnt+=1
+
+		# write Ped_MAE
+		MAEXlsx = self.timeDir+'Ped_MAE.xlsx'
+		MAE_workbook = xlsxwriter.Workbook(MAEXlsx)
+		MAE_myformat = MAE_workbook.add_format({'align':'center_across'})
+
+		worksheet = MAE_workbook.add_worksheet('ALLMAEs')
+		ALL_MAE_Recs.sort(key=itemgetter(7,6,3,2,1), reverse=False)
+		self.writeSheet([maeHead]+ALL_MAE_Recs, worksheet, MAE_myformat, 0)
+
+		# write course sheet for MAE_workbook
+		keys, MAEDict = self.format_ALL_MAEs(ALL_MAE_Recs)
+		for key in keys:
+			print 'Write ALL_MAEs for:\t', key
+			predictedCrs_ALL_MAE_List = MAEDict[key]
+			predictedCrs_ALL_MAE_List.sort(key=itemgetter(7,6,3,2,1), reverse=False)
+			ret = self.format_Ped_MAEs(predictedCrs_ALL_MAE_List, maeHead)
+			worksheet = MAE_workbook.add_worksheet(key)
+			self.writeSheet(ret, worksheet, MAE_myformat, 0)
+
+	def format_Ped_MAEs(self, predictedCrs_ALL_MAE_List, maeHead):
+		ret = []
+		pLList, rLList, prLList = [], [], []
+		pQList, rQList, prQList = [], [], []
+		for row in predictedCrs_ALL_MAE_List:
+			if row[3] == 'P':
+				if row[2] == 'L':
+					pLList.append(row)
+				elif row[2] == 'Q':
+					pQList.append(row)
+			elif row[3] == 'R':
+				if row[2] == 'L':
+					rLList.append(row)
+				elif row[2] == 'Q':
+					rQList.append(row)
+			elif row[3] == 'PR':
+				if row[2] == 'L':
+					prLList.append(row)
+				elif row[2] == 'Q':
+					prQList.append(row)
+
+		ret += self.Ped_MAEs_Spliter(pLList, maeHead)
+		ret += self.Ped_MAEs_Spliter(pQList, maeHead)
+		ret += self.Ped_MAEs_Spliter(rLList, maeHead)
+		ret += self.Ped_MAEs_Spliter(rQList, maeHead)
+		ret += self.Ped_MAEs_Spliter(prLList, maeHead)
+		ret += self.Ped_MAEs_Spliter(prQList, maeHead)
+
+		return ret
+
+	def Ped_MAEs_Spliter(self, myList, maeHead):
+		ret = []
+		keyList, mydict = [], {}
+		for row in myList:
+			# key: test set
+			key = row[1]
+			if key not in mydict:
+				mydict[key]=[row]
+			else:
+				mydict[key].append(row)
+
+			if key not in keyList:
+				keyList.append(key)
+
+		tmp = [maeHead]
+		for key in keyList:
+			if len(mydict[key]) > 1:
+				ret += [maeHead] + mydict[key] + ['']
+			else:
+				tmp += mydict[key]
+
+		return (ret + tmp + ['',''])
+
+	def format_ALL_MAEs(self, ALL_MAE_Recs):
+		# sort by: yNum,ySubj,Factor,LQ,TestSet
+		ALL_MAE_Recs.sort(key=itemgetter(7,6,3,2,1), reverse=False)
+		# 2nd Year List, 3rd Year List, 4th Year List
+		s2ListCrsList,t3ListCrsList,f4ListCrsList = [], [], []
+		predictedCrsDict = {}
+		for row in ALL_MAE_Recs:
+			# key: predicted course
+			key = row[6]+row[7]
+			if key not in predictedCrsDict:
+				predictedCrsDict[key]=[row]
+			else:
+				predictedCrsDict[key].append(row)
+
+			if (row[7][0]=='2') and (key not in s2ListCrsList):
+				s2ListCrsList.append(key)
+			elif (row[7][0]=='3') and (key not in t3ListCrsList):
+				t3ListCrsList.append(key)
+			elif (row[7][0]=='4') and (key not in f4ListCrsList):
+				f4ListCrsList.append(key)
+
+		return [s2ListCrsList+t3ListCrsList+f4ListCrsList, predictedCrsDict]
 
 	def analyzePrecision4OneCourse(self, crsList, head):
 		pointIndex,rIndex,PxyIndex,insIndex,accIndex=head.index('point#'),head.index('r'),head.index('Pxy'),head.index('instance'),head.index('0~1.0')+1
@@ -478,7 +917,7 @@ class prepross(object):
 
 	def sameTrSameT(self, train, mylist, lq, indexList):
 		pointIndex,rIndex,PxyIndex,insIndex,accIndex = indexList
-		crs = mylist[0][6]+mylist[0][7]
+		crs, yr = mylist[0][6]+mylist[0][7], mylist[0][7][0]
 
 		PRQ_Point,PQ_Point,RQ_Point = [crs, train,'PR'+lq+'P'], [crs, train,'P'+lq+'P'], [crs, train,'R'+lq+'P']
 		PRQ_R,PQ_R,RQ_R = [crs, train,'PR'+lq+'R'], [crs, train,'P'+lq+'R'], [crs, train,'R'+lq+'R']
@@ -509,19 +948,66 @@ class prepross(object):
 			index = header.index(test)-3
 			if x[3] == 'P':
 				# PQ_Point.append(x[pointIndex]),PQ_R.append(x[rIndex]),PQ_Pxy.append(x[PxyIndex]),PQ_ins.append(x[insIndex]),PQ_acc.append(x[accIndex])
-				p_pl[index], p_rl[index], p_pxyl[index], p_il[index], p_al[index]=x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+				p_pl[index], p_rl[index], p_pxyl[index], p_il[index], p_al[index]=int(x[pointIndex]), float(x[rIndex]), float(x[PxyIndex]), int(x[insIndex]), float(x[accIndex])
 			if x[3] == 'PR':
 				# PRQ_Point.append(x[pointIndex]),PRQ_R.append(x[rIndex]),PRQ_Pxy.append(x[PxyIndex]),PRQ_ins.append(x[insIndex]),PRQ_acc.append(x[accIndex])
-				pr_pl[index], pr_rl[index], pr_pxyl[index], pr_il[index], pr_al[index] =x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+				pr_pl[index], pr_rl[index], pr_pxyl[index], pr_il[index], pr_al[index] =int(x[pointIndex]), float(x[rIndex]), float(x[PxyIndex]), int(x[insIndex]), float(x[accIndex])
 			if x[3] == 'R':
 				# RQ_Point.append(x[pointIndex]),RQ_R.append(x[rIndex]),RQ_Pxy.append(x[PxyIndex]),RQ_ins.append(x[insIndex]),RQ_acc.append(x[accIndex])
-				r_pl[index], r_rl[index], r_pxyl[index], r_il[index], r_al[index]=x[pointIndex], x[rIndex], x[PxyIndex], x[insIndex], x[accIndex]
+				r_pl[index], r_rl[index], r_pxyl[index], r_il[index], r_al[index]=int(x[pointIndex]), float(x[rIndex]), float(x[PxyIndex]), int(x[insIndex]), float(x[accIndex])
 
 		print 'sameTrSameT: P --> \npoint: ',p_pl,'\nr: ',p_rl,'\npxy: ',p_pxyl,'\nins: ',p_il,'\nacc: ',p_al
 		print 'sameTrSameT: PR --> \nppoint: ',pr_pl,'\nr: ',pr_rl,'\npxy: ',pr_pxyl,'\nins: ',pr_il,'\nacc: ',pr_al
 		print 'sameTrSameT: R --> \npoint: ',r_pl,'\nr: ',r_rl,'\npxy: ',r_pxyl,'\nins: ',r_il,'\nacc: ',r_al
 
+		self.plotSameTrSameT(train, lq, 'Accuracy', header[3:], ['P', 'Pxy', 'r'], [p_al, pr_al, r_al], crs, yr, 'acc')
+		self.plotSameTrSameT(train, lq, 'Points', header[3:], ['P', 'Pxy', 'r'], [p_pl, pr_pl, r_pl], crs, yr, 'points')
+		self.plotSameTrSameT(train, lq, 'Coefficients', header[3:], ['P', 'Pxy', 'r'], [p_rl, pr_rl, r_rl], crs, yr, 'coe')
+		self.plotSameTrSameT(train, lq, 'Pxy', header[3:], ['P', 'Pxy', 'r'], [p_pxyl, pr_pxyl, r_pxyl], crs, yr, 'Pxy')
+		self.plotSameTrSameT(train, lq, 'Test Instances', header[3:], ['P', 'Pxy', 'r'], [p_il, pr_il, r_il], crs, yr, 'ins')
+
 		return myCopy.deepcopy([header, PRQ_acc+pr_al, PQ_acc+p_al, RQ_acc+r_al, header, PRQ_Point+pr_pl, PQ_Point+p_pl, RQ_Point+r_pl, header, PRQ_R+pr_rl, PQ_R+p_rl, RQ_R+r_rl, header, PRQ_Pxy+pr_pxyl, PQ_Pxy+p_pxyl, RQ_Pxy+r_pxyl, header, PRQ_ins+pr_il, PQ_ins+p_il, RQ_ins+r_il])
+
+	def plotSameTrSameT(self, Tr, lq, fType, xticks, legend, mylist, ped, yr, subfolder):
+		fig = plt.figure()
+		xlist = xrange(1, len(mylist[0])+1)
+
+		index, mycolor, shapes= 0, ['red', 'blue', 'cyan'], ['o', '*', '^']
+		for x in mylist:
+			plt.plot(xlist, x, shapes[index], c=mycolor[index], label=legend[index])
+			index+=1
+
+		ylist = []
+		for x in mylist:
+			ylist += x
+		ymax, xmax = ceil(max(ylist)), len(mylist[0])+1
+		plt.axis([0, xmax, 0, ymax])
+
+		plt.xticks(xlist, xticks, rotation='10')
+		plt.xlabel('Test Sets')
+		plt.ylabel(fType)
+		plt.title(ped+': Tr:'+Tr+', '+lq+', '+fType+' Comparison')
+		plt.grid(True)
+
+		ax = plt.subplot(111)
+		# Shrink current axis's height by 10% on the bottom
+		box = ax.get_position()
+		ax.set_position([box.x0, box.y0+box.height*0.1, box.width, box.height*0.9])
+		# Put a legend below current axis
+		ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13), fancybox=True, shadow=True, ncol=3, markerfirst=False, numpoints=3)
+
+		# expand figure bottom space
+		plt.gcf().subplots_adjust(bottom=0.19)
+
+		figDir = self.timeDir+'CRS_Com_Figures/'+yr+'/'+ped+'/'+subfolder+'/'+lq+'/'
+		if not os.path.exists(figDir):
+			os.makedirs(figDir)
+
+		filename = figDir+ped+'_'+Tr+'_'+lq+'_'+fType+'.png'
+
+		# plt.show()
+		fig.savefig(filename)
+		plt.close(fig)
 
 	def sortALLPed(self, mylist, pindex, head):
 		keys, crsDict = [],{}
@@ -814,8 +1300,9 @@ class prepross(object):
 
 		# create STUREGISTERED
 		w = csv.writer(open(STUREGISTERED, 'w'))
-		w.writerow(['Course', '#Students'])
-		w.writerows([ [key, len(courseDict[key])] for key in courseDict ])
+		# w.writerow(['Course', '#Students'])
+		w.writerow(['subj', 'num', '#Stu', 'year'])
+		w.writerows([ [key.split(' ')[0], key.split(' ')[1], len(courseDict[key]), key.split(' ')[1][0]] for key in courseDict ])
 
 		# create CRS_STU, CRS_STU_GRADE
 		w1, w2 = csv.writer(open(CRS_STU, 'w')), csv.writer(open(CRS_STU_GRADE, 'w'))
@@ -1296,13 +1783,17 @@ class prepross(object):
 		w = csv.writer(open(self.crsMatrix, 'w'))
 		w.writerows(matrix)
 
-	def corrPlot(self, source, corr):
+	def corrPlot(self, source, corr, skewness):
 		reader = csv.reader(open(source), delimiter=',')
 		header = reader.next()
 
 		matrix = []
 		for row in reader:
 			matrix.append(row)
+
+		wskew = csv.writer(open(skewness, 'w'))
+		skewHeader = ['subCode1', 'Num1', 'subCode2', 'Num2', 'skew1', 'skew2', 'coefficient','#points','pValue','stderr','slope','intercept','a','b','c','R^2','xmin','xmax']
+		wskew.writerow(skewHeader)
 
 		w = csv.writer(open(corr, 'w'))
 		w.writerow(['xsubCode','xnum','ysubCode','ynum','coefficient','#points','pValue','stderr','slope','intercept','a','b','c','R^2','xmin','xmax'])
@@ -1350,7 +1841,12 @@ class prepross(object):
 					# 	print 'cnt:',cnt,'less than threshold course pair,', 'len:', len(ydata), course[0],course[1],'vs',newCourse[0],newCourse[1],'trainYrs:', self.trainYrsText, 'Thresh:', self.threshold
 					# 	continue
 
-					(r, p) = pearsonr(xdata, ydata)
+					# before computing the pearson correlation coefficient, normalize the dataset
+					xl = [i*1.0/sum(xdata) for i in xdata]
+					yl = [i*1.0/sum(ydata) for i in ydata]
+
+					(r, p) = pearsonr(xl, yl)
+					p = float(format(p, '.4f'))
 					if str(r) == 'nan':
 						noCorrList.append(newCourse)
 						cnt += 1
@@ -1364,12 +1860,12 @@ class prepross(object):
 					self.createBoxPlots([course[0], course[1]]+xdata, [newCourse[0], newCourse[1]]+ydata)
 					# slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
 					# format the parameters precision
-					slope, intercept, r_value, p_value, std_err = linregress(xdata, ydata)
+					slope, intercept, r_value, p_value, std_err = linregress(xl, yl)
 					r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 
 					# r_value = float(format(r, '.4f'))
-					slope, intercept = self.regressionPlot(xdata, ydata, r_value, 1, xaxis, yaxis, self.linear_plots_ori, len(ydata))
-					a,b,c = self.regressionPlot(xdata, ydata, r_value, 2, xaxis, yaxis, self.quadratic_plots_ori, len(ydata))
+					slope, intercept = self.regressionPlot(xdata, ydata, r, 1, xaxis, yaxis, self.linear_plots_ori, len(ydata))
+					a,b,c = self.regressionPlot(xdata, ydata, r, 2, xaxis, yaxis, self.quadratic_plots_ori, len(ydata))
 
 					slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
@@ -1381,9 +1877,13 @@ class prepross(object):
 					rpSinglelist.append([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata)])
 
 					if self.proPredictor == 'ALL':
-						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope, 'trainYrs:', self.trainYrsText
+						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'p_value:', p_value, 'p:', p, 'slope:', slope, 'trainYrs:', self.trainYrsText
 					else:
-						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'slope:', slope
+						print 'cnt:', cnt, course[0], course[1], 'vs', newCourse[0], newCourse[1], 'len:', len(ydata), 'r:', r, 'r_value:', r_value, 'p_value:', p_value, 'p:', p, 'slope:', slope
+
+					# write skew to csv
+					xskew, yskew  = float(format(skew(xdata, None, False), '.4f')), float(format(skew(ydata, None, False), '.4f'))
+					wskew.writerow([course[0], course[1], newCourse[0], newCourse[1], xskew, yskew, r, len(ydata), p_value, std_err, slope, intercept, a, b, c, float(format(r*r, '.4f')), min(xdata), max(xdata)])
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir+'nocorr/'):
@@ -1560,8 +2060,8 @@ class prepross(object):
 				r, slope, intercept, r_value, p_value, std_err = [float(format(r, '.4f')), float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(r_value, '.4f')), float(format(p_value, '.4f')), float(format(std_err, '.4f'))]
 
 				# r_value = float(format(r, '.4f'))
-				slope, intercept = self.regressionPlot(xdata, ydata, r_value, 1, xaxis, yaxis, self.linear_plots_ori, len(ydata))
-				a,b,c = self.regressionPlot(xdata, ydata, r_value, 2, xaxis, yaxis, self.quadratic_plots_ori, len(ydata))
+				slope, intercept = self.regressionPlot(xdata, ydata, r, 1, xaxis, yaxis, self.linear_plots_ori, len(ydata))
+				a,b,c = self.regressionPlot(xdata, ydata, r, 2, xaxis, yaxis, self.quadratic_plots_ori, len(ydata))
 
 				slope, intercept, a, b, c = [float(format(slope, '.4f')), float(format(intercept, '.4f')), float(format(a, '.4f')), float(format(b, '.4f')), float(format(c, '.4f'))]
 
@@ -2777,10 +3277,10 @@ class prepross(object):
 		else:
 			return []
 
-	def precision4Ped(self, errRangeStdErrList, dataset):
+	def precision4Ped(self, errRangeStdErrList, testSet, regression):
 		precisionList = []
 		for errRec in errRangeStdErrList:
-			rec, errorList = [self.trainYrsText, dataset, dataset[-1], self.factor]+errRec[:6]+[errRec[18],errRec[14]], errRec[20:]
+			rec, errorList = [self.trainYrsText, testSet, regression, self.factor]+errRec[:6]+[errRec[18],errRec[14]], errRec[20:]
 			le_05 = be_05_10 = be_10_15 = gt15 = 0
 			for err in errorList:
 				if abs(float(err)) <= 0.5:
@@ -2936,14 +3436,14 @@ class prepross(object):
 
 		# write precision
 		header = ['TrainSet','TestSet','LQ','Factor','xSubj','xNum','ySubj','yNum','point#','r','Pxy','instance','0~0.5','%','0.5~1.0','%','0~1.0','%','1.0~1.5','%','gt1.5','%']
-		dataset = predictResults.split('/')[-1].split('.')[0][3:-1]
-		precisionList = self.precision4Ped(errRangeStdErrList, dataset)
+		testSet, factor, regression = predictResults.split('/')[-1].split('.')[0].split('_')
+		precisionList = self.precision4Ped(errRangeStdErrList, testSet, regression)
 		precisionList.sort(key=itemgetter(7,0,3,5), reverse=False)
 		writer.writerows([header]+precisionList)
 
 		# write predictor-predicted course lists
-		if not self.errMerge:
-			writer.writerows(['']+ppedRec)
+		# if not self.errMerge:
+		# 	writer.writerows(['']+ppedRec)
 
 		# pick the 1st year predictors and 2nd year predictors
 		# sort errRangeStdErrList
@@ -3211,7 +3711,7 @@ class prepross(object):
 
 		return [['f1s2P'], [''], header]+f1s2ListPredictor+[[''],['f1t3P'], [''], header]+f1t3ListPredictor+[[''],['s2t3P'], [''], header]+s2t3ListPredictor+[[''],['f1s2Ped'], [''], header]+f1s2ListPredicted+[[''],['f1t3Ped'], [''], header]+f1t3ListPredicted+[[''],['s2t3Ped'], [''], header]+s2t3ListPredicted+['']
 
-	def pickTopPrecision4S2T3(self, precisionIndex, tempList, f1s2ListP, f1t3ListP, s2t3ListP, f1s2ListPed, f1t3ListPed, s2t3ListPed):
+	def pickTopPrecision4S2T3(self, precisionIndex, tempList, f1s2P, f1t3P, s2t3P, f1s2Ped, f1t3Ped, s2t3Ped):
 		xyr, yyr = tempList[0][1][0], tempList[0][3][0]
 		if yyr == '4':
 			return
@@ -3228,21 +3728,21 @@ class prepross(object):
 				# second year predicted courses
 				if yyr == '2':
 					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-					f1s2ListP += ret
+					f1s2P += ret
 				# third year predicted courses
 				else:
 					ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-					f1t3ListP += ret
+					f1t3P += ret
 			# second year predictors
 			else:
 				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-				s2t3ListP += ret
+				s2t3P += ret
 		# for predicted course
 		elif len(freqy) == 1:
 			# second year predicted courses: 1-2
 			if yyr == '2':
 				ret = self.pickRecordsByCondiction(tempList, [precisionIndex, maxPrecision])
-				f1s2ListPed += ret
+				f1s2Ped += ret
 			# third year predicted courses
 			else:
 				f1List, s2List = [], []
@@ -3254,11 +3754,11 @@ class prepross(object):
 				# first year predictor: 1-3
 				maxPrecision = self.pickMaxPrecision(f1List, precisionIndex)
 				ret = self.pickRecordsByCondiction(f1List, [precisionIndex, maxPrecision])
-				f1t3ListPed += ret
+				f1t3Ped += ret
 				# second year predictor: 2-3
 				maxPrecision = self.pickMaxPrecision(s2List, precisionIndex)
 				ret = self.pickRecordsByCondiction(s2List, [precisionIndex, maxPrecision])
-				s2t3ListPed += ret
+				s2t3Ped += ret
 
 	def pickMaxPrecision(self, tempList, precisionIndex):
 		precisionList = []
@@ -4018,20 +4518,24 @@ class prepross(object):
 
 		return results
 
-	def mergeMAEsRanges(self, srcList, destMAEs, destRanges):
+	def mergeMAEsRanges(self, srcList, destAccs, destMAEs, destRanges, regression):
 		# srcList: self.linearPredictResultsListTop1 or self.quadrPredictResultsListTop1
 		# destMAEs: merged MAEs for all test sets for the training set and the threshold
 		# destRanges: merged Ranges for all test sets for the training set and the threshold
+		accRet, maeRet = [], []
+		precisionsW = csv.writer(open(destAccs, 'w'))
 		MAEsW = csv.writer(open(destMAEs, 'w'))
 		RangesW = csv.writer(open(destRanges, 'w'))
 		for src in srcList:
-			filename = src.split('_')[1]
+			filename = src.split('/')[-1].split('_')[0]
 			r = csv.reader(open(src), delimiter=',')
-			MAEsList, RangesList, spaceIndex = [], [], 0
+			precisionList, MAEsList, RangesList, spaceIndex = [], [], [], 0
 			for row in r:
 				if spaceIndex > 3:
-					# r.close()
 					break
+				# precisions
+				if spaceIndex == 0:
+					precisionList.append(row)
 				# reach MAEs
 				if spaceIndex == 2:
 					MAEsList.append(row)
@@ -4043,27 +4547,73 @@ class prepross(object):
 					spaceIndex += 1
 
 			acronym = ''
-			if len(filename) == 7:
-				acronym = 'T'+filename[-2:]
-			elif len(filename) == 16:
-				acronym = 'T'+filename[9:11]+filename[-2:]
-			elif len(filename) == 17:
-				acronym = 'Tr'+filename[10:12]+filename[-2:]
+			if len(filename) > 3:
+				acronym = filename[3:]
+			else:
+				acronym = filename
 
-			MAEsW.writerows([[acronym]]+MAEsList)
+			head = precisionList[0]
+			s2list,t3list,f4list,s2extreme,t3extreme,f4extreme = self.splitByYear(precisionList[1:-1], [7,6,17], 7, 17)
+			precisionsW.writerows([[acronym],head]+s2list+['',head]+t3list+['', head]+f4list+[''])
+			accRet.append([self.trainYrsText, acronym, self.factor, regression, '2']+s2extreme)
+			accRet.append([self.trainYrsText, acronym, self.factor, regression, '3']+t3extreme)
+			accRet.append([self.trainYrsText, acronym, self.factor, regression, '4']+f4extreme)
+
+			head = MAEsList[0]
+			s2list,t3list,f4list,s2extreme,t3extreme,f4extreme = self.splitByYear(MAEsList[1:-1], [3,2,12], 3, 12)
+			MAEsW.writerows([[acronym],head]+s2list+['',head]+t3list+['', head]+f4list+[''])
+			maeRet.append([self.trainYrsText, acronym, self.factor, regression, '2']+s2extreme)
+			maeRet.append([self.trainYrsText, acronym, self.factor, regression, '3']+t3extreme)
+			maeRet.append([self.trainYrsText, acronym, self.factor, regression, '4']+f4extreme)
+
 			RangesW.writerows([[acronym]]+RangesList)
 
+		return [accRet, maeRet]
+
+	def splitByYear(self, src, orderSeqs, yearIndex, Acc_MAE_index):
+		s2list,t3list,f4list=[],[],[]
+		s2,t3,f4=[],[],[]
+		for row in src:
+			y = row[yearIndex][0]
+			if y=='2':
+				s2list.append(row)
+				s2.append(float(row[Acc_MAE_index]))
+			if y=='3':
+				t3list.append(row)
+				t3.append(float(row[Acc_MAE_index]))
+			if y=='4':
+				f4list.append(row)
+				f4.append(float(row[Acc_MAE_index]))
+
+		s2list.sort(key=itemgetter(orderSeqs[0],orderSeqs[1],orderSeqs[2]), reverse=True)
+		t3list.sort(key=itemgetter(orderSeqs[0],orderSeqs[1],orderSeqs[2]), reverse=True)
+		f4list.sort(key=itemgetter(orderSeqs[0],orderSeqs[1],orderSeqs[2]), reverse=True)
+
+		return [s2list,t3list,f4list, [max(s2), min(s2)], [max(t3), min(t3)], [max(f4), min(f4)]]
+
 	def mergeMAEsRangesManager(self):
-		# T1: Top 1; L: Linear; Q: Quadratic; M: MAEs; R: Grade Ranges; str(len(self.trainYrs)): 2,3,4,5; self.factor: PR,P,R; str(self.threshold): 1,5,10
+		# T1: Top 1; L: Linear; Q: Quadratic; M: MAEs; R: Grade Ranges; Acc: Precisions; str(len(self.trainYrs)): 2,3,4,5; self.factor: PR,P,R; str(self.threshold): 1,5,10
+		filesRet, accRets, maeRets = [], [], []
+		destAccs = self.currDir + 'T1/T1LAcc' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destMAEs = self.currDir + 'T1/T1LM' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destRanges = self.currDir + 'T1/T1LR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
-		self.mergeMAEsRanges(self.linearPredictResultsListTop1, destMAEs, destRanges)
+		accRet, maeRet = self.mergeMAEsRanges(self.linearPredictResultsListTop1, destAccs, destMAEs, destRanges, 'L')
+		accRets+=accRet
+		maeRets+=maeRet
+		filesRet.append(destAccs), filesRet.append(destMAEs), filesRet.append(destRanges)
+
+		destAccs = self.currDir + 'T1/T1QAcc' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destMAEs = self.currDir + 'T1/T1QM' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
 		destRanges = self.currDir + 'T1/T1QR' + str(len(self.trainYrs)) + self.factor + str(self.threshold) + '.csv'
-		self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destMAEs, destRanges)
+		accRet, maeRet = self.mergeMAEsRanges(self.quadrPredictResultsListTop1, destAccs, destMAEs, destRanges, 'Q')
+		accRets+=accRet
+		maeRets+=maeRet
+		filesRet.append(destAccs), filesRet.append(destMAEs), filesRet.append(destRanges)
+
+		return [filesRet, accRets, maeRets]
 
 	def mergePrecision4ALL(self, trainYrsText, precisionListALL, factor):
-		precisionXlsx = self.timeDir+trainYrsText+'_'+factor+'_Precision.xlsx'
+		precisionXlsx = self.timeDir+trainYrsText+'_'+factor+'_ACC.xlsx'
 		workbook = xlsxwriter.Workbook(precisionXlsx)
 		myformat = workbook.add_format({'align':'center_across'})
 		for p in precisionListALL:

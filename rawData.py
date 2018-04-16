@@ -29,13 +29,14 @@ class splitRawData(object):
 			self.regFileList.append(self.currDir+'reg'+yr+'.csv')
 			self.degFileList.append(self.currDir+'deg'+yr+'.csv')
 
-		# split VNumber and create the Degree data by year
-		self.IDListGroup = self.degIDListByYrDegreeDataBuilder()
+		if not os.path.exists(self.degcsv):
+			# split VNumber and create the Degree data by year
+			self.IDListGroup = self.degIDListByYrDegreeDataBuilder()
 		# fetch combination data filename
-		self.cDataNameList = self.combinedDataNameList()
+		# self.cDataNameList = self.combinedDataNameList()
 
 	def doBatch(self):
-		if not os.path.exists(self.cDataNameList[0]):
+		if not os.path.exists(self.regFileList[0]):
 			self.createRegFiles()
 			self.dataMerger()
 
@@ -46,6 +47,14 @@ class splitRawData(object):
 		DegIDList10, DegIDList11, DegIDList12, DegIDList13, DegIDList14, DegIDList15 = self.IDListGroup
 		regList10, regList11, regList12, regList13, regList14, regList15 = [], [], [], [], [], []
 		for row in r:
+			crs = row[3].replace(' ','')+row[4].replace(' ','')
+			if (crs) == 'MATH110':
+				row[4] = '133'
+			if (crs) == 'ENGR110':
+				row[4] = '111'
+			if (crs) == 'ENGR141':
+				row[3] = 'MECH'
+
 			if (row[1] in DegIDList10):
 				regList10.append(row)
 			elif (row[1] in DegIDList11):
@@ -96,6 +105,8 @@ class splitRawData(object):
 		DegList10, DegList11, DegList12, DegList13, DegList14, DegList15 = [], [], [], [], [], []
 
 		for deg in degReader:
+			if deg[1] in ['V00202855', 'V00241653', 'V00682567']:
+				continue
 			# graduateYr,OFFICIAL_SNAPSHOT_IND = deg[9],deg[12]
 			if (deg[9] == '2010') and (not deg[9] in DegIDList10) and (deg[12]=='Y'):
 				DegList10.append(deg)
@@ -152,7 +163,7 @@ class splitRawData(object):
 			nameList.append(self.currDir+'deg'+yrList[0]+'-'+yrList[-1]+'.csv')
 			nameList.append(self.currDir+'reg'+yrList[0]+'-'+yrList[-1]+'.csv')
 			if len(yrList) != 5:
-				nameList.append(self.currDir+'regtest'+self.yearList[len(yrList)]+'-'+self.yearList[-1]+'.csv')
+				nameList.append(self.currDir+'reg'+self.yearList[len(yrList)]+'-'+self.yearList[-1]+'.csv')
 
 		return nameList
 
