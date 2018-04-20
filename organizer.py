@@ -3,9 +3,18 @@
 import csv, os, xlsxwriter, sys
 from operator import itemgetter
 
-# subCode1	Num1	subCode2	Num2	skew1	skew2	coefficient	#points	pValue	stderr	slope	intercept	a	b	c	R^2	xmin	xmax
-# 0			1		2			3		4		5		6			7		8		9		10		11			12	13	14	15	16		17
+# subCode1	Num1	subCode2	Num2	coefficient	#points	pValue	stderr	slope	intercept	a	b	c	R^2	xmin	xmax	skew1	skew2
+# 	0		1		2			3		4			5		6		7		8		9			10	11	12	13	14		15		16		17
 cutoff = 0.05
+crsx1index = 0
+numx1index = 1
+crsx2index = 2
+numx2index = 3
+rindex = 4
+pindex = 5
+pvindex = 6
+stderrindex = 7
+
 # sort the courses 
 def courseOrganizer(src):
 	print '\n\n\n*******************************************\n'+src+'\n'
@@ -29,8 +38,8 @@ def courseOrganizer(src):
 	course2KeysList = []
 	header = r.next()
 	for row in r:
-		p_value = row[8]
-		r = row[6]
+		p_value = row[6]
+		r = row[4]
 		if (float(p_value) <= cutoff) and (abs(float(r)) != 1.0):
 			reservedList.append(row)
 			course1 = row[0]+row[1]
@@ -64,8 +73,8 @@ def courseOrganizer(src):
 	# create Course2 Count sheet
 	# ==========================================================================================================================
 	worksheet = workbook.add_worksheet('Sorted')
-	rowcnt = CourseSortedSheet(worksheet, myformat, 0, header, reservedList, [3,2,7])
-	rowcnt = CourseSortedSheet(worksheet, myformat, rowcnt, header, reservedList, [1,0,7])
+	rowcnt = CourseSortedSheet(worksheet, myformat, 0, header, reservedList, [3,2,5])
+	rowcnt = CourseSortedSheet(worksheet, myformat, rowcnt, header, reservedList, [1,0,5])
 	"""
 	rowcnt = 0
 	reservedList.sort(key=itemgetter(3,2,7), reverse=False)	
@@ -196,12 +205,12 @@ def CourseMaximumFactorSheet(workbook, worksheet, sheetName, myformat, courseKey
 		
 		# v.sort(key=itemgetter(6), reverse=True)
 		# deal with negative r-s
-		rList = [abs(float(row[6])) for row in v]
+		rList = [abs(float(row[4])) for row in v]
 		maxR = max(rList)
-		maxCoefficientRowRaw = [row for row in v if abs(float(row[6]))==maxR]
+		maxCoefficientRowRaw = [row for row in v if abs(float(row[4]))==maxR]
 		maxCoefficientRow = [[maxCoefficientRowRaw[0][0]+' '+maxCoefficientRowRaw[0][1], maxCoefficientRowRaw[0][2]+' '+maxCoefficientRowRaw[0][3]]+maxCoefficientRowRaw[0][4:]]
 
-		v.sort(key=itemgetter(7), reverse=True)
+		v.sort(key=itemgetter(5), reverse=True)
 		# concate crsx, numx into CourseX; crsY, numY into CourseY
 		maxPointRow = [v[0][0]+' '+v[0][1], v[0][2]+' '+v[0][3]]+v[0][4:]
 		
@@ -224,8 +233,8 @@ def ComputePxy(keycourse, courseList, sortIndex):
 	if len(courseList) == 1:
 		return courseList
 	# function incompleted
-	rList = [abs(float(row[6])) for row in courseList]
-	pList = [float(row[7]) for row in courseList]
+	rList = [abs(float(row[4])) for row in courseList]
+	pList = [float(row[5]) for row in courseList]
 	maxR = max(rList)
 	minR = min(rList)
 	maxP = max(pList)
@@ -280,12 +289,12 @@ def CourseCountSheet(courseKeys, courseDict, sortKeyIndex, workbook, worksheet, 
 	for key in courseKeys:
 		v =courseDict[key[0]+key[1]]
 		v.sort(key=itemgetter(sortKeyIndex[0],sortKeyIndex[1]), reverse=False)
-		worksheet.write_row(rowcnt,0,['count','CourseX','CourseY','coefficient','#points','pValue','stderr'],myformat)
+		worksheet.write_row(rowcnt,0,['count','CourseX','CourseY','r','#','p-value','stderr'],myformat)
 		rowcnt+=1
 		count = len(v)
 		c1List = []
 		for row in v:
-			c1List.append([row[sortKeyIndex[0]]+' '+row[sortKeyIndex[1]],row[6],row[7],row[8],row[9]])
+			c1List.append([row[sortKeyIndex[0]]+' '+row[sortKeyIndex[1]],row[4],row[5],row[6],row[7]])
 		c1 = [count, v[0][sortKeyIndex[2]] + ' ' + v[0][sortKeyIndex[3]]] + c1List[0]
 		worksheet.write_row(rowcnt,0,c1,myformat)
 		rowcnt+=1

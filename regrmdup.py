@@ -1792,7 +1792,7 @@ class prepross(object):
 			matrix.append(row)
 
 		wskew = csv.writer(open(skewness, 'w'))
-		skewHeader = ['subCode1', 'Num1', 'subCode2', 'Num2', 'skew1', 'skew2', 'coefficient','#points','pValue','stderr','slope','intercept','a','b','c','R^2','xmin','xmax']
+		skewHeader = ['X1', 'X1', 'Y1', 'Y1', 'r','#','pValue','stderr','slope','intercept','a','b','c','R^2','xmin','xmax', 'skew1', 'skew2']
 		wskew.writerow(skewHeader)
 
 		w = csv.writer(open(corr, 'w'))
@@ -1883,7 +1883,7 @@ class prepross(object):
 
 					# write skew to csv
 					xskew, yskew  = float(format(skew(xdata, None, False), '.4f')), float(format(skew(ydata, None, False), '.4f'))
-					wskew.writerow([course[0], course[1], newCourse[0], newCourse[1], xskew, yskew, r, len(ydata), p_value, std_err, slope, intercept, a, b, c, float(format(r*r, '.4f')), min(xdata), max(xdata)])
+					wskew.writerow([course[0], course[1], newCourse[0], newCourse[1], r, len(ydata), p_value, std_err, slope, intercept, a, b, c, float(format(r*r, '.4f')), min(xdata), max(xdata), xskew, yskew])
 
 			if len(noCorrList) > 0:
 				if not os.path.exists(self.dataDir+'nocorr/'):
