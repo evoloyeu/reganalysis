@@ -15,6 +15,8 @@ pindex = 5
 pvindex = 6
 stderrindex = 7
 
+wList = [1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5]
+
 # sort the courses 
 def courseOrganizer(src):
 	print '\n\n\n*******************************************\n'+src+'\n'
@@ -178,28 +180,20 @@ def courseOrganizer(src):
 	# ==========================================================================================================================
 	# create Course2 Count sheet
 	# ==========================================================================================================================
-	CourseMaximumFactorSheet(workbook, worksheet, "CourseX Pick", myformat, course1KeysList, course1List, [2,3], header)
-	CourseMaximumFactorSheet(workbook, worksheet, "CourseY Pick", myformat, course2KeysList, course2List, [0,1], header)
-	# ==========================================================================================================================
-	# create Course2 Count sheet
-	# ==========================================================================================================================
-	
-	# ==========================================================================================================================
-	# create Course2 Count sheet
-	# ==========================================================================================================================
-
+	CourseMaximumFactorSheet(workbook, ["CourseX Pick", "X_R_PICK", "X_#_PICK", "X_XY_PICK"], myformat, course1KeysList, course1List, [2,3], header, 0)
+	CourseMaximumFactorSheet(workbook, ["CourseY Pick", "Y_R_PICK", "Y_#_PICK", "Y_XY_PICK"], myformat, course2KeysList, course2List, [0,1], header, 1)
 	# ==========================================================================================================================
 	# create Course2 Count sheet
 	# ==========================================================================================================================
 
 	print '============================================================Organizer DONE=============================================================='
 
-def CourseMaximumFactorSheet(workbook, worksheet, sheetName, myformat, courseKeys, courseDict, sortIndex, header):
-	courseKeys.sort(key=itemgetter(1), reverse=False)
-	worksheet = workbook.add_worksheet(sheetName)
+def CourseMaximumFactorSheet(workbook, sheetNames, myformat, courseKeys, courseDict, sortIndex, header, flag):
+	courseKeys.sort(key=itemgetter(1), reverse=False)	
 	pointPickList = []
 	coefficientPickList = []
 	pxyPickList = []
+	pxyList = []
 	for key in courseKeys:
 		v =courseDict[key[0]+key[1]]
 		
@@ -208,30 +202,82 @@ def CourseMaximumFactorSheet(workbook, worksheet, sheetName, myformat, courseKey
 		rList = [abs(float(row[4])) for row in v]
 		maxR = max(rList)
 		maxCoefficientRowRaw = [row for row in v if abs(float(row[4]))==maxR]
-		maxCoefficientRow = [[maxCoefficientRowRaw[0][0]+' '+maxCoefficientRowRaw[0][1], maxCoefficientRowRaw[0][2]+' '+maxCoefficientRowRaw[0][3]]+maxCoefficientRowRaw[0][4:]]
+		# courseX
+		maxCoefficientRows = []
+		if flag == 0:
+			for row in maxCoefficientRowRaw:
+				maxCoefficientRows.append([row[0]+' '+row[1], row[2]+' '+row[3]]+row[4:])
+		# courseY
+		if flag == 1:
+			# find the smallest course number of courseX
+			maxCoefficientRowRaw.sort(key=itemgetter(1), reverse=False)
+			maxCoefficientRows = [[maxCoefficientRowRaw[0][0]+' '+maxCoefficientRowRaw[0][1], maxCoefficientRowRaw[0][2]+' '+maxCoefficientRowRaw[0][3]]+maxCoefficientRowRaw[0][4:]]
 
+		# deal with max point
 		v.sort(key=itemgetter(5), reverse=True)
-		# concate crsx, numx into CourseX; crsY, numY into CourseY
-		maxPointRow = [v[0][0]+' '+v[0][1], v[0][2]+' '+v[0][3]]+v[0][4:]
+		maxP = v[0][5]
+		maxPointRowRaw = [row for row in v if row[5]==maxP]
+		maxPointRows = []
+		if flag == 0:
+			for row in maxPointRowRaw:
+				maxPointRows.append([row[0]+' '+row[1], row[2]+' '+row[3]]+row[4:])
+		if flag == 1:
+			maxPointRowRaw.sort(key=itemgetter(1), reverse=False)
+			maxPointRows = [[maxPointRowRaw[0][0]+' '+maxPointRowRaw[0][1], maxPointRowRaw[0][2]+' '+maxPointRowRaw[0][3]]+maxPointRowRaw[0][4:]]
 		
-		coefficientPickList+=(maxCoefficientRow)
-		pointPickList.append(maxPointRow)
+		coefficientPickList+=maxCoefficientRows
+		pointPickList+=maxPointRows
 
 		# build Pxy matrix
 		v.sort(key=itemgetter(sortIndex[0], sortIndex[1]), reverse=False)
-		pxyPickList += ComputePxy(key, v, sortIndex)+['']
+		pxyReturnList = ComputePxy(key, v, sortIndex, flag)
+		pxyList += pxyReturnList+['']
+		# pxyPickList
+		temp = XYPick(pxyReturnList)
+		if len(temp) == 1:
+			pxyPickList += temp
+		if len(temp) > 1:
+			pxyPickList += temp[0]
+			pxyList += temp[1]+['']
 
 	# create xlsx sheets
+	# Course Pick
 	rowcnt = 0
 	pxyHeader = ['CourseX', 'CourseY',1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5]
 	newHeader = ['CourseX', 'CourseY']+header[4:]
-	for row in ['PPICK', newHeader]+pointPickList+['','RPICK', newHeader]+coefficientPickList+['','PXYPICK', pxyHeader]+pxyPickList:
+	worksheet = workbook.add_worksheet(sheetNames[0])
+	for row in ['PPICK', newHeader]+pointPickList+['','RPICK', newHeader]+coefficientPickList+['','PXYPICK', pxyHeader]+pxyList:
 		worksheet.write_row(rowcnt,0,row,myformat)
 		rowcnt+=1
 
-def ComputePxy(keycourse, courseList, sortIndex):
+	# _R_PICK
+	worksheet = workbook.add_worksheet(sheetNames[1])
+	rowcnt = 0
+	for row in [newHeader]+coefficientPickList:
+		worksheet.write_row(rowcnt,0,row,myformat)
+		rowcnt+=1
+	# _P_PICK
+	worksheet = workbook.add_worksheet(sheetNames[2])
+	rowcnt = 0
+	for row in [newHeader]+pointPickList:
+		worksheet.write_row(rowcnt,0,row,myformat)
+		rowcnt+=1
+	# _XY_PICK
+	worksheet = workbook.add_worksheet(sheetNames[3])
+	rowcnt = 0
+	for row in pxyPickList:
+		worksheet.write_row(rowcnt,0,row,myformat)
+		rowcnt+=1
+
+def ComputePxy(keycourse, courseList, sortIndex, flag):
 	if len(courseList) == 1:
-		return courseList
+		# courseX
+		if flag == 0:
+			return [[courseList[0][0]+' '+courseList[0][1], courseList[0][2]+' '+courseList[0][3]]+courseList[4:8]]
+		if flag == 1:
+			return [[courseList[0][2]+' '+courseList[0][3], courseList[0][0]+' '+courseList[0][1]]+courseList[4:8]]
+
+	# normalization
 	# function incompleted
 	rList = [abs(float(row[4])) for row in courseList]
 	pList = [float(row[5]) for row in courseList]
@@ -259,6 +305,52 @@ def ComputePxy(keycourse, courseList, sortIndex):
 
 	return pxyList
 
+def XYPick(pxyReturnList):
+	if len(pxyReturnList) == 1:
+		return [[pxyReturnList[0][0], pxyReturnList[0][1]]]
+
+	# accumulate sum in row
+	sumList = []
+	for i in xrange(0,len(pxyReturnList)):
+		sumList.append(0)
+
+	xyArrayList = []
+	for i in xrange(0,len(wList)):
+		colPxys = []
+		for j in xrange(0,len(pxyReturnList)):
+			colPxys.append(float(pxyReturnList[j][i+2]))
+
+		maxPxy = max(colPxys)
+		temp = []
+		for k in xrange(0, len(colPxys)):
+			if colPxys[k] == maxPxy:
+				temp.append(1)
+				sumList[k] += 1
+			else:
+				temp.append(0)
+
+		xyArrayList.append(temp)
+
+	maxSum = max(sumList)
+	ret = []
+	for i in xrange(0,len(sumList)):
+		if maxSum == sumList[i]:
+			ret.append([pxyReturnList[i][0], pxyReturnList[i][1]])
+
+	# find the max
+	for item in xyArrayList:
+		print item
+
+	# form max row
+	rows = []
+	for i in xrange(0,len(pxyReturnList)):
+		temp = [pxyReturnList[i][0], pxyReturnList[i][1]]
+		for j in xrange(0,len(xyArrayList)):
+			temp.append(xyArrayList[j][i])
+		rows.append(temp)
+
+	return [ret, rows]
+
 def CourseSortedSheet(worksheet, myformat, rowcnt, header, reservedList, sortIndex):
 	reservedList.sort(key=itemgetter(sortIndex[0], sortIndex[1], sortIndex[2]), reverse=False)
 	for row in [header]+reservedList+['']:
@@ -271,6 +363,7 @@ def CourseListSheet(workbook, worksheet, courseListSheetName, myformat, courseLi
 	worksheet = workbook.add_worksheet(courseListSheetName)
 	rowcnt = 0
 	for key, v in courseList.items():
+		v.sort(key=itemgetter(4,5), reverse=True)
 		for row in [header]+v+['']:
 			worksheet.write_row(rowcnt,0,row,myformat)
 			rowcnt+=1
@@ -285,12 +378,12 @@ def CourseCountSheet(courseKeys, courseDict, sortKeyIndex, workbook, worksheet, 
 		rowcnt+=1
 
 	rowcnt = 0
-	# for k,v in course2List.items():
+	worksheet.write_row(rowcnt,0,['count','CourseX','CourseY','r','#','p-value','stderr'],myformat)
+	rowcnt+=1
+	singleLineList = []
 	for key in courseKeys:
 		v =courseDict[key[0]+key[1]]
 		v.sort(key=itemgetter(sortKeyIndex[0],sortKeyIndex[1]), reverse=False)
-		worksheet.write_row(rowcnt,0,['count','CourseX','CourseY','r','#','p-value','stderr'],myformat)
-		rowcnt+=1
 		count = len(v)
 		c1List = []
 		for row in v:
@@ -301,6 +394,27 @@ def CourseCountSheet(courseKeys, courseDict, sortKeyIndex, workbook, worksheet, 
 		for row in c1List[1:]:
 			worksheet.write_row(rowcnt,0,['','']+row,myformat)
 			rowcnt+=1
+
+		singleLineList.append([v[0][sortKeyIndex[2]] + ' ' + v[0][sortKeyIndex[3]], formSingleLineCourses(c1List), count])
+
+	rowcnt = 2
+	for item in singleLineList:
+		print item
+		worksheet.write_row(rowcnt,14,item,myformat)
+		rowcnt += 1
+
+def formSingleLineCourses(courseList):
+	previous = ''
+	retstr = ''
+	for item in courseList:
+		prefix, num = item[0].split(' ')
+		if prefix == previous:
+			retstr += '/'+num
+		else:
+			retstr += ', '+item[0]
+			previous = prefix
+
+	return retstr[2:]
 
 def CourseCountInYear(courseList):
 	y1,y2,y3,y4 = 0, 0, 0, 0
