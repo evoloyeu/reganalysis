@@ -118,7 +118,7 @@ def courseOrganizer(src):
 	# ==========================================================================================================================
 	# create Course1 Count sheet
 	# ==========================================================================================================================
-	CourseCountSheet(course1KeysList, course1List, [2, 3, 0, 1], workbook, worksheet, 'CourseX Count', myformat)
+	CourseCountSheet(course1KeysList, course1List, [2, 3, 0, 1], workbook, worksheet, 'CourseX Count', myformat, ['CourseX', 'CourseY', 'Count'])
 	"""
 	course1KeysList.sort(key=itemgetter(1), reverse=False)
 	worksheet = workbook.add_worksheet('Course1 Count')
@@ -149,7 +149,7 @@ def courseOrganizer(src):
 	# ==========================================================================================================================
 	# create Course2 Count sheet
 	# ==========================================================================================================================
-	CourseCountSheet(course2KeysList, course2List, [0, 1, 2, 3], workbook, worksheet, 'CourseY Count', myformat)
+	CourseCountSheet(course2KeysList, course2List, [0, 1, 2, 3], workbook, worksheet, 'CourseY Count', myformat, ['CourseY', 'CourseX', 'Count'])
 	"""
 	course2KeysList.sort(key=itemgetter(1), reverse=False)
 	worksheet = workbook.add_worksheet('Course2 Count')
@@ -368,13 +368,13 @@ def CourseListSheet(workbook, worksheet, courseListSheetName, myformat, courseLi
 			worksheet.write_row(rowcnt,0,row,myformat)
 			rowcnt+=1
 
-def CourseCountSheet(courseKeys, courseDict, sortKeyIndex, workbook, worksheet, sheetName, myformat):
+def CourseCountSheet(courseKeys, courseDict, sortKeyIndex, workbook, worksheet, sheetName, myformat, header):
 	courseKeys.sort(key=itemgetter(1), reverse=False)
 	worksheet = workbook.add_worksheet(sheetName)
-	worksheet.write_row(0,11,CourseCountInYear(courseKeys),myformat)
+	worksheet.write_row(0,8,CourseCountInYear(courseKeys),myformat)
 	rowcnt = 1
 	for row in courseKeys:
-		worksheet.write_row(rowcnt,11,row,myformat)
+		worksheet.write_row(rowcnt,8,row,myformat)
 		rowcnt+=1
 
 	rowcnt = 0
@@ -398,9 +398,9 @@ def CourseCountSheet(courseKeys, courseDict, sortKeyIndex, workbook, worksheet, 
 		singleLineList.append([v[0][sortKeyIndex[2]] + ' ' + v[0][sortKeyIndex[3]], formSingleLineCourses(c1List), count])
 
 	rowcnt = 2
-	for item in singleLineList:
+	for item in [header]+singleLineList:
 		print item
-		worksheet.write_row(rowcnt,14,item,myformat)
+		worksheet.write_row(rowcnt,11,item,myformat)
 		rowcnt += 1
 
 def formSingleLineCourses(courseList):
