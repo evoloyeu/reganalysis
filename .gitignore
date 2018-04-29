@@ -92,8 +92,9 @@ ENV/
 .DS_Store
 
 # Test
-test.py
+test*.py
 
 # csv
 *.csv
 *.xlsx
+

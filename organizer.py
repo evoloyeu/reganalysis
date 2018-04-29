@@ -15,6 +15,14 @@ pindex = 5
 pvindex = 6
 stderrindex = 7
 
+myPointPickListX = []
+myCoefficientPickListX = []
+myPxyPickListX = []
+
+myPointPickListY = []
+myCoefficientPickListY = []
+myPxyPickListY = []
+
 wList = [1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5]
 
 # sort the courses 
@@ -263,11 +271,21 @@ def CourseMaximumFactorSheet(workbook, sheetNames, myformat, courseKeys, courseD
 		worksheet.write_row(rowcnt,0,row,myformat)
 		rowcnt+=1
 	# _XY_PICK
+
+	pxyPickList = reversePxyForCourseY(pxyPickList, flag)
 	worksheet = workbook.add_worksheet(sheetNames[3])
 	rowcnt = 0
-	for row in pxyPickList:
+	for row in [['CourseX', 'CourseY']]+pxyPickList:
 		worksheet.write_row(rowcnt,0,row,myformat)
 		rowcnt+=1
+
+	copyPickLists(flag, pointPickList, coefficientPickList, pxyPickList)
+
+def reversePxyForCourseY(pxyPickList, flag):
+	if flag == 0:
+		return pxyPickList
+	if flag == 1:
+		return [list(reversed(i)) for i in pxyPickList]
 
 def ComputePxy(keycourse, courseList, sortIndex, flag):
 	if len(courseList) == 1:
@@ -429,5 +447,35 @@ def CourseCountInYear(courseList):
 			y4+=1
 
 	return ['y1', y1, 'y2', y2, 'y3', y3, 'y4', y4, 'sum', y1+y2+y3+y4]
+
+def copyPickLists(flag, pointPickList, coefficientPickList, pxyPickList):
+	# by courseX
+	if flag == 0:
+		del myPointPickListX[:]
+		del myCoefficientPickListX[:]
+		del myPxyPickListX[:]
+
+		for item in pointPickList:
+			myPointPickListX.append(item)
+		for item in coefficientPickList:
+			myCoefficientPickListX.append(item)
+		for item in pxyPickList:
+			myPxyPickListX.append(item)
+
+	# by courseY
+	if flag == 1:
+		del myPointPickListY[:]
+		del myCoefficientPickListY[:]
+		del myPxyPickListY[:]
+
+		for item in pointPickList:
+			myPointPickListY.append(item)
+		for item in coefficientPickList:
+			myCoefficientPickListY.append(item)
+		for item in pxyPickList:
+			myPxyPickListY.append(item)
+
+def pickedCoursePairList():
+	return [[myPointPickListX, myCoefficientPickListX, myPxyPickListX], [myPointPickListY, myCoefficientPickListY, myPxyPickListY]]
 
 # courseOrganizer(sys.argv[1])

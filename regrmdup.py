@@ -7,7 +7,7 @@ from matplotlib.ticker import MultipleLocator
 from scipy.stats import pearsonr, linregress, skew
 from operator import itemgetter
 from collections import Counter
-import organizer
+import organizer, predictionCollector
 # from matplotlib import rcParams
 # rcParams.update({'figure.autolayout': True})
 
@@ -195,7 +195,8 @@ class prepross(object):
 			if proPredictor == 'ALL':
 				self.computeALL()
 			else:
-				self.computeSpecific()
+				pass
+				# self.computeSpecific()
 
 	def predicting4ALL(self):
 		# predicting
@@ -293,6 +294,11 @@ class prepross(object):
 				# self.predicting4ALL(self.wdict[self.threshold][len(self.trainYrs)], 1.0)
 				self.predicting4ALL()
 				self.mergePrecision4ALL(self.trainYrsText, self.linearPredictResultsListALL+self.quadrPredictResultsListALL, self.factor)
+
+				# ==================================================================================================================== #
+				# collect prediction results
+				predictionCollector.rawResultCollector(self.trainYrsText, self.factor, self.linearPredictResultsListALL)
+				# ==================================================================================================================== #
 
 				# merge MAEs, Ranges
 				MRFiles, accRets, maeRets = self.mergeMAEsRangesManager()
