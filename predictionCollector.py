@@ -11,8 +11,12 @@ sheetDict = {
 	'2010-2014':['2015']
 }
 
-h1 = ['xSubj', 'xNum', 'ySubj', 'yNum', '#', 'r', 'Pxy', 'instance',	'0~0.5', '%', '0.5~1.0', '%', '0~1.0', '%', '1.0~1.5', '%', 'gt1.5', '%']
-h2 = ['xSubj', 'xNum', 'ySubj', 'yNum', '#', 'r', 'instance',	'0~0.5', '%', '0.5~1.0', '%', '0~1.0', '%', '1.0~1.5', '%', 'gt1.5', '%']
+# h1 = ['CourseX', 'CourseY', '#', 'r', 'Pxy', 'instance',	'0~0.5', '%', '0.5~1.0', '%', '0~1.0', '%', '1.0~1.5', '%', 'gt1.5', '%']
+# 			0	1	2	3	   4	5	  6		   7			8	  9	      10	  11	 12		13		14		15 		16	  17
+# h2 = ['CourseX', 'CourseY', '#', 'r', 'instance',	'0~0.5', '%', '0.5~1.0', '%', '0~1.0', '%', '1.0~1.5', '%', 'gt1.5', '%']
+# 			0	1	2	3	   4	5	  6		       7	  8			9	  10	 11		12		13	    14		15	  16
+h1 = ['CourseX', 'CourseY', 'instance',	'0~1.0', '%']
+h2 = ['CourseX', 'CourseY', 'instance',	'0~1.0', '%']
 accHeader = []
 
 def rawResultCollector(trainYrsText, factor, resultList):
@@ -74,8 +78,16 @@ def searchAllAccByPredictors(pickListsX, pickListsY, accList, factor):
 	xAccList = searchAccByPredictors(accList, xPredictors)
 	yAccList = searchAccByPredictors(accList, yPredictors)
 
-	xAccList  = [[factor], accHeader]+xAccList
-	yAccList  = [['YPoint'], accHeader]+yAccList
+	# merge the course and num
+	if factor == 'PR':
+		xAccList = [[x[0]+' '+x[1], x[2]+' '+x[3], x[7], x[12], x[13]] for x in xAccList]
+		yAccList = [[x[0]+' '+x[1], x[2]+' '+x[3], x[7], x[12], x[13]] for x in yAccList]
+	else:
+		xAccList = [[x[0]+' '+x[1], x[2]+' '+x[3], x[6], x[11], x[12]] for x in xAccList]
+		yAccList = [[x[0]+' '+x[1], x[2]+' '+x[3], x[6], x[11], x[12]] for x in yAccList]
+
+	xAccList  = [['X'], accHeader]+xAccList
+	yAccList  = [['Y'], accHeader]+yAccList
 
 	return [xAccList, yAccList]
 
