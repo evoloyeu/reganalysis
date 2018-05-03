@@ -273,13 +273,35 @@ def CourseMaximumFactorSheet(workbook, sheetNames, myformat, courseKeys, courseD
 	# _XY_PICK
 
 	pxyPickList = reversePxyForCourseY(pxyPickList, flag)
+	pxyPickList = integratePxyPickedRow(pxyPickList, flag, courseDict)
 	worksheet = workbook.add_worksheet(sheetNames[3])
 	rowcnt = 0
-	for row in [['CourseX', 'CourseY']]+pxyPickList:
+	for row in [newHeader]+pxyPickList:
 		worksheet.write_row(rowcnt,0,row,myformat)
 		rowcnt+=1
 
 	copyPickLists(flag, pointPickList, coefficientPickList, pxyPickList)
+
+def integratePxyPickedRow(pxyPickedList, flag, rowListDict):
+	retList = []
+	# CourseX
+	if flag == 0:
+		for item in pxyPickedList:
+			coursex = ''.join(item[0].split(' '))
+			coursey = ''.join(item[1].split(' '))
+			if rowListDict.has_key(coursex):
+				temp = [row for row in rowListDict[coursex] if ((row[0]+row[1]) == coursex) and ((row[2]+row[3]) == coursey)][0]
+				retList.append(item+temp[4:])
+	# CourseY
+	if flag == 1:
+		for item in pxyPickedList:
+			coursex = ''.join(item[0].split(' '))
+			coursey = ''.join(item[1].split(' '))
+			if rowListDict.has_key(coursey):
+				temp = [row for row in rowListDict[coursey] if ((row[0]+row[1]) == coursex) and ((row[2]+row[3]) == coursey)][0]
+				retList.append(item+temp[4:])
+
+	return retList
 
 def reversePxyForCourseY(pxyPickList, flag):
 	if flag == 0:
