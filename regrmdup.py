@@ -8,6 +8,7 @@ from scipy.stats import pearsonr, linregress, skew
 from operator import itemgetter
 from collections import Counter
 import organizer, predictionCollector
+from os.path import expanduser
 # from matplotlib import rcParams
 # rcParams.update({'figure.autolayout': True})
 
@@ -47,8 +48,7 @@ class prepross(object):
 		self.allTechCrs = path+'techcourses/'+'technicalCourse.csv'
 		self.availableTechCrsList, self.techList = [],[]
 
-		# self.timeDir = path+time.strftime('%Y%m%d')+'/'
-		self.timeDir = '/Users/rexlei/Google Drive/'+time.strftime('%Y%m%d')+'/' 
+		self.timeDir = expanduser("~")+'/Google Drive/'+time.strftime('%Y%m%d')+'/'
 		# No specific predictor
 		if self.proPredictor == 'ALL':
 			if len(self.trainYrs) > 1:
