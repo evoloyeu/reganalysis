@@ -42,6 +42,29 @@ class commonVariables(object):
 		return [splitPath+'reg2010-2011.csv', splitPath+'reg2010-2012.csv', splitPath+'reg2010-2013.csv', splitPath+'reg2010-2014.csv']
 
 
+	def getMergedXCourseLinearOriginCorrPredictionResultsForAllTrainingSets(self):
+		return self.getCurrentTopDirectory()+'mergedXCourseLinearOriginCorrPredictionAcc4AllTrainingSets.csv'
+
+	def getMergedXCourseQuaOriginCorrPredictionResultsForAllTrainingSets(self):
+		return self.getCurrentTopDirectory()+'mergedXCourseQuaOriginCorrPredictionAcc4AllTrainingSets.csv'
+
+	def getMergedXCourseLinearFilteredCorrPredictionResultsForAllTrainingSets(self):
+		return self.getCurrentTopDirectory()+'mergedXCourseLinearFilteredCorrPredictionAcc4AllTrainingSets.csv'
+
+	def getMergedXCourseQuaFilteredCorrPredictionResultsForAllTrainingSets(self):
+		return self.getCurrentTopDirectory()+'mergedXCourseQuaFilteredCorrPredictionAcc4AllTrainingSets.csv'
+
+	def getMergedYCourseLinearOriginCorrPredictionResultsForAllTrainingSets(self):
+		return self.getCurrentTopDirectory()+'mergedYCourseLinearOriginCorrPredictionAcc4AllTrainingSets.csv'
+
+	def getMergedYCourseQuaOriginCorrPredictionResultsForAllTrainingSets(self):
+		return self.getCurrentTopDirectory()+'mergedYCourseQuaOriginCorrPredictionAcc4AllTrainingSets.csv'
+
+	def getMergedYCourseLinearFilteredCorrPredictionResultsForAllTrainingSets(self):
+		return self.getCurrentTopDirectory()+'mergedYCourseLinearFilteredCorrPredictionAcc4AllTrainingSets.csv'
+
+	def getMergedYCourseQuaFilteredCorrPredictionResultsForAllTrainingSets(self):
+		return self.getCurrentTopDirectory()+'mergedYCourseQuaFilteredCorrPredictionAcc4AllTrainingSets.csv'
 	# Variables for specific training dataset
 	def getCurrentTrainingSetTestingSets(self, trainingSet):
 		splitPath = self.getSplitDataDirectory()
@@ -167,6 +190,18 @@ class commonVariables(object):
 			os.makedirs(path)
 		return path
 
+	def getCurrentTraingSetMergedTestingSet(self, trainingSet):
+		splitPath = self.getSplitDataDirectory()
+		trainingSetTimeSlotString = self.getCurrentTrainingSetTimeSlotString(trainingSet)
+		if trainingSetTimeSlotString == '2010-2011':
+			return splitPath+'reg2012-2015.csv'
+		if trainingSetTimeSlotString == '2010-2012':
+			return splitPath+'reg2013-2015.csv'
+		if trainingSetTimeSlotString == '2010-2013':
+			return splitPath+'reg2014-2015.csv'
+		if trainingSetTimeSlotString == '2010-2014':
+			return splitPath+'reg2015.csv'
+
 	def getCurrentTrainingSetAvailableTechCourses(self, trainingSet):
 		availableTechCrsList = []
 		techList = self.getAllTechCursesFromSchedules()
@@ -274,6 +309,6 @@ class commonVariables(object):
 	def getCurrentTrainingSetNoCorrelationCourseFrequencyFile(self, trainingSet):
 		return self.getCurrentTrainingSetNoCorrelationCourseDirectory(trainingSet)+'no_corr_list_fre.csv'
 
-fileNameList = ['REPL.csv', 'NODUP.csv', 'TECH_NODUP.csv', 'CRSPERSTU.csv', 'STUREGISTERED.csv', 'EMPTY.csv', 'EMPTY_STU.csv', 'EMPTY_CRS.csv', 'CRS_STU.csv', 'CRS_STU_GRADE.csv', 'NODUP_REPL.csv', 'STU_CRS.csv', 'STU_CRS_GRADE.csv', 'CRS_MATRIX.csv', 'DISCARD.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv', 'CRS_PAIRS.csv']
+# fileNameList = ['REPL.csv', 'NODUP.csv', 'TECH_NODUP.csv', 'CRSPERSTU.csv', 'STUREGISTERED.csv', 'EMPTY.csv', 'EMPTY_STU.csv', 'EMPTY_CRS.csv', 'CRS_STU.csv', 'CRS_STU_GRADE.csv', 'NODUP_REPL.csv', 'STU_CRS.csv', 'STU_CRS_GRADE.csv', 'CRS_MATRIX.csv', 'DISCARD.csv', 'uniCourseList.csv', 'uniTechCrsList.csv', 'TECH.csv', 'nan.csv', 'CRS_PAIRS.csv']
 
 

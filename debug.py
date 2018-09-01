@@ -1,16 +1,8 @@
 #!/usr/bin/env python
-import rawData, sys, variables
+import variables
 import preprocessCurrentTrainingSet as preprocess
 import predictCurrentTestingSet as predict
-
-# import platform
-# print platform.python_version()
-
-# split the raw reg and deg datasets into single year data lists
-prepare = rawData.splitRawData(sys.argv)
-prepare.doBatch()
-# obtain the reg, deg lists as well as the year list and the raw reg, deg datasets
-# regFileList, degFileList, yearList, regcsv, degcsv = prepare.splitedRawData()
+import aggregatePredictionResults as agrregator
 
 commVars = variables.commonVariables()
 
@@ -19,7 +11,7 @@ for trainingSet in commVars.getTrainingSets():
 	preprocess.preprocessCurrentTrainingSet().preprocess(trainingSet)
 	testingSets = commVars.getCurrentTrainingSetTestingSets(trainingSet)
 	for testingSet in testingSets:
-		
+
 		test_CRS_STU = commVars.getCurrentTestingSetCourseStudentMatrixFileWithBlanks(trainingSet, testingSet)
 		corrFile = commVars.getCurrentTrainingSetCorrelationFile(trainingSet)
 		corrFilteredFile = commVars.getCurrentTrainingSetCorrelationFileFilteredByPValue(trainingSet)
@@ -35,6 +27,27 @@ for trainingSet in commVars.getTrainingSets():
 		corrQuaFilteredPredictionResult = commVars.getCurrentTestingSetQuadraticPredictionFilteredResultFile(trainingSet, testingSet)
 		predict.predictCurrentTestingSet().createPredictionResults(test_CRS_STU, corrQuaPredictionResult, 2, corrFile)
 		predict.predictCurrentTestingSet().createPredictionResults(test_CRS_STU, corrQuaFilteredPredictionResult, 2, corrFilteredFile)
+
+
+xlinearOrigin = commVars.getMergedXCourseLinearOriginCorrPredictionResultsForAllTrainingSets()
+xquaorigin = commVars.getMergedXCourseQuaOriginCorrPredictionResultsForAllTrainingSets()
+xlinearfiltered = commVars.getMergedXCourseLinearFilteredCorrPredictionResultsForAllTrainingSets()
+xquafiltered = commVars.getMergedXCourseQuaFilteredCorrPredictionResultsForAllTrainingSets()
+
+ylinearorigin = commVars.getMergedYCourseLinearOriginCorrPredictionResultsForAllTrainingSets()
+yquaorigin = commVars.getMergedYCourseQuaOriginCorrPredictionResultsForAllTrainingSets()
+ylinearfiltered = commVars.getMergedYCourseLinearFilteredCorrPredictionResultsForAllTrainingSets()
+yquafiltered = commVars.getMergedYCourseQuaFilteredCorrPredictionResultsForAllTrainingSets()
+
+agrregator.aggregatePredictionResults().mergeMergedTestingSetsPredictionResults(xlinearOrigin, 0, 1, 3, 4, 'L', 'O')
+agrregator.aggregatePredictionResults().mergeMergedTestingSetsPredictionResults(xquaorigin, 0, 1, 3, 4, 'Q', 'O')
+agrregator.aggregatePredictionResults().mergeMergedTestingSetsPredictionResults(xlinearfiltered, 0, 1, 3, 4, 'L', 'F')
+agrregator.aggregatePredictionResults().mergeMergedTestingSetsPredictionResults(xquafiltered, 0, 1, 3, 4, 'Q', 'F')
+
+agrregator.aggregatePredictionResults().mergeMergedTestingSetsPredictionResults(ylinearorigin, 2, 3, 1, 2, 'L', 'O')
+agrregator.aggregatePredictionResults().mergeMergedTestingSetsPredictionResults(yquaorigin, 2, 3, 1, 2, 'Q', 'O')
+agrregator.aggregatePredictionResults().mergeMergedTestingSetsPredictionResults(ylinearfiltered, 2, 3, 1, 2, 'L', 'F')
+agrregator.aggregatePredictionResults().mergeMergedTestingSetsPredictionResults(yquafiltered, 2, 3, 1, 2, 'Q', 'F')
 
 # print the current top directory
 # print variables.commonVariables().getCurrentTopDirectory()
