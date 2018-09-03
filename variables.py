@@ -43,28 +43,28 @@ class commonVariables(object):
 
 
 	def getMergedXCourseLinearOriginCorrPredictionResultsForAllTrainingSets(self):
-		return self.getCurrentTopDirectory()+'mergedXCourseLinearOriginCorrPredictionAcc4AllTrainingSets.csv'
+		return self.getCurrentTopDirectory()+'mergedXCourseLinearOriginCorrPredictionAcc4AllTrainingSets.xlsx'
 
 	def getMergedXCourseQuaOriginCorrPredictionResultsForAllTrainingSets(self):
-		return self.getCurrentTopDirectory()+'mergedXCourseQuaOriginCorrPredictionAcc4AllTrainingSets.csv'
+		return self.getCurrentTopDirectory()+'mergedXCourseQuaOriginCorrPredictionAcc4AllTrainingSets.xlsx'
 
 	def getMergedXCourseLinearFilteredCorrPredictionResultsForAllTrainingSets(self):
-		return self.getCurrentTopDirectory()+'mergedXCourseLinearFilteredCorrPredictionAcc4AllTrainingSets.csv'
+		return self.getCurrentTopDirectory()+'mergedXCourseLinearFilteredCorrPredictionAcc4AllTrainingSets.xlsx'
 
 	def getMergedXCourseQuaFilteredCorrPredictionResultsForAllTrainingSets(self):
-		return self.getCurrentTopDirectory()+'mergedXCourseQuaFilteredCorrPredictionAcc4AllTrainingSets.csv'
+		return self.getCurrentTopDirectory()+'mergedXCourseQuaFilteredCorrPredictionAcc4AllTrainingSets.xlsx'
 
 	def getMergedYCourseLinearOriginCorrPredictionResultsForAllTrainingSets(self):
-		return self.getCurrentTopDirectory()+'mergedYCourseLinearOriginCorrPredictionAcc4AllTrainingSets.csv'
+		return self.getCurrentTopDirectory()+'mergedYCourseLinearOriginCorrPredictionAcc4AllTrainingSets.xlsx'
 
 	def getMergedYCourseQuaOriginCorrPredictionResultsForAllTrainingSets(self):
-		return self.getCurrentTopDirectory()+'mergedYCourseQuaOriginCorrPredictionAcc4AllTrainingSets.csv'
+		return self.getCurrentTopDirectory()+'mergedYCourseQuaOriginCorrPredictionAcc4AllTrainingSets.xlsx'
 
 	def getMergedYCourseLinearFilteredCorrPredictionResultsForAllTrainingSets(self):
-		return self.getCurrentTopDirectory()+'mergedYCourseLinearFilteredCorrPredictionAcc4AllTrainingSets.csv'
+		return self.getCurrentTopDirectory()+'mergedYCourseLinearFilteredCorrPredictionAcc4AllTrainingSets.xlsx'
 
 	def getMergedYCourseQuaFilteredCorrPredictionResultsForAllTrainingSets(self):
-		return self.getCurrentTopDirectory()+'mergedYCourseQuaFilteredCorrPredictionAcc4AllTrainingSets.csv'
+		return self.getCurrentTopDirectory()+'mergedYCourseQuaFilteredCorrPredictionAcc4AllTrainingSets.xlsx'
 	# Variables for specific training dataset
 	def getCurrentTrainingSetTestingSets(self, trainingSet):
 		splitPath = self.getSplitDataDirectory()

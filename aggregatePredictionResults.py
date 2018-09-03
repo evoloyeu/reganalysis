@@ -38,12 +38,23 @@ class aggregatePredictionResults(object):
 				else:
 					crsAccDict[key] = [[trainingSetTimeSlotStr] + row]
 
-		w = csv.writer(open(mergedCrsAccFile, 'w'))
+		
+		workbook = xlsxwriter.Workbook(mergedCrsAccFile)
+		myformat = workbook.add_format({'align':'center_across'})
+		worksheetALL, rowcntALL = workbook.add_worksheet('ALL'), 0
+
+		# w = csv.writer(open(mergedCrsAccFile, 'w'))
 		for key, value in crsAccDict.items():
 			valueDict = self.groupCourses(value, crsSortIndex, numSortIndex)
+			worksheetCrs, rowcntCrs = workbook.add_worksheet(key), 0
 			for vkey, vvalue in valueDict.items():
 				vvalue.sort(key=itemgetter(9), reverse=True)
-				w.writerows([['TrainingSet']+header]+vvalue+[''])
+				for row in [['TrainingSet']+header]+vvalue+['']:
+					worksheetALL.write_row(rowcntALL,0,row,myformat)
+					worksheetCrs.write_row(rowcntCrs,0,row,myformat)
+					rowcntALL += 1
+					rowcntCrs += 1
+				# w.writerows([['TrainingSet']+header]+vvalue+[''])
 
 
 	def groupCourses(self, values, crsSortIndex, numSortIndex):
