@@ -42,6 +42,7 @@ class aggregatePredictionResults(object):
 		workbook = xlsxwriter.Workbook(mergedCrsAccFile)
 		myformat = workbook.add_format({'align':'center_across'})
 		worksheetALL, rowcntALL = workbook.add_worksheet('ALL'), 0
+		worksheetOver70, ge70Cnt, ge70List = workbook.add_worksheet('ge70%'), 0, []
 
 		# w = csv.writer(open(mergedCrsAccFile, 'w'))
 		for key, value in crsAccDict.items():
@@ -54,8 +55,14 @@ class aggregatePredictionResults(object):
 					worksheetCrs.write_row(rowcntCrs,0,row,myformat)
 					rowcntALL += 1
 					rowcntCrs += 1
+					print row
+					if len(row) > 0 and row[9] != '%' and float(row[9]) >= 70.0:
+						ge70List.append(row)
 				# w.writerows([['TrainingSet']+header]+vvalue+[''])
 
+		for row in [['TrainingSet']+header] + ge70List:
+			worksheetOver70.write_row(ge70Cnt,0,row,myformat)
+			ge70Cnt += 1
 
 	def groupCourses(self, values, crsSortIndex, numSortIndex):
 		valueDict = {}
