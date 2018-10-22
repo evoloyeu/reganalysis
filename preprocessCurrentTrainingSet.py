@@ -51,8 +51,49 @@ class preprocessCurrentTrainingSet(object):
 		filteredCorrFile = comVars.getCurrentTrainingSetCorrelationFileFilteredByPValue(trainingSet)
 		self.createFilteredCorrelationFile(0.05, pearsonCorrFile, filteredCorrFile)
 
+		# create predictor xlsx
+		organizer.courseOrganizer(filteredCorrFile)
+
+		# create predictor files
+		self.createPredictorFiles(trainingSet)
+
 		# compute simple stats for testing sets
 		self.createCurrentTestingSetsSimpleStats(trainingSet)
+
+
+	def createPredictorFiles(self, trainingSet):
+		courseXCoefficientPredictorFile = comVars.getCurrentTrainingSetPredictorsFile(trainingSet, 'X', 'R')
+		courseXEnrolmentPredictorFile = comVars.getCurrentTrainingSetPredictorsFile(trainingSet, 'X', '#')
+		courseXPxyPredictorFile = comVars.getCurrentTrainingSetPredictorsFile(trainingSet, 'X', 'Pxy')
+
+		courseYCoefficientPredictorFile = comVars.getCurrentTrainingSetPredictorsFile(trainingSet, 'Y', 'R')
+		courseYEnrolmentPredictorFile = comVars.getCurrentTrainingSetPredictorsFile(trainingSet, 'Y', '#')
+		courseYPxyPredictorFile = comVars.getCurrentTrainingSetPredictorsFile(trainingSet, 'Y', 'Pxy')
+
+		# fetch predictors from both CourseX and CourseY
+		pickListsX, pickListsY = organizer.pickedCoursePairList()
+		enrolmentPredictorsX, coefficientPredictorsX, pxyPredictorsX = pickListsX
+		enrolmentPredictorsY, coefficientPredictorsY, pxyPredictorsY = pickListsY
+		print '****************************** Start: Predictors *******************************************'
+		print 'enrolmentPredictorsX:', len(enrolmentPredictorsX)
+		print '****************************** End: Predictors *********************************************'
+
+		self.writePredictorsToFile(courseXCoefficientPredictorFile, [self.getCorrelationFileHeader()]+[row[0].split(' ')+row[1].split(' ')+row[2:] for row in coefficientPredictorsX])
+		self.writePredictorsToFile(courseXEnrolmentPredictorFile, [self.getCorrelationFileHeader()]+[row[0].split(' ')+row[1].split(' ')+row[2:] for row in enrolmentPredictorsX])
+		self.writePredictorsToFile(courseXPxyPredictorFile, [self.getCorrelationFileHeader()]+[row[0].split(' ')+row[1].split(' ')+row[2:] for row in pxyPredictorsX])
+
+		self.writePredictorsToFile(courseYCoefficientPredictorFile, [self.getCorrelationFileHeader()]+[row[0].split(' ')+row[1].split(' ')+row[2:] for row in coefficientPredictorsY])
+		self.writePredictorsToFile(courseYEnrolmentPredictorFile, [self.getCorrelationFileHeader()]+[row[0].split(' ')+row[1].split(' ')+row[2:] for row in enrolmentPredictorsY])
+		self.writePredictorsToFile(courseYPxyPredictorFile, [self.getCorrelationFileHeader()]+[row[0].split(' ')+row[1].split(' ')+row[2:] for row in pxyPredictorsY])
+
+
+	def writePredictorsToFile(self, file, rows):
+		with open(file, 'w') as csvfile:
+		    spamwriter = csv.writer(csvfile)
+		    spamwriter.writerows(rows)
+
+	def getCorrelationFileHeader(self):
+		return ['xsubCode','xnum','ysubCode','ynum','coefficient','#points','pValue','stderr','slope','intercept','a','b','c','R^2','xmin','xmax']
 
 	def createUniqueRegSAS(self, trainingSet, noDupRegFile):
 		r, w = csv.reader(open(trainingSet), delimiter=','), csv.writer(open(noDupRegFile, 'w'))
@@ -714,5 +755,19 @@ class preprocessCurrentTrainingSet(object):
 			STU_CRS_GRADE = comVars.getCurrentTestingSetStudentCourseMatrixWithoutBlanks(trainingSet, testingSet)
 			self.createSimpleStats(uniqueTechCourseFile, CRSPERSTU, STUREGISTERED, CRS_STU, CRS_STU_GRADE, STU_CRS, STU_CRS_GRADE)
 
+	def mergePredictionResults(self, trainingSet, factor, LinearQuadra):		
+		xlsx = comVars.getCurrentTrainingSetMergedPredictionResultsFile(trainingSet, factor, LinearQuadra)
+		workbook = xlsxwriter.Workbook(xlsx)
+		myformat = workbook.add_format({'align':'center_across'})
 
-
+		testingSets = comVars.getCurrentTrainingSetTestingSets(trainingSet)
+		for courseXY in ['X', 'Y']:
+			for testingSet in testingSets:
+				testingTimeSlotString = comVars.getCurrentTestingSetTimeSlotString(testingSet)
+				resultFile = comVars.getCurrentTestingSetPredictionResultFile(trainingSet, testingSet, courseXY, factor, LinearQuadra)
+				r = csv.reader(open(resultFile), delimiter=',')
+				cnt = 0
+				worksheet = workbook.add_worksheet(testingTimeSlotString+factor+courseXY)
+				for row in r:
+					worksheet.write_row(cnt,0,row,myformat)
+					cnt += 1

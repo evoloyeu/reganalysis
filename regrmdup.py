@@ -94,7 +94,7 @@ class prepross(object):
 			if not os.path.exists(item):
 				os.makedirs(item)
 
-		self.pairsFrequency, self.pearsoncorr, self.skewness = self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv', self.dataDir+'skewness.csv'
+		self.pairsFrequency, self.pearsoncorr, self.skewness, self.cutoffAccepted = self.dataDir+'pairsFrequency.csv', self.dataDir+'pearsonCorr.csv', self.dataDir+'skewness.csv', self.dataDir+'cutoffAccepted.csv'
 		if self.proPredictor == 'ALL':
 			self.degDataPath, self.regDataPath = self.splitsDir+'deg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv', self.splitsDir+'reg'+self.trainYrs[0]+'-'+self.trainYrs[-1]+'.csv'
 			self.top1pFactors, self.top3pFactors = self.dataDir + 'T1F_P_' + self.trainYrsText +'.csv', self.dataDir + 'T3F_P_' + self.trainYrsText +'.csv'

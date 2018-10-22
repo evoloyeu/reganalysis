@@ -29,13 +29,14 @@ wList = [1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5]
 def courseOrganizer(src):
 	print '\n\n\n*******************************************\n'+src+'\n'
 	path = src.split('/')
+	trainText = path[-3]
 	filenameWithoutExtension = path[-1].split('.')[0]
 	path = '/'.join(path[0:-1])
 	print path, '\n'
 	print filenameWithoutExtension, '\n'
 
-	if not (filenameWithoutExtension == 'skewness'):
-		return
+	# if not (filenameWithoutExtension == 'skewness'):
+	# 	return
 	# ==========================================================================================================================
 	# create Course2 Count sheet
 	# ==========================================================================================================================
@@ -50,6 +51,8 @@ def courseOrganizer(src):
 	for row in r:
 		p_value = row[6]
 		r = row[4]
+		row[4] = float(row[4])
+		row[5] = int(row[5])
 		if (float(p_value) <= cutoff) and (abs(float(r)) != 1.0):
 			reservedList.append(row)
 			course1 = row[0]+row[1]
@@ -69,7 +72,7 @@ def courseOrganizer(src):
 	# ==========================================================================================================================
 	# create Course2 Count sheet
 	# ==========================================================================================================================
-	xlsx = path+'/'+filenameWithoutExtension+'.xlsx'
+	xlsx = path+'/'+trainText+'_'+filenameWithoutExtension+'.xlsx'
 	workbook = xlsxwriter.Workbook(xlsx)
 	myformat = workbook.add_format({'align':'center_across'})
 
@@ -212,26 +215,26 @@ def CourseMaximumFactorSheet(workbook, sheetNames, myformat, courseKeys, courseD
 		maxCoefficientRowRaw = [row for row in v if abs(float(row[4]))==maxR]
 		# courseX
 		maxCoefficientRows = []
-		if flag == 0:
-			for row in maxCoefficientRowRaw:
-				maxCoefficientRows.append([row[0]+' '+row[1], row[2]+' '+row[3]]+row[4:])
-		# courseY
-		if flag == 1:
+		# if flag == 0:
+		# 	for row in maxCoefficientRowRaw:
+		# 		maxCoefficientRows.append([row[0]+' '+row[1], row[2]+' '+row[3]]+row[4:])
+		# # courseY
+		# if flag == 1:
 			# find the smallest course number of courseX
-			maxCoefficientRowRaw.sort(key=itemgetter(1), reverse=False)
-			maxCoefficientRows = [[maxCoefficientRowRaw[0][0]+' '+maxCoefficientRowRaw[0][1], maxCoefficientRowRaw[0][2]+' '+maxCoefficientRowRaw[0][3]]+maxCoefficientRowRaw[0][4:]]
+		maxCoefficientRowRaw.sort(key=itemgetter(sortIndex[1]), reverse=False)
+		maxCoefficientRows = [[maxCoefficientRowRaw[0][0]+' '+maxCoefficientRowRaw[0][1], maxCoefficientRowRaw[0][2]+' '+maxCoefficientRowRaw[0][3]]+maxCoefficientRowRaw[0][4:]]
 
 		# deal with max point
 		v.sort(key=itemgetter(5), reverse=True)
 		maxP = v[0][5]
 		maxPointRowRaw = [row for row in v if row[5]==maxP]
 		maxPointRows = []
-		if flag == 0:
-			for row in maxPointRowRaw:
-				maxPointRows.append([row[0]+' '+row[1], row[2]+' '+row[3]]+row[4:])
-		if flag == 1:
-			maxPointRowRaw.sort(key=itemgetter(1), reverse=False)
-			maxPointRows = [[maxPointRowRaw[0][0]+' '+maxPointRowRaw[0][1], maxPointRowRaw[0][2]+' '+maxPointRowRaw[0][3]]+maxPointRowRaw[0][4:]]
+		# if flag == 0:
+		# 	for row in maxPointRowRaw:
+		# 		maxPointRows.append([row[0]+' '+row[1], row[2]+' '+row[3]]+row[4:])
+		# if flag == 1:
+		maxPointRowRaw.sort(key=itemgetter(sortIndex[1]), reverse=False)
+		maxPointRows = [[maxPointRowRaw[0][0]+' '+maxPointRowRaw[0][1], maxPointRowRaw[0][2]+' '+maxPointRowRaw[0][3]]+maxPointRowRaw[0][4:]]
 		
 		coefficientPickList+=maxCoefficientRows
 		pointPickList+=maxPointRows

@@ -65,6 +65,7 @@ class commonVariables(object):
 
 	def getMergedYCourseQuaFilteredCorrPredictionResultsForAllTrainingSets(self):
 		return self.getCurrentTopDirectory()+'mergedYCourseQuaFilteredCorrPredictionAcc4AllTrainingSets.xlsx'
+	
 	# Variables for specific training dataset
 	def getCurrentTrainingSetTestingSets(self, trainingSet):
 		splitPath = self.getSplitDataDirectory()
@@ -87,7 +88,12 @@ class commonVariables(object):
 			os.makedirs(path)
 		return path
 
+	# prediction results files for courseX or courseY
+	def getCurrentTestingSetPredictionResultFile(self, trainingSet, testingSet, courseXY, factor, linearQuadra):
+		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'_'+courseXY+'_'+factor+'_'+linearQuadra+'_Prediction.csv'
 
+	def getCurrentTrainingSetMergedPredictionResultsFile(self, trainingSet, factor, LinearQuadra):
+		return self.getCurrentTrainingSetDataDirectory(trainingSet)+self.getCurrentTrainingSetTimeSlotString(trainingSet)+'_'+factor+'_'+LinearQuadra+'_Picked.xlsx'
 
 	def getCurrentTestingSetLinearPredictionResultFile(self, trainingSet, testingSet):
 		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'corrPredictionResults_Linear.csv'
@@ -293,6 +299,11 @@ class commonVariables(object):
 
 	def getCurrentTrainingSetCorrelationFileFilteredByPValue(self, trainingSet):
 		return self.getCurrentTrainingSetDataDirectory(trainingSet)+'PearsonCorrFiltered.csv'
+
+	# courseXY: CourseX or CourseY
+	# factor: P: enrolemtn, r: coefficient, pxy: combination of p and r
+	def getCurrentTrainingSetPredictorsFile(self, trainingSet, courseXY, factor):
+		return self.getCurrentTrainingSetDataDirectory(trainingSet)+ self.getCurrentTestingSetTimeSlotString(trainingSet)+'_Predictors_'+courseXY+'_'+factor+'.csv'
 
 	def getCurrentTrainingSetSkewnessFile(self, trainingSet):
 		return self.getCurrentTrainingSetDataDirectory(trainingSet)+'skewness.csv'
