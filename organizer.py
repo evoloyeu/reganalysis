@@ -311,7 +311,7 @@ def reversePxyForCourseY(pxyPickList, flag):
 		return pxyPickList
 	if flag == 1:
 		return [list(reversed(i)) for i in pxyPickList]
-
+# build the predicted course, predicting course and the Pxy list
 def ComputePxy(keycourse, courseList, sortIndex, flag):
 	if len(courseList) == 1:
 		# courseX
@@ -341,6 +341,7 @@ def ComputePxy(keycourse, courseList, sortIndex, flag):
 	# build the pxy matrix
 	pxyList = []
 	for i in xrange(0,len(rList)):
+		# store courseky, predicting course as well as the Pxy
 		temp = [keycourse[0]+' '+keycourse[1],courseList[i][sortIndex[0]]+' '+courseList[i][sortIndex[1]]]
 		for j in xrange(0,len(incrementR)):
 			temp.append(normedPList[i]*incrementP[j]+normedRList[i]*incrementR[j])
@@ -379,6 +380,12 @@ def XYPick(pxyReturnList):
 	for i in xrange(0,len(sumList)):
 		if maxSum == sumList[i]:
 			ret.append([pxyReturnList[i][0], pxyReturnList[i][1]])
+
+	# find the mminimum course number course
+	if len(ret) > 1:
+		tmp = [[row[0]]+row[1].split(' ') for row in ret]
+		tmp.sort(key=itemgetter(2), reverse=False)
+		ret = [[tmp[0][0], tmp[0][1]+' '+tmp[0][2]]]
 
 	# find the max
 	for item in xyArrayList:
