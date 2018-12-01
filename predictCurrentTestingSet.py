@@ -100,8 +100,11 @@ class predictCurrentTestingSet(object):
 			return []
 
 		le_05 = be_05_10 = be_10_15 = gt15 = 0
+		diffsum = 0.0
 		for index in xrange(2,len(ygrades)):
 			diff = abs(float(ygrades[index]) - float(predictedYGrades[index]))
+			# for compute MAE
+			diffsum += diff
 			if abs(float(diff)) <= 0.5:
 					le_05 += 1
 			elif abs(float(diff)) <= 1.0:
@@ -112,13 +115,14 @@ class predictCurrentTestingSet(object):
 					gt15 += 1
 
 		instance = le_05+be_05_10+be_10_15+gt15
+		mae = float(format(diffsum*1.0/instance, '.1'))		
 		# [le_05, float(format(le_05*100.0/instance, '.4')), be_05_10, float(format(be_05_10*100.0/instance, '.4')), le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), be_10_15, float(format(be_10_15*100.0/instance, '.4')), gt15, float(format(gt15*100.0/instance, '.4'))]
 
 		# Total Instance, 0-1.0 Instances, precision
-		return [instance, le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4'))]
+		return [instance, le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), mae]
 
 	def createPredictionResults(self, testReg, predictResults, power, predictorFile):
-		precisionHeader = ['CrsXCode', 'CrsXNum', 'CrsYCode', 'CrsYNum', 'r', '#points', 'Instance', '0~1.0', '%']
+		precisionHeader = ['CrsXCode', 'CrsXNum', 'CrsYCode', 'CrsYNum', 'r', '#points', 'Instance', '0~1.0', '%', 'MAE']
 		writer = csv.writer(open(predictResults, 'w'))
 		writer.writerow(precisionHeader)
 		
