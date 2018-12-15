@@ -89,20 +89,35 @@ class commonVariables(object):
 		return path
 
 	# prediction results files for courseX or courseY
+	def getCurrentTestingSetPredictionGradeResultsFile(self, trainingSet, testingSet, courseXY, factor, linearQuadra):
+		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'_'+courseXY+'_'+factor+'_'+linearQuadra+'_Prediction_Grades.csv'
+
 	def getCurrentTestingSetPredictionResultFile(self, trainingSet, testingSet, courseXY, factor, linearQuadra):
 		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'_'+courseXY+'_'+factor+'_'+linearQuadra+'_Prediction.csv'
 
 	def getCurrentTrainingSetMergedPredictionResultsFile(self, trainingSet, factor, LinearQuadra):
 		return self.getCurrentTrainingSetDataDirectory(trainingSet)+self.getCurrentTrainingSetTimeSlotString(trainingSet)+'_'+factor+'_'+LinearQuadra+'_Picked.xlsx'
 
+	def getCurrentTestingSetLinearPredictionGradeResultFile(self, trainingSet, testingSet):
+		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'corrPredictionResults_Linear_grade.csv'
+
 	def getCurrentTestingSetLinearPredictionResultFile(self, trainingSet, testingSet):
 		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'corrPredictionResults_Linear.csv'
+
+	def getCurrentTestingSetLinearPredictionGradeFilteredResultFile(self, trainingSet, testingSet):
+		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'corrFilteredPredictionResults_Linear_grade.csv'
 
 	def getCurrentTestingSetLinearPredictionFilteredResultFile(self, trainingSet, testingSet):
 		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'corrFilteredPredictionResults_Linear.csv'
 
+	def getCurrentTestingSetQuadraticPredictionGradeResultFile(self, trainingSet, testingSet):
+		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'corrPredictionResults_Qua_grade.csv'
+
 	def getCurrentTestingSetQuadraticPredictionResultFile(self, trainingSet, testingSet):
 		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'corrPredictionResults_Qua.csv'
+
+	def getCurrentTestingSetQuadraticPredictionFilteredGradeResultFile(self, trainingSet, testingSet):
+		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'corrFilteredPredictionResults_Qua_grade.csv'
 
 	def getCurrentTestingSetQuadraticPredictionFilteredResultFile(self, trainingSet, testingSet):
 		return self.getCurrentTestingDirectory(trainingSet, testingSet)+self.getCurrentTestingSetTimeSlotString(testingSet)+'corrFilteredPredictionResults_Qua.csv'

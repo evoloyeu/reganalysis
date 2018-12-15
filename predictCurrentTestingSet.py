@@ -119,13 +119,15 @@ class predictCurrentTestingSet(object):
 		# [le_05, float(format(le_05*100.0/instance, '.4')), be_05_10, float(format(be_05_10*100.0/instance, '.4')), le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), be_10_15, float(format(be_10_15*100.0/instance, '.4')), gt15, float(format(gt15*100.0/instance, '.4'))]
 
 		# Total Instance, 0-1.0 Instances, precision
-		return [instance, le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), mae]
+		return [instance, le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.1')), mae]
 
-	def createPredictionResults(self, testReg, predictResults, power, predictorFile):
+	def createPredictionResults(self, testReg, predictResults, predictGradeResults, power, predictorFile):
 		precisionHeader = ['CrsXCode', 'CrsXNum', 'CrsYCode', 'CrsYNum', 'r', '#points', 'Instance', '0~1.0', '%', 'MAE']
 		writer = csv.writer(open(predictResults, 'w'))
 		writer.writerow(precisionHeader)
 		
+		gw = csv.writer(open(predictGradeResults, 'w'))
+
 		coursePairs = self.createPredictableCourseGradesPairs(predictorFile, testReg)
 		for pair in coursePairs:
 			xgrades, ygrades = pair
@@ -139,9 +141,11 @@ class predictCurrentTestingSet(object):
 				# create prediction formula
 				if power == 1:
 					grade = float(slope)*float(xgrades[index])+float(intercept)
+					grade = float(format(grade, '.1'))
 					predictedYGrades.append(grade)
 				if power == 2:
 					grade = float(a)*pow(float(xgrades[index]), 2)+float(b)*float(xgrades[index])+float(c)
+					grade = float(format(grade, '.1'))
 					predictedYGrades.append(grade)
 
 			acc = self.computePredictionPrecision(ygrades, predictedYGrades)
@@ -152,3 +156,5 @@ class predictCurrentTestingSet(object):
 			corrRow = self.getPredictingPredictedCorrRow(courseX, courseY, predictorFile)
 			precisionRow = corrRow[:6]+acc
 			writer.writerow(precisionRow)
+
+			gw.writerows([ygrades, predictedYGrades, precisionRow, ['']])
