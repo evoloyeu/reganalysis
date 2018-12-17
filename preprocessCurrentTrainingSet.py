@@ -593,7 +593,7 @@ class preprocessCurrentTrainingSet(object):
 		xarray, yarray = np.array(xdata), np.array(ydata)
 		z = np.polyfit(xarray, yarray, power)
 		p = np.poly1d(z)
-
+		'''
 		subj, num = xaxis.split(' ')[:2]
 		subjNew, numNew = yaxis.split(' ')[:2]
 		# create Predicting course folder
@@ -699,6 +699,7 @@ class preprocessCurrentTrainingSet(object):
 
 		fig.savefig(figName)
 		plt.close(fig)
+		'''
 
 		return z
 
