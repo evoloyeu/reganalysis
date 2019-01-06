@@ -115,14 +115,14 @@ class predictCurrentTestingSet(object):
 					gt15 += 1
 
 		instance = le_05+be_05_10+be_10_15+gt15
-		mae = float(format(diffsum*1.0/instance, '.1'))		
+		mae = float(format(diffsum*1.0/instance, '.2'))		
 		# [le_05, float(format(le_05*100.0/instance, '.4')), be_05_10, float(format(be_05_10*100.0/instance, '.4')), le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.4')), be_10_15, float(format(be_10_15*100.0/instance, '.4')), gt15, float(format(gt15*100.0/instance, '.4'))]
 
 		# Total Instance, 0-1.0 Instances, precision
-		return [instance, le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.1')), mae]
+		return [instance, le_05+be_05_10, float(format((le_05+be_05_10)*100.0/instance, '.2')), mae]
 
 	def createPredictionResults(self, testReg, predictResults, predictGradeResults, power, predictorFile):
-		precisionHeader = ['CrsXCode', 'CrsXNum', 'CrsYCode', 'CrsYNum', 'r', '#points', 'Instance', '0~1.0', '%', 'MAE']
+		precisionHeader = ['CrsXCode', 'CrsXNum', 'CrsYCode', 'CrsYNum', 'r', '#points', 'Enrolment', '0~1.0', '%', 'MAE']
 		writer = csv.writer(open(predictResults, 'w'))
 		writer.writerow(precisionHeader)
 		
@@ -141,11 +141,11 @@ class predictCurrentTestingSet(object):
 				# create prediction formula
 				if power == 1:
 					grade = float(slope)*float(xgrades[index])+float(intercept)
-					grade = float(format(grade, '.1'))
+					# grade = float(format(grade, '.2'))
 					predictedYGrades.append(grade)
 				if power == 2:
 					grade = float(a)*pow(float(xgrades[index]), 2)+float(b)*float(xgrades[index])+float(c)
-					grade = float(format(grade, '.1'))
+					# grade = float(format(grade, '.2'))
 					predictedYGrades.append(grade)
 
 			acc = self.computePredictionPrecision(ygrades, predictedYGrades)
